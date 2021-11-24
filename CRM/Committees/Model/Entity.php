@@ -18,5 +18,30 @@
  */
 abstract class CRM_Committees_Model_Entity
 {
+    /** @var string $id */
+    protected $id;
 
+    /** @var array $attributes */
+    protected $attributes;
+
+    /**
+     * Create a new object with the data
+     * @param array $data
+     *  indexed data
+     */
+    public function __construct($data)
+    {
+        $this->id = $data['id'];
+        $this->attributes = $data;
+    }
+
+    /**
+     * Get the entity's ID
+     *
+     * @return string ID
+     */
+    public function getID()
+    {
+        return $this->id;
+    }
 }

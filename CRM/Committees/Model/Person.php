@@ -16,7 +16,7 @@
 /**
  * The committee entity represents a committee member
  */
-class CRM_Committees_Model_Member extends CRM_Committees_Model_Entity
+class CRM_Committees_Model_Person extends CRM_Committees_Model_Entity
 {
 
 }

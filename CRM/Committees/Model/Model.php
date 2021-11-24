@@ -18,5 +18,50 @@
  */
 class CRM_Committees_Model_Model
 {
-    
+
+    /** @var array list of committees, indexed by it's ID */
+    protected $committees = [];
+
+    /** @var array list of persons, indexed by it's ID */
+    protected $persons = [];
+
+    /**
+     * Add a new committee as a data record.
+     * Possible attributes:
+     *  'id'         => committee ID
+     *  'name'       => full name of the committee
+     *  'name_short' => short name of the committee
+     *  'handle'     => short handle, external ID
+     *  'start_date' => date when the committee was/will be created
+     *  'end_date'   => date when the committee was/will be terminated
+     * @param array|CRM_Committees_Model_Committee $data
+     */
+    public function addPerson($data)
+    {
+        // todo: validation?
+        if (is_array($data)) {
+            $data = new CRM_Committees_Model_Person($data);
+        }
+        $this->persons[$data->getID()] = $data;
+    }
+
+    /**
+     * Add a new committee as a data record.
+     * Possible attributes:
+     *  'id'         => committee ID
+     *  'name'       => full name of the committee
+     *  'name_short' => short name of the committee
+     *  'handle'     => short handle, external ID
+     *  'start_date' => date when the committee was/will be created
+     *  'end_date'   => date when the committee was/will be terminated
+     * @param array|CRM_Committees_Model_Committee $data
+     */
+    public function addCommittee($data)
+    {
+        if (is_array($data)) {
+            $data = new CRM_Committees_Model_Committee($data);
+        }
+        // todo: validation?
+        $this->committees[$data->getID()] = $data;
+    }
 }

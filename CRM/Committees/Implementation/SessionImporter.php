@@ -23,11 +23,33 @@ use CRM_Committees_ExtensionUtil as E;
 class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugin_Importer
 {
     // the known sheets
+    const SHEET_GREMIEN  = 'Session_Gremien';
     const SHEET_PERSONEN = 'Session_Personen';
 
     const REQUIRED_SHEETS = [
-        self::SHEET_PERSONEN
+        self::SHEET_PERSONEN,
+        self::SHEET_GREMIEN,
     ];
+
+    const ROW_MAPPING_PERSON = [
+        1 => 'id',
+        2 => 'prefix',
+        3 => 'first_name',
+        4 => 'last_name',
+        5 => 'formal_title',
+    ];
+
+    const ROW_MAPPING_GREMIUM = [
+        1 => 'id',
+        2 => 'handle',
+        3 => 'name_short',
+        4 => 'name',
+        5 => 'start_date',
+        6 => 'end_date',
+    ];
+
+    /** @var array our sheets extracted from the file */
+    private $our_sheets = null;
 
     /**
      * Get the label of the implementation
@@ -116,22 +138,24 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      */
     protected function getRequiredSheets($file_path)
     {
-        $our_sheets = [];
-        $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-        $spreadsheet = $xls_reader->load($file_path);
+        if ($this->our_sheets === null) {
+            $this->our_sheets = [];
+            $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            $spreadsheet = $xls_reader->load($file_path);
 
-        // check if all spreadsheets are there
-        $all_sheets = $spreadsheet->getAllSheets();
-        foreach (self::REQUIRED_SHEETS as $required_sheet) {
-            // find sheet
-            foreach ($all_sheets as $sheet) {
-                if ($sheet->getTitle() == $required_sheet) {
-                    $our_sheets[$required_sheet] = $sheet;
-                    continue;
+            // check if all spreadsheets are there
+            $all_sheets = $spreadsheet->getAllSheets();
+            foreach (self::REQUIRED_SHEETS as $required_sheet) {
+                // find sheet
+                foreach ($all_sheets as $sheet) {
+                    if ($sheet->getTitle() == $required_sheet) {
+                        $this->our_sheets[$required_sheet] = $sheet;
+                        continue;
+                    }
                 }
             }
         }
-        return $our_sheets;
+        return $this->our_sheets;
     }
 
     /**
@@ -146,5 +170,52 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     public function importModel($file_path) : bool
     {
         $sheets = $this->getRequiredSheets($file_path);
+
+        // read gremien
+        $gremien_sheet = $sheets[self::SHEET_GREMIEN];
+        $row_count = $gremien_sheet->getHighestRow();
+        // todo: verify column titles?
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($gremien_sheet, $row_nr, self::ROW_MAPPING_GREMIUM);
+            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
+            $record['end_date'] = empty($record['end_date']) ? '' :
+                date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
+            $this->model->addCommittee($record);
+        }
+
+        // read persons
+        $person_sheet = $sheets[self::SHEET_PERSONEN];
+        $row_count = $person_sheet->getHighestRow();
+        // todo: verify column titles?
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_PERSON);
+            $this->model->addPerson($record);
+        }
+
+        return true;
+    }
+
+    /**
+     * Read a whole row into an named array
+     *
+     * @param object $sheet
+     *   the PhpOffice spreadsheet
+     * @param integer $row_number
+     *   the row number to read
+     * @param array $col2field
+     *   mapping of column number to field name
+     *
+     * @return array
+     *   data set based on the $col2field mapping
+     */
+    protected function readRow($sheet, $row_number, $col2field)
+    {
+        $record = [];
+        foreach ($col2field as $column_number => $field_name) {
+            /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
+            $cell = $sheet->getCellByColumnAndRow($column_number, $row_number, false);
+            $record[$field_name] = trim($cell->getValue());
+        }
+        return $record;
     }
 }
