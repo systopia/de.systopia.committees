@@ -27,6 +27,15 @@ class CRM_Committees_Model_Model
     /** @var array list of addresses, indexed by its ID */
     protected $addresses = [];
 
+    /** @var array list of phones, indexed by its ID */
+    protected $phones = [];
+
+    /** @var array list of emails, indexed by its ID */
+    protected $emails = [];
+
+    /** @var array list of committee memberships, indexed by its ID */
+    protected $memberships = [];
+
     /**
      * Add a new person to the model
      *
@@ -94,7 +103,7 @@ class CRM_Committees_Model_Model
             $data = new CRM_Committees_Model_Address($this, $data);
         }
         // todo: validation?
-        $this->committees[$data->getID()] = $data;
+        $this->addresses[$data->getID()] = $data;
         return $data;
     }
 
@@ -116,7 +125,7 @@ class CRM_Committees_Model_Model
             $data = new CRM_Committees_Model_Email($this, $data);
         }
         // todo: validation?
-        $this->committees[$data->getID()] = $data;
+        $this->emails[$data->getID()] = $data;
         return $data;
     }
 
@@ -138,7 +147,73 @@ class CRM_Committees_Model_Model
             $data = new CRM_Committees_Model_Phone($this, $data);
         }
         // todo: validation?
-        $this->committees[$data->getID()] = $data;
+        $this->phones[$data->getID()] = $data;
         return $data;
+    }
+
+    /**
+     * Add a new address as to the model
+     *
+     * Possible attributes:
+     *
+     *  'id'              => email ID
+     *  'contact_id'      => person or organisation ID
+     *  'committee_id'    => id of a committee
+     *  'title'           => membership title
+     *  'represents'      => Organisation name?
+     *  'start_date'      => when did the membership start?
+     *  'end_date'        => when did the membership end?
+     *
+     * @param array|CRM_Committees_Model_Membership $data
+     */
+    public function addCommitteeMembership($data)
+    {
+        // todo: validation
+        if (is_array($data)) {
+            $data = new CRM_Committees_Model_Phone($this, $data);
+        }
+        $data->validate();
+        $this->memberships[$data->getID()] = $data;
+        return $data;
+    }
+
+
+    /**
+     * Get a membership with the given ID
+     *
+     * @param string $id
+     *   the ID
+     *
+     * @return CRM_Committees_Model_Membership $data
+     */
+    public function getCommitteeMembership($id)
+    {
+        return $this->memberships[$id] ?? null;
+    }
+
+    /**
+     * Get a committee with the given ID
+     *
+     * @param string $id
+     *   the ID
+     *
+     * @return CRM_Committees_Model_Committee $data
+     */
+    public function getCommittee($id)
+    {
+        return $this->committees[$id] ?? null;
+    }
+
+    /**
+     * Get a person with the given ID
+     *
+     * @param string $id
+     *   the ID
+     *
+     * @return CRM_Committees_Model_Person $data
+     */
+    public function getPerson($id)
+    {
+        return $this->persons[$id] ?? null;
     }
 }

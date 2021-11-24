@@ -18,5 +18,4 @@
  */
 class CRM_Committees_Model_Email extends CRM_Committees_Model_Entity
 {
-
 }

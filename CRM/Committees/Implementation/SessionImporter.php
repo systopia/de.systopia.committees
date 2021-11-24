@@ -31,6 +31,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     const REQUIRED_SHEETS = [
         self::SHEET_PERSONEN,
         self::SHEET_GREMIEN,
+        self::SHEET_DETAILS,
+        self::SHEET_MEMBERS,
     ];
 
     const ROW_MAPPING_PERSON = [
@@ -253,6 +255,9 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $row_count = $person_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
+            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
+            $record['end_date'] = empty($record['end_date']) ? '' :
+                date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
             $this->model->addCommitteeMembership($record);
         }
 
@@ -260,7 +265,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     }
 
     /**
-     * Read a whole row into an named array
+     * Read a whole row into a named array
      *
      * @param object $sheet
      *   the PhpOffice spreadsheet

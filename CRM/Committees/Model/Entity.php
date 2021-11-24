@@ -48,6 +48,16 @@ abstract class CRM_Committees_Model_Entity
     }
 
     /**
+     * Validate the given values
+     *
+     * @throws Exception
+     */
+    public function validate()
+    {
+        // overwrite to implement
+    }
+
+    /**
      * Get the entity's ID
      *
      * @return string ID
@@ -55,6 +65,30 @@ abstract class CRM_Committees_Model_Entity
     public function getID()
     {
         return $this->id;
+    }
+
+    /**
+     * Get an attribute of the entity
+     *
+     * @param string $attribute_name
+     *
+     * @return string value
+     */
+    public function getAttribute($attribute_name)
+    {
+        return $this->attributes[$attribute_name] ?? null;
+    }
+
+    /**
+     * Get an attribute of the entity
+     *
+     * @param string $attribute_name
+     *
+     * @param string $value
+     */
+    public function setAttribute(string $attribute_name, string $value)
+    {
+        $this->attributes[$attribute_name] = $value;
     }
 
     /**
