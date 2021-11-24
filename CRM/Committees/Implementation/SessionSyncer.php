@@ -23,6 +23,34 @@ use CRM_Committees_ExtensionUtil as E;
 class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_Syncer
 {
     /**
+     * This function will be called *before* the plugin will do it's work.
+     *
+     * If your implementation has any external dependencies, you should
+     *  register those with the registerMissingRequirement function.
+     *
+     */
+    public function checkRequirements()
+    {
+        // we need the identity tracker
+        if (!$this->extensionAvailable('de.systopia.identitytracker')) {
+            $this->registerMissingRequirement('de.systopia.identitytracker',
+                E::ts("ID Tracker extension missing"),
+                E::ts("Please install the <code>de.systopia.identitytracker</code> extension from <a href='https://github.com/systopia/de.systopia.identitytracker'>here</a>.")
+            );
+        }
+
+        // we need the identity tracker
+        if (!$this->extensionAvailable('de.systopia.xcm')) {
+            $this->registerMissingRequirement('de.systopia.xcm',
+                                              E::ts("Extended Contact Machter (XCM) extension missing"),
+                                              E::ts("Please install the <code>de.systopia.xcm</code> extension from <a href='https://github.com/systopia/de.systopia.xcm'>here</a>.")
+            );
+        }
+    }
+
+
+
+    /**
      * Sync the given model into the CiviCRM
      *
      * @param CRM_Committees_Model_Model $model
@@ -35,7 +63,25 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
      */
     public function syncModel($model, $transaction = true)
     {
-        return false;
+
+        // first, make sure some stuff is there
+        $this->registerIDTrackerType();
+        $this->registerCommitteeContactType();
+        $this->registerRelationshipType();
+
+        // todo: load the current model
+
+        if ($transaction) {
+            $transaction = new CRM_Core_Transaction();
+        }
+
+        // todo: diff models sync instead of import
+        // todo: instead, we'll do a simple import for now
+        $this->simpleImport($model);
+
+        if ($transaction) {
+            $transaction->commit();
+        }
     }
 
     public function getLabel(): string

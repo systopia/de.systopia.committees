@@ -40,7 +40,7 @@ abstract class CRM_Committees_Plugin_Base
     public abstract function getDescription() : string;
 
     /**
-     * This function will be called *before* the plugin will do it's work.
+     * This function will be called to check whether the requirements are met
      *
      * If your implementation has any external dependencies, you should
      *  register those with the registerMissingRequirement function.
@@ -49,6 +49,26 @@ abstract class CRM_Committees_Plugin_Base
     public function checkRequirements()
     {
         // no requirements for the base class
+    }
+
+    /**
+     * Check whether the given extension is active
+     *
+     * @param string $extension_key
+     *   the full extension key
+     */
+    public function extensionAvailable($extension_key)
+    {
+        static $extensions = null;
+        if ($extensions === null) {
+            $extensions = civicrm_api3('Extension', 'get', ['option.limit' => 0])['values'];
+        }
+        foreach ($extensions as $extension) {
+            if ($extension['key'] == $extension_key) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
