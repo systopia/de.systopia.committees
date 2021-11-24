@@ -18,6 +18,9 @@
  */
 abstract class CRM_Committees_Model_Entity
 {
+    /** @var \CRM_Committees_Model_Model */
+    protected $model;
+
     /** @var string $id */
     protected $id;
 
@@ -26,13 +29,22 @@ abstract class CRM_Committees_Model_Entity
 
     /**
      * Create a new object with the data
+     *
+     * @param CRM_Committees_Model_Model $model
+     *    the model this entity belongs to
+     *
      * @param array $data
-     *  indexed data
+     *  data as a named array of attributes
      */
-    public function __construct($data)
+    public function __construct($model, $data)
     {
-        $this->id = $data['id'];
+        $this->model = $model;
         $this->attributes = $data;
+        if (isset($data['id'])) {
+            $this->id = $data['id'];
+        } else {
+            $this->id = $this->generateID();
+        }
     }
 
     /**
@@ -43,5 +55,15 @@ abstract class CRM_Committees_Model_Entity
     public function getID()
     {
         return $this->id;
+    }
+
+    /**
+     * Generate unique ID
+     */
+    public function generateID()
+    {
+        // todo: this is a quick&dirty implementation -> fix that
+        static $last_id = 1;
+        return $last_id++;
     }
 }

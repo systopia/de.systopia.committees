@@ -25,6 +25,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     // the known sheets
     const SHEET_GREMIEN  = 'Session_Gremien';
     const SHEET_PERSONEN = 'Session_Personen';
+    const SHEET_DETAILS  = 'Session_PersAdressen';
+    const SHEET_MEMBERS  = 'Session_GrMitgl';
 
     const REQUIRED_SHEETS = [
         self::SHEET_PERSONEN,
@@ -44,6 +46,37 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         2 => 'handle',
         3 => 'name_short',
         4 => 'name',
+        5 => 'start_date',
+        6 => 'end_date',
+    ];
+
+    const ROW_MAPPING_ADDRESS = [
+        1 => 'contact_id',
+        2 => 'id',
+        3 => 'supplemental_address_1',
+        4 => 'street_address',
+        5 => 'house_number',
+        6 => 'postal_code',
+        7 => 'city',
+    ];
+
+    const ROW_MAPPING_EMAIL = [
+        1 => 'contact_id',
+        2 => 'id',
+        10 => 'email',
+    ];
+
+    const ROW_MAPPING_PHONE = [
+        1 => 'contact_id',
+        2 => 'id',
+        8 => 'phone',
+    ];
+
+    const ROW_MAPPING_MEMBERS = [
+        1 => 'committee_id',
+        2 => 'contact_id',
+        3 => 'title',
+        4 => 'represents',
         5 => 'start_date',
         6 => 'end_date',
     ];
@@ -174,7 +207,6 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         // read gremien
         $gremien_sheet = $sheets[self::SHEET_GREMIEN];
         $row_count = $gremien_sheet->getHighestRow();
-        // todo: verify column titles?
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($gremien_sheet, $row_nr, self::ROW_MAPPING_GREMIUM);
             $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
@@ -186,10 +218,42 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         // read persons
         $person_sheet = $sheets[self::SHEET_PERSONEN];
         $row_count = $person_sheet->getHighestRow();
-        // todo: verify column titles?
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_PERSON);
             $this->model->addPerson($record);
+        }
+
+        // read addresses
+        $person_sheet = $sheets[self::SHEET_DETAILS];
+        $row_count = $person_sheet->getHighestRow();
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_ADDRESS);
+            $record['street_address'] = trim($record['street_address'] . ' ' . $record['house_number']);
+            $this->model->addAddress($record);
+        }
+
+        // read emails
+        $person_sheet = $sheets[self::SHEET_DETAILS];
+        $row_count = $person_sheet->getHighestRow();
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_EMAIL);
+            $this->model->addEmail($record);
+        }
+
+        // read phones
+        $person_sheet = $sheets[self::SHEET_DETAILS];
+        $row_count = $person_sheet->getHighestRow();
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_PHONE);
+            $this->model->addPhone($record);
+        }
+
+        // add memberships
+        $person_sheet = $sheets[self::SHEET_MEMBERS];
+        $row_count = $person_sheet->getHighestRow();
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
+            $this->model->addCommitteeMembership($record);
         }
 
         return true;
