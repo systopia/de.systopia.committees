@@ -92,6 +92,16 @@ abstract class CRM_Committees_Plugin_Base
     }
 
     /**
+     * get the list of missing requirements
+     *
+     * @return array list of missing requirement data
+     */
+    public function getMissingRequirements()
+    {
+        return $this->missing_requirements;
+    }
+
+    /**
      * Will register an error with a given requirement
      *
      * @param \Exception $ex

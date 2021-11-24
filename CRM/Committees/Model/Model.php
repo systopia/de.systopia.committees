@@ -216,4 +216,34 @@ class CRM_Committees_Model_Model
     {
         return $this->persons[$id] ?? null;
     }
+
+    /**
+     * Get a list of all committees
+     *
+     * @return array
+     */
+    public function getAllCommittees()
+    {
+        return $this->committees;
+    }
+
+    /**
+     * Get a list of all committees
+     *
+     * @return array
+     */
+    public function getAllPersons()
+    {
+        return $this->persons;
+    }
+
+    /**
+     * Get a list of all committees
+     *
+     * @return array
+     */
+    public function getAllMemberships()
+    {
+        return $this->memberships;
+    }
 }

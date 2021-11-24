@@ -60,6 +60,48 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
         parent::buildQuickForm();
     }
 
+    /**
+     * Validates form values, specifically the requirements
+     *
+     * @return bool
+     *   Whether the form validates.
+     */
+    public function validate()
+    {
+        $values = $this->exportValues();
+
+        // check importer
+        if (!class_exists($values['importer'])) {
+            $this->_errors['importer'] = E::ts("Class not found");
+        } else {
+            /** @var CRM_Committees_Plugin_Syncer $importer */
+            $importer = new $values['importer']();
+            $importer->checkRequirements();
+            $missing_requirements = $importer->getMissingRequirements();
+            if (!empty($missing_requirements)) {
+                $missing_requirement = reset($missing_requirements);
+                $this->_errors['importer'] = $missing_requirement['label'];
+            }
+        }
+
+        // check syncer
+        if (!class_exists($values['syncer'])) {
+            $this->_errors['syncer'] = E::ts("Class not found");
+        } else {
+            /** @var CRM_Committees_Plugin_Syncer $syncer */
+            $syncer = new $values['syncer']();
+            $syncer->checkRequirements();
+            $missing_requirements = $syncer->getMissingRequirements();
+            if (!empty($missing_requirements)) {
+                $missing_requirement = reset($missing_requirements);
+                $this->_errors['syncer'] = $missing_requirement['description'];
+            }
+        }
+
+        return parent::validate();
+    }
+
+
     public function postProcess()
     {
         // store new settings

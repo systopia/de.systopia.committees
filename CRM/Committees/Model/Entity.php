@@ -68,6 +68,16 @@ abstract class CRM_Committees_Model_Entity
     }
 
     /**
+     * Get all data from the entity
+     *
+     * @return array data
+     */
+    public function getData()
+    {
+        return $this->attributes;
+    }
+
+    /**
      * Get an attribute of the entity
      *
      * @param string $attribute_name

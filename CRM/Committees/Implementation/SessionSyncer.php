@@ -22,6 +22,21 @@ use CRM_Committees_ExtensionUtil as E;
  */
 class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_Syncer
 {
+    const CONTACT_TRACKER_TYPE = 'session';
+    const CONTACT_TRACKER_PREFIX = 'SESSION-';
+    const XCM_PERSON_PROFILE = 'session_person';
+    const XCM_COMMITTEE_PROFILE = 'session_organisation';
+
+    public function getLabel(): string
+    {
+        return E::ts("Session Syncer");
+    }
+
+    public function getDescription(): string
+    {
+        return E::ts("Imports Session Data");
+    }
+
     /**
      * This function will be called *before* the plugin will do it's work.
      *
@@ -41,14 +56,28 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // we need the identity tracker
         if (!$this->extensionAvailable('de.systopia.xcm')) {
+            // xcm not even installed
             $this->registerMissingRequirement('de.systopia.xcm',
-                                              E::ts("Extended Contact Machter (XCM) extension missing"),
-                                              E::ts("Please install the <code>de.systopia.xcm</code> extension from <a href='https://github.com/systopia/de.systopia.xcm'>here</a>.")
+                  E::ts("Extended Contact Matcher (XCM) extension missing"),
+                  E::ts("Please install the <code>de.systopia.xcm</code> extension from <a href='https://github.com/systopia/de.systopia.xcm'>here</a>.")
             );
+        } else {
+            // make sure there is a 'session_person' and a 'session_organisation' profile
+            $profile_list = CRM_Xcm_Configuration::getProfileList();
+            if (!isset($profile_list[self::XCM_PERSON_PROFILE])) {
+                $this->registerMissingRequirement('xcm_session_person',
+                      E::ts("XCM Profile missing"),
+                      E::ts("Please create a <code>%1</code> profile in the XCM configuration.", [1 => self::XCM_PERSON_PROFILE])
+                );
+            }
+            if (!isset($profile_list[self::XCM_COMMITTEE_PROFILE])) {
+                $this->registerMissingRequirement('xcm_session_organisation',
+                      E::ts("XCM Profile missing"),
+                      E::ts("Please create a <code>%1</code> profile in the XCM configuration.", [1 => self::XCM_COMMITTEE_PROFILE])
+                );
+            }
         }
     }
-
-
 
     /**
      * Sync the given model into the CiviCRM
@@ -63,13 +92,18 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
      */
     public function syncModel($model, $transaction = true)
     {
-
         // first, make sure some stuff is there
-        $this->registerIDTrackerType();
-        $this->registerCommitteeContactType();
-        $this->registerRelationshipType();
-
-        // todo: load the current model
+        $this->registerIDTrackerType(self::CONTACT_TRACKER_TYPE, "Session ID");
+        $this->createContactTypeIfNotExists('Gremium', "Gremium (Session)", 'Organization');
+        $this->createRelationshipTypeIfNotExists(
+            'is_committee_member_of',
+            'committee_has_member',
+            "Gremienmitglied bei",
+            'Gremienmitglied',
+            'Individual',
+            'Gremium',
+            "Aus der Sessions DB"
+        );
 
         if ($transaction) {
             $transaction = new CRM_Core_Transaction();
@@ -84,13 +118,54 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
     }
 
-    public function getLabel(): string
+    /**
+     * Quick hack: simply import all the entities, NO SYNCING!
+     *
+     * @todo replace with real synchronisation
+     *
+     * @param CRM_Committees_Model_Model $model
+     */
+    protected function simpleImport($model)
     {
-        return E::ts("Session Syncer");
-    }
+        // import Gremien
+        foreach ($model->getAllCommittees() as $committee) {
+            /** @var CRM_Committees_Model_Committee $committee */
+            $data = $committee->getData();
+            $data['contact_type'] = 'Organization';
+            $data['contact_sub_type'] = 'Gremium';
+            $gremium_id = $this->runXCM($data, 'session_organisation');
+            $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_PREFIX);
+        }
 
-    public function getDescription(): string
-    {
-        return E::ts("Imports Session Data");
+        // import contacts
+        foreach ($model->getAllPersons() as $person) {
+            /** @var CRM_Committees_Model_Person $person */
+            $data = $person->getData();
+            $data['contact_type'] = 'Individual';
+            // todo: join phones, emails, addresses
+
+            $data['id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $person_id = $this->runXCM($data, 'session_person');
+            $this->setIDTContactID($person->getID(), $person_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+        }
+
+        // import memberships
+        foreach ($model->getAllMemberships() as $membership) {
+            /** @var CRM_Committees_Model_Membership $membership */
+            $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_PREFIX);
+            $person_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_PREFIX);
+            if (empty($committee_id) || empty($person_id)) {
+                $this->logError("Person or Gremium wasn't identified or created.");
+            } else {
+                civicrm_api3('Relationship', 'create', [
+                    'contact_id_a' => $person_id,
+                    'contact_id_b' => $committee_id,
+                    'relationship_type_id' => 'is_committee_member_of',
+                    'start_date' => $membership->getAttribute('start_date'),
+                    'end_date' => $membership->getAttribute('end_date'),
+                    'description' => $membership->getAttribute('title'),
+                ]);
+            }
+        }
     }
 }
