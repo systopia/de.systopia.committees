@@ -13,6 +13,8 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
+use CRM_Committees_ExtensionUtil as E;
+
 /**
  * Base for all importers. Importers are able to
  *   1) receive a file/source of a predefinied type
@@ -21,16 +23,24 @@
  */
 abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
 {
+    /** @var CRM_Committees_Model_Model */
+    protected $model = null;
+
+    public function __construct()
+    {
+        $this->model = new CRM_Committees_Model_Model();
+    }
+
     /**
      * Return a list of the available importers, represented by the implementation class name
      *
      * @return string[]
      */
-    public static function getAvailableImporters()
+    public static function getAvailableImporters() : array
     {
-        // todo: gather this through Symfony hook
+        // todo: gather this through Symfony hook, and dyamically (i.e. use the ->getLabel())
         return [
-            'CRM_Committees_Implementation_SessionImporter'
+            'CRM_Committees_Implementation_SessionImporter' => "Session Importer (XLS)",
         ];
     }
 
@@ -55,5 +65,15 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      *   true iff the file was successfully importer
      */
     public abstract function importModel($file_path) : bool;
+
+    /**
+     * get the (imported) model
+     *
+     * @return CRM_Committees_Model_Model
+     */
+    public function getModel()
+    {
+        return $this->model;
+    }
 
 }

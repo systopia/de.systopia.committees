@@ -29,7 +29,21 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
     {
         // todo: gather this through Symfony hook
         return [
-            'CRM_Committees_Implementation_SessionSyncer'
+            'CRM_Committees_Implementation_SessionSyncer' => "Session"
         ];
     }
+
+    /**
+     * Sync the given model into the CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param boolean $transaction
+     *   should the sync happen in a single transaction
+     *
+     * @return boolean
+     */
+    public abstract function syncModel($model, $transaction = true);
+
 }

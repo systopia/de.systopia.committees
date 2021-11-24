@@ -122,4 +122,31 @@ abstract class CRM_Committees_Plugin_Base
                 break;
         }
     }
+
+    /**
+     * @param $message_level
+     * @param $threshold_level
+     */
+    public function shouldLog($message_level, $threshold_level) {
+        // todo: implement
+        return true;
+    }
+
+    /**
+     * Get a list of errors, filtered by the given level
+     *
+     * @param string $level error level
+     *
+     * @return array list of arrays
+     */
+    public function getErrors($level = 'error')
+    {
+        $error_list = [];
+        foreach ($this->errors as $error) {
+            if ($this->shouldLog($error['level'], $level)) {
+                $error_list[] = $error;
+            }
+        }
+        return $error_list;
+    }
 }

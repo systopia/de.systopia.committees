@@ -60,8 +60,9 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         // first, see if PhpSpreadsheet is already there
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
             // try composer autoload
-            if (file_exists('../../../vendor/autoload.php')) {
-                require_once('../../../vendor/autoload.php');
+            $autoload_file = E::path('vendor/autoload.php');
+            if (file_exists($autoload_file)) {
+                require_once($autoload_file);
             }
         }
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
@@ -70,7 +71,9 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                 E::ts("PhpSpreadsheet library missing."),
                 E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
             );
+            return false;
         }
+        return true;
     }
 
     /**
@@ -84,21 +87,51 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      */
     public function probeFile($file_path) : bool
     {
-        try {
-            $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
-            $spreadsheet = $xls_reader->load($file_path);
-            // check if all spreadsheets are there
-            foreach (self::REQUIRED_SHEETS as $required_sheet) {
-                $sheet = $spreadsheet->getSheet('Session_Personen');
-                if (!$sheet) {
-                    return false;
+        if ($this->checkRequirements()) {
+            try {
+                $our_sheets = $this->getRequiredSheets($file_path);
+                $our_sheet_names = array_keys($our_sheets);
+                $required_sheet_names = array_keys(self::REQUIRED_SHEETS);
+                if (count($our_sheet_names) < count($required_sheet_names)) {
+                    // there's some missing
+                    $missing_sheet_names = array_diff($required_sheet_names, $our_sheet_names);
+                    foreach ($missing_sheet_names as $missing_sheet) {
+                        $this->logError(E::ts("Sheet '%1' missing.", [1 => $missing_sheet]));
+                    }
+                }
+            } catch (Exception $ex) {
+                $this->logException($ex, 'error');
+                return false;
+            }
+            return true;
+        }
+        return false; // requirements not met
+    }
+
+    /**
+     * Get a list of sheets that are needed
+     *
+     * @param string $file_path
+     *   path to the xlsx file
+     */
+    protected function getRequiredSheets($file_path)
+    {
+        $our_sheets = [];
+        $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+        $spreadsheet = $xls_reader->load($file_path);
+
+        // check if all spreadsheets are there
+        $all_sheets = $spreadsheet->getAllSheets();
+        foreach (self::REQUIRED_SHEETS as $required_sheet) {
+            // find sheet
+            foreach ($all_sheets as $sheet) {
+                if ($sheet->getTitle() == $required_sheet) {
+                    $our_sheets[$required_sheet] = $sheet;
+                    continue;
                 }
             }
-        } catch (Exception $ex) {
-            $this->logException($ex, 'error');
-            return false;
         }
-        return true;
+        return $our_sheets;
     }
 
     /**
@@ -112,6 +145,6 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      */
     public function importModel($file_path) : bool
     {
-
+        $sheets = $this->getRequiredSheets($file_path);
     }
 }

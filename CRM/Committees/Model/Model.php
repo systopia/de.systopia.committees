@@ -13,38 +13,10 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
-use CRM_Committees_ExtensionUtil as E;
-
 /**
- * Syncer for Session XLS Export
- *
- * @todo migrate to separate extension
+ * The model containing all entities
  */
-class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_Syncer
+class CRM_Committees_Model_Model
 {
-    /**
-     * Sync the given model into the CiviCRM
-     *
-     * @param CRM_Committees_Model_Model $model
-     *   the model to be synced to this CiviCRM
-     *
-     * @param boolean $transaction
-     *   should the sync happen in a single transaction
-     *
-     * @return boolean
-     */
-    public function syncModel($model, $transaction = true)
-    {
-        return false;
-    }
-
-    public function getLabel(): string
-    {
-        return E::ts("Session Syncer");
-    }
-
-    public function getDescription(): string
-    {
-        return E::ts("Imports Session Data");
-    }
+    
 }
