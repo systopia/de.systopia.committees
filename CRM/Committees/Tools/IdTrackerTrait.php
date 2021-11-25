@@ -109,4 +109,48 @@ trait CRM_Committees_Tools_IdTrackerTrait
             );
         }
     }
+
+    /**
+     * If the ID tracker (de.systopia.identitytracker) is used, this can be
+     *  used to make sure a specific tracker type is present
+     */
+    public function registerIDTrackerType($key, $label, $description = 'de.systopia.committee')
+    {
+        // also: add the 'Remote Contact' type to the identity tracker
+        $exists_count = civicrm_api3(
+            'OptionValue',
+            'getcount',
+            [
+                'option_group_id' => 'contact_id_history_type',
+                'value' => $key,
+            ]
+        );
+        switch ($exists_count) {
+            case 0:
+                // not there -> create
+                civicrm_api3(
+                    'OptionValue',
+                    'create',
+                    [
+                        'option_group_id' => 'contact_id_history_type',
+                        'value' => $key,
+                        'is_reserved' => 1,
+                        'description' => $description,
+                        'name' => $key,
+                        'label' => $label,
+                    ]
+                );
+                break;
+
+            case 1:
+                // does exist, nothing to do here
+                break;
+
+            default:
+                // more than one exists: that's not good!
+                throw new Exception("There are already multiple identity tracker types '$key'.");
+                break;
+        }
+    }
+
 }
