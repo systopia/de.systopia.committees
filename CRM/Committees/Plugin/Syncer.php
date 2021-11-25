@@ -149,8 +149,8 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
      */
     public function createRelationshipTypeIfNotExists($name_ab, $name_ba, $label_ab, $label_ba, $contact_type_a, $contact_type_b, $contact_sub_type_a, $contact_sub_type_b, $description = '')
     {
-        static $employment_relationship_type = null;
-        if ($employment_relationship_type === null) {
+        static $employment_relationship_type = [];
+        if (!isset($employment_relationship_type[$name_ab])) {
             // find the employment type
             $type_search = civicrm_api3('RelationshipType', 'get', [
                 'name_a_b' => $name_ab,
@@ -162,7 +162,7 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
                 // this has not been found and needs to be created
                 $type_creation = civicrm_api3('RelationshipType', 'create', [
                     'label_a_b' => $label_ab,
-                    'name_a_b' => $label_ba,
+                    'name_a_b' => $name_ab,
                     'label_b_a' => $label_ba,
                     'name_b_a' => $name_ba,
                     'description' => $description,
@@ -178,11 +178,12 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
             }
 
             // load the relationship type
-            $employment_relationship_type = civicrm_api3('RelationshipType', 'getsingle', [
+            $loaded_type = civicrm_api3('RelationshipType', 'getsingle', [
                 'id' => $employment_relationship_type_id
             ]);
+            $employment_relationship_type[$loaded_type['name_ab']] = $loaded_type;
         }
 
-        return $employment_relationship_type;
+        return $employment_relationship_type[$name_ab];
     }
 }
