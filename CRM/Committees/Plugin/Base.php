@@ -109,7 +109,7 @@ abstract class CRM_Committees_Plugin_Base
      * @param string $description
      *   localised issue description (html), ideally with pointers to how to fix it
      */
-    public function logException($ex, $level = 'info', $description = null)
+    public function logException($ex, $description = null, $level = 'error')
     {
         $this->logError(
             E::ts("%1 exception", [1 => get_class($ex)]),

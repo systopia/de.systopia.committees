@@ -67,7 +67,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
      *
      * @return boolean
      */
-    public function syncModel($model, $transaction = true)
+    public function syncModel($model, $transaction = false)
     {
         // first, make sure some stuff is there
         $this->registerIDTrackerType(self::CONTACT_TRACKER_TYPE, "Session ID");
@@ -112,8 +112,9 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $data = $committee->getData();
             $data['contact_type'] = 'Organization';
             $data['contact_sub_type'] = 'Gremium';
+            $data['organization_name'] = $data['name'];
             $gremium_id = $this->runXCM($data, 'session_organisation');
-            $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_PREFIX);
+            $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
         }
 
         // import contacts
@@ -131,19 +132,23 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         // import memberships
         foreach ($model->getAllMemberships() as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
-            $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_PREFIX);
-            $person_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_PREFIX);
+            $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $person_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             if (empty($committee_id) || empty($person_id)) {
                 $this->logError("Person or Gremium wasn't identified or created.");
             } else {
-                civicrm_api3('Relationship', 'create', [
-                    'contact_id_a' => $person_id,
-                    'contact_id_b' => $committee_id,
-                    'relationship_type_id' => 'is_committee_member_of',
-                    'start_date' => $membership->getAttribute('start_date'),
-                    'end_date' => $membership->getAttribute('end_date'),
-                    'description' => $membership->getAttribute('title'),
-                ]);
+                try {
+                    civicrm_api3('Relationship', 'create', [
+                        'contact_id_a' => $person_id,
+                        'contact_id_b' => $committee_id,
+                        'relationship_type_id' => $this->getRelationshipTypeID('is_committee_member_of'),
+                        'start_date' => $membership->getAttribute('start_date'),
+                        'end_date' => $membership->getAttribute('end_date'),
+                        'description' => $membership->getAttribute('title'),
+                    ]);
+                } catch (CiviCRM_API3_Exception $exception) {
+                    $this->logException($exception, "Person or Gremium wasn't identified or created.");
+                }
             }
         }
     }

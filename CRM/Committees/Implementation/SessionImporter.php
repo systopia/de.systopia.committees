@@ -157,7 +157,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                     }
                 }
             } catch (Exception $ex) {
-                $this->logException($ex, 'error');
+                $this->logException($ex);
                 return false;
             }
             return true;

@@ -50,46 +50,28 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
     // helper functions
 
     /**
-     * If the ID tracker (de.systopia.identitytracker) is used, this can be
-     *  used to make sure a specific tracker type is present
+     * Simple ID lookup for the relationship type identified by the name_ab field
+     *
+     * @param string $relationship_type_name_ab
+     *
+     * @return integer
+     *   relationship type id or null
      */
-    public function registerIDTrackerType($key, $label, $description = 'de.systopia.committee')
+    public function getRelationshipTypeID($relationship_type_name_ab)
     {
-        // also: add the 'Remote Contact' type to the identity tracker
-        $exists_count = civicrm_api3(
-            'OptionValue',
-            'getcount',
-            [
-                'option_group_id' => 'contact_id_history_type',
-                'value' => $key,
-            ]
-        );
-        switch ($exists_count) {
-            case 0:
-                // not there -> create
-                civicrm_api3(
-                    'OptionValue',
-                    'create',
-                    [
-                        'option_group_id' => 'contact_id_history_type',
-                        'value' => $key,
-                        'is_reserved' => 1,
-                        'description' => $description,
-                        'name' => $key,
-                        'label' => $label,
-                    ]
-                );
-                break;
-
-            case 1:
-                // does exist, nothing to do here
-                break;
-
-            default:
-                // more than one exists: that's not good!
-                throw new Exception("There are already multiple identity tracker types '$key'.");
-                break;
+        static $relationship_types_by_name = [];
+        if (!isset($relationship_types_by_name[$relationship_type_name_ab])) {
+            try {
+                $relationship_types_by_name[$relationship_type_name_ab] = civicrm_api3('RelationshipType', 'getvalue', [
+                    'name_a_b' => $relationship_type_name_ab,
+                    'return' => 'id'
+                ]);
+            } catch (CiviCRM_API3_Exception $ex) {
+                $this->logError("RelationshipType '{$relationship_type_name_ab}' not found.");
+                return null;
+            }
         }
+        return $relationship_types_by_name[$relationship_type_name_ab];
     }
 
     /**

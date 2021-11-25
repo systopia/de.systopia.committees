@@ -170,7 +170,7 @@ class CRM_Committees_Model_Model
     {
         // todo: validation
         if (is_array($data)) {
-            $data = new CRM_Committees_Model_Phone($this, $data);
+            $data = new CRM_Committees_Model_Membership($this, $data);
         }
         $data->validate();
         $this->memberships[$data->getID()] = $data;
