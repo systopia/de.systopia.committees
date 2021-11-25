@@ -110,4 +110,15 @@ abstract class CRM_Committees_Model_Entity
         static $last_id = 1;
         return $last_id++;
     }
+
+    /**
+     * Get the list of fields that the entity currently has
+     *
+     * @param bool $include_id
+     *   should the id field be included?
+     */
+    public function getFields()
+    {
+        return array_keys($this->attributes);
+    }
 }

@@ -106,6 +106,11 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
      */
     protected function simpleImport($model)
     {
+        // join addresses, emails, phones
+        $model->joinAddressesToPersons();
+        $model->joinEmailsToPersons();
+        $model->joinPhonesToPersons();
+
         // import Gremien
         foreach ($model->getAllCommittees() as $committee) {
             /** @var CRM_Committees_Model_Committee $committee */
@@ -122,8 +127,6 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             /** @var CRM_Committees_Model_Person $person */
             $data = $person->getData();
             $data['contact_type'] = 'Individual';
-            // todo: join phones, emails, addresses
-
             $data['id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             $person_id = $this->runXCM($data, 'session_person');
             $this->setIDTContactID($person->getID(), $person_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);

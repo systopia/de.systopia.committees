@@ -163,7 +163,7 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
             $loaded_type = civicrm_api3('RelationshipType', 'getsingle', [
                 'id' => $employment_relationship_type_id
             ]);
-            $employment_relationship_type[$loaded_type['name_ab']] = $loaded_type;
+            $employment_relationship_type[$loaded_type['name_a_b']] = $loaded_type;
         }
 
         return $employment_relationship_type[$name_ab];

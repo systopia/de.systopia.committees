@@ -246,4 +246,88 @@ class CRM_Committees_Model_Model
     {
         return $this->memberships;
     }
+
+    /**
+     * Join the data of the 'other_entities' into the 'entities' on the two fields
+     *
+     * @param array $entities
+     *   the entities that should be extended, i.e. will be added
+     *
+     * @param array $other_entities
+     *    the other entities where the data is taken from
+     *
+     * @param string $other_id_field
+     *    the field the carries the ID to be joined
+     *
+     * @param string $entity_id_field
+     *    the field the carries the other ID to be joined
+     *
+     * @param array $fields
+     *    list of fields to be copied. default is all (except pre-existing ones)
+     */
+    public function join(&$entities, $other_entities, $other_id_field = 'contact_id', $entity_id_field = 'id', $fields = null)
+    {
+        // create an index of the other entities
+        $other_entities_indexed = [];
+        foreach ($other_entities as $other_entity)
+        {
+            /** @var CRM_Committees_Model_Entity $other_entity */
+            $other_entity_link = $other_entity->getAttribute($other_id_field);
+            if (isset($other_entities_indexed[$other_entity_link])) {
+                throw new Exception("Key field {$other_id_field} is not unique");
+            } else {
+                $other_entities_indexed[$other_entity_link] = $other_entity;
+            }
+        }
+
+        // now join the data
+        foreach ($entities as &$entity) {
+            /** @var CRM_Committees_Model_Entity $entity */
+            $key = $entity->getAttribute($entity_id_field);
+            if (!isset($key)) {
+                throw new Exception("Key field {$entity_id_field} is empty");
+            }
+
+            if (isset($other_entities_indexed[$key])) {
+                /** @var CRM_Committees_Model_Entity $other_entity */
+                $other_entity = $other_entities_indexed[$key];
+                $attributes = $fields ?? $other_entity->getFields();
+                foreach ($attributes as $attribute) {
+                    if ($attribute != $entity_id_field && $attribute != $other_id_field) {
+                        $entity->setAttribute($attribute, $other_entity->getAttribute($attribute));
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Join all the address data to the persons via the contact_id attribute
+     *
+     * @throws \Exception
+     */
+    public function joinAddressesToPersons()
+    {
+        $this->join($this->persons, $this->addresses, 'contact_id', 'id');
+    }
+
+    /**
+     * Join all the email data to the persons via the contact_id attribute
+     *
+     * @throws \Exception
+     */
+    public function joinEmailsToPersons()
+    {
+        $this->join($this->persons, $this->emails, 'contact_id', 'id', ['email']);
+    }
+
+    /**
+     * Join all the phone data to the persons via the contact_id attribute
+     *
+     * @throws \Exception
+     */
+    public function joinPhonesToPersons()
+    {
+        $this->join($this->persons, $this->phones, 'contact_id', 'id', ['phone']);
+    }
 }
