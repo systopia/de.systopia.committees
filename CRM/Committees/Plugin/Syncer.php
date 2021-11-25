@@ -147,7 +147,7 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
      *
      * @return array the relationship type object
      */
-    public function createRelationshipTypeIfNotExists($name_ab, $name_ba, $label_ab, $label_ba, $contact_type_a, $contact_type_b, $description = '')
+    public function createRelationshipTypeIfNotExists($name_ab, $name_ba, $label_ab, $label_ba, $contact_type_a, $contact_type_b, $contact_sub_type_a, $contact_sub_type_b, $description = '')
     {
         static $employment_relationship_type = null;
         if ($employment_relationship_type === null) {
@@ -156,6 +156,8 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
                 'name_a_b' => $name_ab,
                 'return' => 'id'
             ]);
+
+            // run the relationship type
             if (empty($type_search['id'])) {
                 // this has not been found and needs to be created
                 $type_creation = civicrm_api3('RelationshipType', 'create', [
@@ -165,7 +167,9 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
                     'name_b_a' => $name_ba,
                     'description' => $description,
                     'contact_type_a' => $contact_type_a,
+                    'contact_sub_type_a' => $contact_sub_type_a,
                     'contact_type_b' => $contact_type_b,
+                    'contact_sub_type_b' => $contact_sub_type_b,
                     'is_active' => 1,
                 ]);
                 $employment_relationship_type_id = $type_creation['id'];
@@ -180,85 +184,5 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
         }
 
         return $employment_relationship_type;
-    }
-
-    /********************************************
-     *        identity tracker tools            *
-     *    requires de.systopia.identitytracker  *
-     ********************************************/
-
-    protected static $idt_trackerID2contactID = null;
-
-    /**
-     * Get the (cached) contact ID via the IdentityTracker
-     *
-     * @param string $internal_id
-     *   ID as used by the data source
-     *
-     * @param string $id_type
-     *   a registered contact tracker type
-     *
-     * @param string $prefix
-     *   ID prefix
-     */
-    public function getIDTContactID($internal_id, $id_type, $prefix = '')
-    {
-        // load all tracker IDs via SQL (once)
-        if (self::$idt_trackerID2contactID === null) {
-            self::$idt_trackerID2contactID = [];
-            $id_record = CRM_Core_DAO::executeQuery("
-                SELECT
-                  entity_id   AS contact_id,
-                  identifier  AS tracker_id
-                FROM civicrm_value_contact_id_history
-                WHERE identifier_type = %1
-                ", [1 => [$id_type, 'String']]);
-            while ($id_record->fetch()) {
-                self::$idt_trackerID2contactID[$id_record->tracker_id] = $id_record->contact_id;
-            }
-        }
-
-        // look up tracker
-        $tracker_id = $prefix . $internal_id;
-        return self::$idt_trackerID2contactID[$tracker_id] ?? null;
-    }
-
-    /**
-     * Write a new ID Tracker ID via the IdentityTracker
-     *
-     * @param string $internal_id
-     *   ID as used by the data source
-     *
-     * @param string $civicrm_id
-     *   ID as used by the data source
-     *
-     * @param string $id_type
-     *   a registered contact tracker type
-     *
-     * @param string $prefix
-     *   ID prefix
-     */
-    public static function setIDTContactID($internal_id, $civicrm_id, $id_type, $prefix = '')
-    {
-        // write to DB
-        $tracker_id = $prefix . $internal_id;
-        civicrm_api3('Contact', 'addidentity', [
-            'contact_id' => $civicrm_id,
-            'identifier_type' => $id_type,
-            'identifier' => $tracker_id
-        ]);
-
-        // add to our cache
-        self::$idt_trackerID2contactID[$tracker_id] = $civicrm_id;
-    }
-
-    /********************************************
-     *       Extended Contact Matcher Tools     *
-     *          requires de.systopia.xcm        *
-     ********************************************/
-
-    public function runXCM($contact_data, $profile)
-    {
-        // todo:
     }
 }

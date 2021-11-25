@@ -22,6 +22,9 @@ use CRM_Committees_ExtensionUtil as E;
  */
 class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_Syncer
 {
+    use CRM_Committees_Tools_IdTrackerTrait;
+    use CRM_Committees_Tools_XcmTrait;
+
     const CONTACT_TRACKER_TYPE = 'session';
     const CONTACT_TRACKER_PREFIX = 'SESSION-';
     const XCM_PERSON_PROFILE = 'session_person';
@@ -47,36 +50,10 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     public function checkRequirements()
     {
         // we need the identity tracker
-        if (!$this->extensionAvailable('de.systopia.identitytracker')) {
-            $this->registerMissingRequirement('de.systopia.identitytracker',
-                E::ts("ID Tracker extension missing"),
-                E::ts("Please install the <code>de.systopia.identitytracker</code> extension from <a href='https://github.com/systopia/de.systopia.identitytracker'>here</a>.")
-            );
-        }
+        $this->checkIdTrackerRequirements($this);
 
-        // we need the identity tracker
-        if (!$this->extensionAvailable('de.systopia.xcm')) {
-            // xcm not even installed
-            $this->registerMissingRequirement('de.systopia.xcm',
-                  E::ts("Extended Contact Matcher (XCM) extension missing"),
-                  E::ts("Please install the <code>de.systopia.xcm</code> extension from <a href='https://github.com/systopia/de.systopia.xcm'>here</a>.")
-            );
-        } else {
-            // make sure there is a 'session_person' and a 'session_organisation' profile
-            $profile_list = CRM_Xcm_Configuration::getProfileList();
-            if (!isset($profile_list[self::XCM_PERSON_PROFILE])) {
-                $this->registerMissingRequirement('xcm_session_person',
-                      E::ts("XCM Profile missing"),
-                      E::ts("Please create a <code>%1</code> profile in the XCM configuration.", [1 => self::XCM_PERSON_PROFILE])
-                );
-            }
-            if (!isset($profile_list[self::XCM_COMMITTEE_PROFILE])) {
-                $this->registerMissingRequirement('xcm_session_organisation',
-                      E::ts("XCM Profile missing"),
-                      E::ts("Please create a <code>%1</code> profile in the XCM configuration.", [1 => self::XCM_COMMITTEE_PROFILE])
-                );
-            }
-        }
+        // we need the extended contact matcher (XCM)
+        $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE, self::XCM_COMMITTEE_PROFILE]);
     }
 
     /**
@@ -101,6 +78,8 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             "Gremienmitglied bei",
             'Gremienmitglied',
             'Individual',
+            'Organization',
+            null,
             'Gremium',
             "Aus der Sessions DB"
         );
