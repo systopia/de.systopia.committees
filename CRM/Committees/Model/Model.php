@@ -24,6 +24,9 @@ class CRM_Committees_Model_Model
     /** @var array list of persons, indexed by its ID */
     protected $persons = [];
 
+    /** @var array list of committee memberships, indexed by its ID */
+    protected $memberships = [];
+
     /** @var array list of addresses, indexed by its ID */
     protected $addresses = [];
 
@@ -32,9 +35,6 @@ class CRM_Committees_Model_Model
 
     /** @var array list of emails, indexed by its ID */
     protected $emails = [];
-
-    /** @var array list of committee memberships, indexed by its ID */
-    protected $memberships = [];
 
     /**
      * Add a new person to the model

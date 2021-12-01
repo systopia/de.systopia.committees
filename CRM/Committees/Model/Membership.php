@@ -25,7 +25,7 @@ class CRM_Committees_Model_Membership extends CRM_Committees_Model_Entity
      */
     public function validate()
     {
-        // make sure the entities are in the model
+        // make sure the entities are in the model?
     }
 
     /**
