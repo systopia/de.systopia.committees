@@ -55,7 +55,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     const ROW_MAPPING_ADDRESS = [
         1 => 'contact_id',
         2 => 'id',
-        3 => 'supplemental_address_1',
+        3 => 'supplemental_address_1',  // ADRNAME3
         4 => 'street_address',
         5 => 'house_number',
         6 => 'postal_code',
@@ -259,6 +259,20 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record['end_date'] = empty($record['end_date']) ? '' :
                 date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
             $this->model->addCommitteeMembership($record);
+        }
+
+        ### special adjustments / overrides ###
+
+        // #1 in-house: "Wenn ein Kontakt im Feld ADRNAME3 nichts stehen hat UND als Straße "Hans-Böckler-Str*"
+        //   dann soll in den Adresszusatz 1 "Evangelische Kirche im Rheinland" eingefügt werden."
+        foreach ($this->model->getAllAddresses() as $address) {
+            $ADRNAME3 = $address->getAttribute('supplemental_address_1');
+            $STREET   = $address->getAttribute('street_address');
+
+            if (empty($ADRNAME3) && preg_match('/^Hans-Böckler-Str.*$/i', $STREET)) {
+                $address->setAttribute('supplemental_address_1', "Evangelische Kirche im Rheinland");
+                $this->model->addAddress($address);
+            }
         }
 
         return true;

@@ -248,6 +248,17 @@ class CRM_Committees_Model_Model
     }
 
     /**
+     * Get a list of all addresses
+     *
+     * @return array
+     */
+    public function getAllAddresses()
+    {
+        return $this->addresses;
+    }
+
+
+    /**
      * Join the data of the 'other_entities' into the 'entities' on the two fields
      *
      * @param array $entities
