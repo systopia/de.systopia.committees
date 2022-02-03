@@ -119,10 +119,13 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $data['contact_sub_type'] = 'Gremium';
             $data['organization_name'] = $data['name'];
             $gremium_id = $this->runXCM($data, 'session_organisation');
+            $this->log("Gremium '{$data['name']}' ([{$gremium_id}]) imported/updated.");
             $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
         }
+        $this->log(count($model->getAllCommittees()) . " committees imported/updated.");
 
         // import contacts
+        $counter = 0; // used to restrict log spamming
         foreach ($model->getAllPersons() as $person) {
             /** @var CRM_Committees_Model_Person $person */
             $data = $person->getData();
@@ -130,20 +133,42 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $data['id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             $person_id = $this->runXCM($data, 'session_person');
             $this->setIDTContactID($person->getID(), $person_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $counter++;
+            if ($counter % 25 == 0) {
+                $this->log("{$counter} persons imported/updated.");
+            }
         }
+        $this->log("{$counter} persons imported/updated.");
 
         // import memberships
         foreach ($model->getAllMemberships() as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
-            $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $person_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            if (empty($committee_id) || empty($person_id)) {
-                $this->logError("Person or Gremium wasn't identified or created.");
+            // get person
+            $person = $membership->getPerson();
+            if (empty($person)) {
+                $mid = $membership->getID();
+                $this->log("Membership [{$mid}] has no person, this should not happen.");
+                continue;
+            }
+
+            // get committee
+            $gremium = $membership->getCommittee();
+            if (empty($gremium)) {
+                $mid = $membership->getID();
+                $this->log("Membership [{$mid}] has no committee, this should not happen.");
+                continue;
+            }
+
+            // find contact & gremium
+            $person_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $gremium_id = $this->getIDTContactID($gremium->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            if (empty($gremium_id) || empty($person_id)) {
+                $this->logError("Person or Committese wasn't identified or created.");
             } else {
                 try {
                     civicrm_api3('Relationship', 'create', [
                         'contact_id_a' => $person_id,
-                        'contact_id_b' => $committee_id,
+                        'contact_id_b' => $gremium_id,
                         'relationship_type_id' => $this->getRelationshipTypeID('is_committee_member_of'),
                         'start_date' => $membership->getAttribute('start_date'),
                         'end_date' => $membership->getAttribute('end_date'),

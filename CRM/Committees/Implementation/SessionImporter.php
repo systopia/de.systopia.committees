@@ -75,8 +75,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     ];
 
     const ROW_MAPPING_MEMBERS = [
-        1 => 'committee_id',
-        2 => 'contact_id',
+        1 => 'contact_id',
+        2 => 'committee_id',
         3 => 'title',
         4 => 'represents',
         5 => 'start_date',
@@ -174,6 +174,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     protected function getRequiredSheets($file_path)
     {
         if ($this->our_sheets === null) {
+            $this->log("Opening spreadsheet...");
             $this->our_sheets = [];
             $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
             $spreadsheet = $xls_reader->load($file_path);
@@ -189,6 +190,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                     }
                 }
             }
+            $this->log("All required sheets found.");
         }
         return $this->our_sheets;
     }
@@ -216,6 +218,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                 date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
             $this->model->addCommittee($record);
         }
+        $this->log(count($this->model->getAllCommittees()) . " committees read.");
 
         // read persons
         $person_sheet = $sheets[self::SHEET_PERSONEN];
@@ -224,56 +227,71 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_PERSON);
             $this->model->addPerson($record);
         }
+        $this->log(count($this->model->getAllPersons()) . " persons read.");
+
+
+        // open details sheet:
+        $details_sheet = $sheets[self::SHEET_DETAILS];
+        $row_count = $details_sheet->getHighestRow();
 
         // read addresses
-        $person_sheet = $sheets[self::SHEET_DETAILS];
-        $row_count = $person_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
-            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_ADDRESS);
+            $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_ADDRESS);
             $record['street_address'] = trim($record['street_address'] . ' ' . $record['house_number']);
             $this->model->addAddress($record);
         }
+        $this->log(count($this->model->getAllAddresses()) . " addresses read.");
 
         // read emails
-        $person_sheet = $sheets[self::SHEET_DETAILS];
-        $row_count = $person_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
-            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_EMAIL);
-            $this->model->addEmail($record);
+            $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_EMAIL);
+            if (!empty($record['email'])) {
+                try {
+                    $this->model->addEmail($record);
+                } catch (CRM_Committees_Model_ValidationException $ex) {
+                    $this->log("Email '{$record['email']}' is not a valid email address.");
+                }
+            }
         }
+        $this->log(count($this->model->getAllEmails()) . " emails read.");
 
         // read phones
-        $person_sheet = $sheets[self::SHEET_DETAILS];
-        $row_count = $person_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
-            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_PHONE);
-            $this->model->addPhone($record);
+            $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_PHONE);
+            if (!empty($record['phone'])) {
+                $this->model->addPhone($record);
+            }
         }
+        $this->log(count($this->model->getAllPhones()) . " phones read.");
 
         // add memberships
-        $person_sheet = $sheets[self::SHEET_MEMBERS];
-        $row_count = $person_sheet->getHighestRow();
+        $member_sheet = $sheets[self::SHEET_MEMBERS];
+        $row_count = $member_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
-            $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
+            $record = $this->readRow($member_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
             $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
                 date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
             $this->model->addCommitteeMembership($record);
         }
+        $this->log(count($this->model->getAllMemberships()) . " committee memberships read.");
 
         ### special adjustments / overrides ###
 
         // #1 in-house: "Wenn ein Kontakt im Feld ADRNAME3 nichts stehen hat UND als Straße "Hans-Böckler-Str*"
         //   dann soll in den Adresszusatz 1 "Evangelische Kirche im Rheinland" eingefügt werden."
+        $adjustments_made = 0;
         foreach ($this->model->getAllAddresses() as $address) {
             $ADRNAME3 = $address->getAttribute('supplemental_address_1');
             $STREET   = $address->getAttribute('street_address');
 
             if (empty($ADRNAME3) && preg_match('/^Hans-Böckler-Str.*$/i', $STREET)) {
+                $adjustments_made++;
                 $address->setAttribute('supplemental_address_1', "Evangelische Kirche im Rheinland");
                 $this->model->addAddress($address);
             }
         }
+        $this->log("{$adjustments_made} address in-house adjustments made");
 
         return true;
     }
