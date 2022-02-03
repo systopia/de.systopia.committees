@@ -257,6 +257,25 @@ class CRM_Committees_Model_Model
         return $this->addresses;
     }
 
+    /**
+     * Get a list of all emails
+     *
+     * @return array
+     */
+    public function getAllEmails()
+    {
+        return $this->emails;
+    }
+
+    /**
+     * Get a list of all phones
+     *
+     * @return array
+     */
+    public function getAllPhones()
+    {
+        return $this->phones;
+    }
 
     /**
      * Join the data of the 'other_entities' into the 'entities' on the two fields

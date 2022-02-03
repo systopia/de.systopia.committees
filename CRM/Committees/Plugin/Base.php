@@ -27,8 +27,8 @@ abstract class CRM_Committees_Plugin_Base
     /** @var array data structure for errors */
     protected $errors = [];
 
-    /** @var resource  */
-    protected $progress_logger = null;
+    /** @var string short module name, see getModuleName */
+    protected $_module_name = null;
 
     /**
      * Get the label of the implementation
@@ -41,6 +41,10 @@ abstract class CRM_Committees_Plugin_Base
      * @return string (html) text to describe what this implementation does
      */
     public abstract function getDescription() : string;
+
+    /** @var resource the current logger, see getLogResource()  */
+    static private $progress_logger = null;
+
 
     /**
      * This function will be called to check whether the requirements are met
@@ -149,20 +153,32 @@ abstract class CRM_Committees_Plugin_Base
 
 
     /**
+     * Get a short name for this module
+     *
+     * @return string
+     */
+    protected function getModuleName()
+    {
+        if ($this->_module_name === null) {
+            $class_name_tokens = explode('_', get_class($this));
+            $this->_module_name = end($class_name_tokens);
+        }
+        return $this->_module_name;
+    }
+
+    /**
      * Log a general message to the process log file
      *
      * @param string $message
      *   log message
      * @param string $level
      *
-     *
-     *
-     * @return void
      */
     public function log($message, $level = 'info')
     {
         // log to CiviCRM log (todo: switch off?)
-        $message = date('[H:i:s]') . ' ' . $message;
+        $module_name = $this->getModuleName();
+        $message = date('[H:i:s]') . "[$module_name]: $message";
         switch ($level) {
             default:
             case 'debug':
@@ -204,15 +220,13 @@ abstract class CRM_Committees_Plugin_Base
      */
     public function getLogResource()
     {
-        if (!$this->progress_logger) {
+        if (self::$progress_logger === null) {
             $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
-            $class_name_tokens = explode('_', get_class($this));
-            $module_name = end($class_name_tokens);
-            $log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('Y-m-d_H:i:s_') . $module_name . '.log';
-            $this->progress_logger = fopen($log_file, 'w');
+            $log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('Y-m-d_H:i:s') . '.log';
+            self::$progress_logger = fopen($log_file, 'w');
             Civi::log()->debug("Committee importer started, log file is '{$log_file}");
         }
-        return $this->progress_logger;
+        return self::$progress_logger;
     }
 
     /**
