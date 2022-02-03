@@ -84,17 +84,17 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             "Aus der Sessions DB"
         );
 
-        if ($transaction) {
-            $transaction = new CRM_Core_Transaction();
-        }
+//        if ($transaction) {
+//            $transaction = new CRM_Core_Transaction();
+//        }
 
         // todo: diff models sync instead of import
         // todo: instead, we'll do a simple import for now
         $this->simpleImport($model);
 
-        if ($transaction) {
-            $transaction->commit();
-        }
+//        if ($transaction) {
+//            $transaction->commit();
+//        }
     }
 
     /**
@@ -126,12 +126,14 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // import contacts
         $counter = 0; // used to restrict log spamming
+        $person_count = count($model->getAllPersons());
+        $this->log("Starting to import/update {$person_count} persons.");
         foreach ($model->getAllPersons() as $person) {
             /** @var CRM_Committees_Model_Person $person */
             $data = $person->getData();
             $data['contact_type'] = 'Individual';
             $data['id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $person_id = $this->runXCM($data, 'session_person');
+            $person_id = $this->runXCM($data, 'session_person', false);
             $this->setIDTContactID($person->getID(), $person_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             $counter++;
             if ($counter % 25 == 0) {
@@ -159,24 +161,35 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                 continue;
             }
 
-            // find contact & gremium
+            // find person
             $person_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            if (empty($person_id)) {
+                $external_id = $person->getID();
+                $this->logError("Committees person [{$external_id}] wasn't identified or created.");
+                continue;
+            }
+
+            // find gremium
             $gremium_id = $this->getIDTContactID($gremium->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            if (empty($gremium_id) || empty($person_id)) {
-                $this->logError("Person or Committese wasn't identified or created.");
-            } else {
-                try {
-                    civicrm_api3('Relationship', 'create', [
-                        'contact_id_a' => $person_id,
-                        'contact_id_b' => $gremium_id,
-                        'relationship_type_id' => $this->getRelationshipTypeID('is_committee_member_of'),
-                        'start_date' => $membership->getAttribute('start_date'),
-                        'end_date' => $membership->getAttribute('end_date'),
-                        'description' => $membership->getAttribute('title'),
-                    ]);
-                } catch (CiviCRM_API3_Exception $exception) {
-                    $this->logException($exception, "Person or Gremium wasn't identified or created.");
-                }
+            if (empty($gremium_id)) {
+                $external_id = $gremium->getID();
+                $this->logError("Committee [{$external_id}] wasn't identified or created.");
+                continue;
+            }
+
+            // create relationship
+            try {
+                $relationship_params =  [
+                    'contact_id_a' => $person_id,
+                    'contact_id_b' => $gremium_id,
+                    'relationship_type_id' => $this->getRelationshipTypeID('is_committee_member_of'),
+                    'start_date' => $membership->getAttribute('start_date'),
+                    'end_date' => $membership->getAttribute('end_date'),
+                    'description' => $membership->getAttribute('title'),
+                ];
+                civicrm_api3('Relationship', 'create', $relationship_params);
+            } catch (CiviCRM_API3_Exception $exception) {
+                $this->logException($exception, "Relationship created.");
             }
         }
     }

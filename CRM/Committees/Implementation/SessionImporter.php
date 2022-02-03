@@ -38,8 +38,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     const ROW_MAPPING_PERSON = [
         1 => 'id',
         2 => 'prefix',
-        3 => 'first_name',
-        4 => 'last_name',
+        3 => 'last_name',
+        4 => 'first_name',
         5 => 'formal_title',
     ];
 
@@ -272,6 +272,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
                 date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
+            $record['id'] = "{$record['contact_id']}-{$record['committee_id']}";
             $this->model->addCommitteeMembership($record);
         }
         $this->log(count($this->model->getAllMemberships()) . " committee memberships read.");
