@@ -65,15 +65,30 @@ trait CRM_Committees_Tools_XcmTrait
             );
         } else {
             // make sure all the profiles are there
-            $profile_list = CRM_Xcm_Configuration::getProfileList();
             foreach ($required_profiles as $required_profile) {
-                if (!isset($profile_list[$required_profile])) {
-                    $plugin->registerMissingRequirement($required_profile,
+                if (!$this->xcmProfileExists($required_profile)) {
+                    $plugin->registerMissingRequirement(
+                        $required_profile,
                         E::ts("XCM Profile missing"),
                         E::ts("Please create a <code>%1</code> profile in the XCM configuration.", [1 => $required_profile])
                     );
                 }
             }
         }
+    }
+
+    /**
+     * Check if the given XCM profile exists
+     *
+     * @param string $profile_name
+     *    internal profile name
+     *
+     * @return boolean
+     *    true, if profile exists
+     */
+    public function xcmProfileExists($profile_name)
+    {
+        $profile_list = CRM_Xcm_Configuration::getProfileList();
+        return !empty($profile_list[$profile_name]);
     }
 }
