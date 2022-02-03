@@ -86,7 +86,7 @@ class CRM_Committees_Model_Model
     }
 
     /**
-     * Add a new address as to the model
+     * Add a new address to the model
      *
      * Possible attributes:
      *  'id'              => address ID
@@ -108,7 +108,7 @@ class CRM_Committees_Model_Model
     }
 
     /**
-     * Add a new address as to the model
+     * Add a new email address to the model
      *
      * Possible attributes:
      *  'id'              => email ID
@@ -130,7 +130,7 @@ class CRM_Committees_Model_Model
     }
 
     /**
-     * Add a new address as to the model
+     * Add a new phone number to the model
      *
      * Possible attributes:
      *  'id'              => email ID
@@ -152,7 +152,7 @@ class CRM_Committees_Model_Model
     }
 
     /**
-     * Add a new address as to the model
+     * Add a new committee membership as to the model
      *
      * Possible attributes:
      *

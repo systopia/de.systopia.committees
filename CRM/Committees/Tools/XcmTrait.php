@@ -32,13 +32,20 @@ trait CRM_Committees_Tools_XcmTrait
      * @param string $profile_name
      *   name of the XCM profile to use
      *
+     * @param boolean $strip_id
+     *   remove any 'id' field in the data
+     *
      * @return integer
      *   contact ID
      */
-    public function runXCM($contact_data, $profile_name = null)
+    public function runXCM($contact_data, $profile_name = null, $strip_id = true)
     {
         if (isset($profile_name)) {
             $contact_data['xcm_profile'] = $profile_name;
+        }
+
+        if ($strip_id) {
+            unset($contact_data['id']);
         }
 
         // run XCM

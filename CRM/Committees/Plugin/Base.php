@@ -148,7 +148,11 @@ abstract class CRM_Committees_Plugin_Base
         ];
 
         // also log it
-        $this->log($label, $level);
+        if ($description) {
+            $this->log($label . ':' . $description, $level);
+        } else {
+            $this->log($label, $level);
+        }
     }
 
 

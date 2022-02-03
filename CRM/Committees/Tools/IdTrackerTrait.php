@@ -78,8 +78,13 @@ trait CRM_Committees_Tools_IdTrackerTrait
      * @param string $prefix
      *   ID prefix
      */
-    public static function setIDTContactID($internal_id, $civicrm_id, $id_type, $prefix = '')
+    public function setIDTContactID($internal_id, $civicrm_id, $id_type, $prefix = '')
     {
+        // make sure the cache is filled
+        if (self::$idt_trackerID2contactID === null) {
+            $this->getIDTContactID($internal_id, $id_type, $prefix);
+        }
+
         // write to DB
         $tracker_id = $prefix . $internal_id;
         civicrm_api3('Contact', 'addidentity', [
