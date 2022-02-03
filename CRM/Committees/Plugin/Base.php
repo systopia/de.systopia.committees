@@ -27,6 +27,9 @@ abstract class CRM_Committees_Plugin_Base
     /** @var array data structure for errors */
     protected $errors = [];
 
+    /** @var resource  */
+    protected $progress_logger = null;
+
     /**
      * Get the label of the implementation
      * @return string short label
@@ -119,14 +122,19 @@ abstract class CRM_Committees_Plugin_Base
     }
 
     /**
-     * Will register an error with a given requirement
+     * Will register an error with a given requirement.
+     * The message will also be posted to the log file
      *
      * @param string $label
      *   localised issue label
+     *
      * @param string $description
      *   localised issue description (html), ideally with pointers to how to fix it
+     *
+     * @param string $level
+     *   one of
      */
-    public function logError($label, $level = 'info', $description = '')
+    public function logError($label, $level = 'error', $description = '')
     {
         // store message
         $this->errors[] = [
@@ -135,32 +143,41 @@ abstract class CRM_Committees_Plugin_Base
             'description' => $description,
         ];
 
+        // also log it
+        $this->log($label, $level);
+    }
+
+
+    /**
+     * Log a general message to the process log file
+     *
+     * @param string $message
+     *   log message
+     * @param string $level
+     *
+     *
+     *
+     * @return void
+     */
+    public function log($message, $level = 'info')
+    {
         // log to CiviCRM log (todo: switch off?)
+        $message = date('[H:i:s]') . ' ' . $message;
         switch ($level) {
-            case 'debug':
-                Civi::log()->debug("{$label}: {$description}");
-                break;
             default:
+            case 'debug':
             case 'info':
-                Civi::log()->info("{$label}: {$description}");
-                break;
             case 'warning':
-                Civi::log()->warning("{$label}: {$description}");
+                $this->log2file($message, $level);
                 break;
+
             case 'error':
-                Civi::log()->error("{$label}: {$description}");
+                $this->log2file($message, $level);
+                Civi::log()->error($message);
                 break;
         }
     }
 
-    /**
-     * @param $message_level
-     * @param $threshold_level
-     */
-    public function shouldLog($message_level, $threshold_level) {
-        // todo: implement
-        return true;
-    }
 
     /**
      * Get a list of errors, filtered by the given level
@@ -173,10 +190,43 @@ abstract class CRM_Committees_Plugin_Base
     {
         $error_list = [];
         foreach ($this->errors as $error) {
-            if ($this->shouldLog($error['level'], $level)) {
-                $error_list[] = $error;
-            }
+            // todo: check if level is above threshold
+            $error_list[] = $error;
         }
         return $error_list;
+    }
+
+    /**
+     * Get the current process log file
+     *
+     * @return resource
+     *   the logger file
+     */
+    public function getLogResource()
+    {
+        if (!$this->progress_logger) {
+            $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
+            $class_name_tokens = explode('_', get_class($this));
+            $module_name = end($class_name_tokens);
+            $log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('Y-m-d_H:i:s_') . $module_name . '.log';
+            $this->progress_logger = fopen($log_file, 'w');
+            Civi::log()->debug("Committee importer started, log file is '{$log_file}");
+        }
+        return $this->progress_logger;
+    }
+
+    /**
+     * Log the progress of this sync/import
+     *
+     * @param string $message
+     *    the message to logW
+     *
+     * @return void
+     */
+    public function log2file($message)
+    {
+        $logger = $this->getLogResource();
+        fputs($logger, $message);
+        fputs($logger, "\n");
     }
 }
