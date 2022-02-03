@@ -14,24 +14,17 @@
 +--------------------------------------------------------*/
 
 /**
- * The committee entity represents a committee member
+ * This represents a failed validation
  */
-class CRM_Committees_Model_Email extends CRM_Committees_Model_Entity
+class CRM_Committees_Model_ValidationException extends CRM_Core_Exception
 {
-    /**
-     * Validate the given values
-     *
-     * @throws CRM_Committees_Model_ValidationException
-     */
-    public function validate()
+    /** @var \CRM_Committees_Model_Entity  */
+    protected $entity = null;
+
+    public function __construct($message, $entity)
     {
-        // check if not empty
-        if (!isset($this->attributes['email'])) {
-            throw new CRM_Committees_Model_ValidationException($this, "Attribute 'email' is empty.");
-        }
-        // check if valid
-        if (!filter_var($this->attributes['email'], FILTER_VALIDATE_EMAIL)) {
-            throw new CRM_Committees_Model_ValidationException($this, "Attribute 'email' is not a valid email.");
-        }
+        $this->entity = $entity;
+        parent::__construct($message);
     }
+
 }
