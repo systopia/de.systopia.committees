@@ -189,8 +189,12 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                 ];
                 civicrm_api3('Relationship', 'create', $relationship_params);
             } catch (CiviCRM_API3_Exception $exception) {
-                $this->logException($exception, "Relationship created.");
+                $this->logException($exception, "Relationship between person [{$person->getID()}] and committee [{$gremium->getID()}] could not be created. Error was " . $exception->getMessage());
             }
         }
+
+        // wrap it up
+        $this->log("Committee import complete.");
+        $this->log("WARNING: a full synchronisation, i.e. the retirement of ended relationships is not yet implemented. This would mainly work for the initial import.");
     }
 }
