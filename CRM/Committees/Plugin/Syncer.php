@@ -29,7 +29,8 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
     {
         // todo: gather this through Symfony hook
         return [
-            'CRM_Committees_Implementation_SessionSyncer' => "Session"
+            'CRM_Committees_Implementation_SessionSyncer' => "Session",
+            'CRM_Committees_Implementation_PersonalOfficeSyncer' => "PersonalOffice"
         ];
     }
 

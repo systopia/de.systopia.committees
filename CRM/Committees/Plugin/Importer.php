@@ -38,9 +38,10 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      */
     public static function getAvailableImporters() : array
     {
-        // todo: gather this through Symfony hook, and dyamically (i.e. use the ->getLabel())
+        // todo: gather this through Symfony hook, and dynamically (i.e. use the ->getLabel())
         return [
             'CRM_Committees_Implementation_SessionImporter' => "Session Importer (XLS)",
+            'CRM_Committees_Implementation_PersonalOfficeImporter' => "PersonalOffice Importer (XLS)",
         ];
     }
 
