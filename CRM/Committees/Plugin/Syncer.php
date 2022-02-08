@@ -130,8 +130,17 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
      *
      * @return array the relationship type object
      */
-    public function createRelationshipTypeIfNotExists($name_ab, $name_ba, $label_ab, $label_ba, $contact_type_a, $contact_type_b, $contact_sub_type_a, $contact_sub_type_b, $description = '')
-    {
+    public function createRelationshipTypeIfNotExists(
+        $name_ab,
+        $name_ba,
+        $label_ab,
+        $label_ba,
+        $contact_type_a,
+        $contact_type_b,
+        $contact_sub_type_a,
+        $contact_sub_type_b,
+        $description = ''
+    ) {
         static $employment_relationship_type = [];
         if (!isset($employment_relationship_type[$name_ab])) {
             // find the employment type
@@ -168,5 +177,24 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
         }
 
         return $employment_relationship_type[$name_ab];
+    }
+
+    /**
+     * Checks if a given custom field exists
+     *
+     * @param string $field_name
+     *
+     * @return boolean
+     *   does the field exist
+     */
+    public function customFieldExists($field_name)
+    {
+        $specs = explode('.', $field_name);
+        if (count($specs) != 2) {
+            $this->logError("Field name '{$field_name}' is not in the <custom_group_name>.<custom_field_name> format.");
+            return false;
+        }
+        $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
+        return !empty($custom_field);
     }
 }

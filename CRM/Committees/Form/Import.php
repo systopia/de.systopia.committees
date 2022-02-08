@@ -129,8 +129,10 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
 
             } else {
                 // let's import & sync
+                $importer->log("Starting importer " . get_class($importer));
                 $importer->importModel($file['tmp_name']);
                 $model = $importer->getModel();
+                $syncer->log("Starting syncer " . get_class($syncer));
                 $syncer->syncModel($model);
             }
         }
