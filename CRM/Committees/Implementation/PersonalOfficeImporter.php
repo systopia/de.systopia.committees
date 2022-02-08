@@ -23,16 +23,25 @@ use CRM_Committees_ExtensionUtil as E;
 class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committees_Plugin_Importer
 {
     const ROW_MAPPING = [
-        1 => 'id',
-        2 => 'formal_title',
-        3 => 'last_name',
-        4 => 'first_name',
-        6 => 'portal_id',
-        7 => 'email',
-        8 => 'street_address',
-        9 => 'house_number',
-        10 => 'postal_code',
-        11 => 'city',
+        1 => 'contact_id',
+        2 => 'prefix_id',
+        3 => 'formal_title',
+        4 => 'last_name',
+        5 => 'first_name',
+        //6 => 'unterdienststnr.',
+        7 => 'portal_id',
+        8 => 'email',
+        9 => 'street_address',
+        10 => 'house_number',
+        11 => 'postal_code',
+        12 => 'city',
+        //13 => 'kk/kb-. kg-. gkg-schlüssel',
+        //14 => 'kk/kb-. kg-. gkg-schlüssel',
+        15 => 'committee_id', // externe org. nr
+        16 => 'committee_name',
+        //17 => 'versand-nr.',
+        //18 => 'dienststnr._2',
+        //19 => 'dienststnr.',
     ];
 
     /** @var array our sheets extracted from the file */
@@ -82,6 +91,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             );
             return false;
         }
+
         return true;
     }
 
@@ -146,10 +156,8 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
     {
         $subset = [];
         foreach ($attributes as $attribute) {
-            if (isset($mapping[$attribute])) {
-                $attribute = $mapping[$attribute];
-            }
-            $subset[$attribute] = $record[$attribute] ?? '';
+            $target_attribute = $mapping[$attribute] ?? $attribute;
+            $subset[$target_attribute] = $record[$attribute] ?? '';
         }
         return $subset;
     }
@@ -165,31 +173,51 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      */
     public function importModel($file_path) : bool
     {
+        $this->log("Opening source file");
         $main_sheet = $this->getMainSheet($file_path);
         $row_count = $main_sheet->getHighestRow();
+        $this->log("Start importing {$row_count} rows");
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($main_sheet, $row_nr, self::ROW_MAPPING);
 
             // extract contact
-            $contact = $this->copyAttributes($record, ['id', 'formal_title', 'last_name', 'first_name']);
-            $this->model->addPerson($contact);
+            $contact = $this->copyAttributes($record, ['contact_id', 'formal_title', 'last_name', 'first_name'], ['contact_id' => 'id']);
+            $existing_contact = $this->model->getPerson($contact['id']);
+            if (!$existing_contact) {
+                // add this contact
+                $this->model->addPerson($contact);
 
-            // extract address
-            $address = $this->copyAttributes($record, ['id', 'street_address', 'house_number', 'postal_code', 'city'], ['id' => 'contact_id']);
-            $address['street_address'] = trim($address['street_address'] . ' ' . $address['house_number']);
-            unset($address['house_number']);
-            $address['country_id'] = 'DE';
-            $this->model->addAddress($address);
+                // extract address
+                $address = $this->copyAttributes($record, ['contact_id', 'street_address', 'house_number', 'postal_code', 'city']);
+                $address['street_address'] = trim($address['street_address'] . ' ' . $address['house_number']);
+                unset($address['house_number']);
+                $address['country_id'] = 'DE';
+                $this->model->addAddress($address);
 
-            // extract email
-            $email = $this->copyAttributes($record, ['id', 'email']);
-            if (!empty($email['email'])) {
-                $this->model->addEmail($address);
+                // extract email
+                $email = $this->copyAttributes($record, ['contact_id', 'email'], );
+                if (!empty($email['email'])) {
+                    $this->model->addEmail($email);
+                }
+            } else {
+                $this->log("Skipped duplicate contact data [{$contact['id']}].");
             }
 
-            // extract employee relationship
-            // TODO
+            // extract committees and membership relationships
+            // remark: start / end dates currently not provided
+            $committee_data = $this->copyAttributes($record, ['committee_id', 'committee_name'],
+                                           ['committee_id' => 'id', 'committee_name' => 'name']);
+            if (!empty($committee_data['id']) && !empty($committee_data['name'])) {
+                $existing_committee = $this->model->getCommittee($committee_data['id']);
+                if (!$existing_committee) {
+                    $this->model->addCommittee($committee_data);
+                }
+            }
+
+            $employment = $this->copyAttributes($record, ['contact_id', 'committee_id']);
+            $this->model->addCommitteeMembership($employment);
         }
+        $this->log(count($this->model->getAllPersons()) . " contacts read.");
 
         return true;
     }

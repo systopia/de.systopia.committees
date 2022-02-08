@@ -29,6 +29,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     const CONTACT_TRACKER_PREFIX = 'PO-';
     const XCM_PERSON_PROFILE = 'personal_office';
 
+    /** @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
+    const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
+
     public function getLabel(): string
     {
         return E::ts("Personal Office Syncer");
@@ -53,6 +56,18 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // we need the extended contact matcher (XCM)
         $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
+
+        // check if a certain custom field exists
+        if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
+            $this->registerMissingRequirement(
+                self::ORGANISATION_EKIR_ID_FIELD,
+                E::ts("EKIR Organisation ID field not found."),
+                E::ts("Please add the '%1' custom field or update the configuration/requirements.", [
+                    1 => self::ORGANISATION_EKIR_ID_FIELD
+                ])
+            );
+            return false;
+        }
     }
 
     /**
@@ -75,8 +90,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $transaction = new CRM_Core_Transaction();
         }
 
+
         // todo: diff models sync instead of import
         // todo: instead, we'll do a simple import for now
+        $this->logError("Simple Import Only!", 'warning', "This module currently only does a simple import and needs to be updated to fully synchronise.");
         $this->simpleImport($model);
 
         if ($transaction) {
@@ -98,18 +115,75 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $model->joinEmailsToPersons();
 
         // import contacts
+        $counter = 0; // used to restrict log spamming
         foreach ($model->getAllPersons() as $person) {
             /** @var CRM_Committees_Model_Person $person */
             $data = $person->getData();
             $data['contact_type'] = 'Individual';
             $data['id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $person_id = $this->runXCM($data, self::XCM_PERSON_PROFILE);
+            $person_id = $this->runXCM($data, self::XCM_PERSON_PROFILE, false);
             $this->setIDTContactID($person->getID(), $person_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $counter++;
+            if ($counter % 25 == 0) {
+                $this->log("{$counter} persons imported/updated.");
+            }
         }
 
         // import employment
+        foreach ($model->getAllMemberships() as $employment) {
+            // get person
+            $person = $employment->getPerson();
+            if (empty($person)) {
+                $mid = $employment->getID();
+                $this->log("Employment [{$mid}] has no employee, this should not happen.");
+                continue;
+            }
 
-        // todo
+            // find person
+            $employee_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            if (empty($employee_id)) {
+                $external_id = $person->getID();
+                $this->logError("Employee [{$external_id}] wasn't identified or created.");
+                continue;
+            }
 
+            // get employer
+            $employer = $employment->getCommittee();
+            if (empty($employer)) {
+                $mid = $employer->getID();
+                $this->log("Employment [{$mid}] has no employer, this should not happen.");
+                continue;
+            }
+
+            // find employer contact
+            $employer_ekir_id = $employer->getID();
+            $employer_contact = null;
+            try {
+                $ekir_field_query = [
+                    self::ORGANISATION_EKIR_ID_FIELD => $employer_ekir_id,
+                    'return' => 'id'
+                ];
+                CRM_Committees_CustomData::resolveCustomFields($ekir_field_query);
+                $employer_contact = civicrm_api3('Contact', 'getsingle', $ekir_field_query);
+            } catch (CiviCRM_API3_Exception $ex) {
+                $this->log("EKIR entity [{$employer_ekir_id}] is listed as employer, but wasn't not found in the system.");
+                continue;
+            }
+
+            try {
+                civicrm_api3('Relationship', 'create', [
+                    'contact_id_a' => $employee_id,
+                    'contact_id_b' => $employer_contact['id'],
+                    'relationship_type_id' => $this->getRelationshipTypeID('Employee of'),
+                    //                    'start_date' => $employment->getAttribute('start_date'),
+                    //                    'end_date' => $employment->getAttribute('end_date'),
+                    //                    'description' => $employment->getAttribute('title'),
+                ]);
+            } catch (CiviCRM_API3_Exception $ex) {
+                $this->log("Couldn't create EKIR employment of [{$employee_id}] with [{$employer_contact['id']}]: " . $ex->getMessage());
+                continue;
+            }
+        }
+        $this->log("Simple import complete.");
     }
 }
