@@ -130,7 +130,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         }
 
         // import employment
-        foreach ($model->getAllMemberships() as $employment) {
+        $all_employments = $model->getAllMemberships();
+        $employment_count = count($all_employments);
+        $employments_imported = 0;
+        $this->log("Importing {$employment_count} employments...");
+        foreach ($all_employments as $employment) {
             // get person
             $person = $employment->getPerson();
             if (empty($person)) {
@@ -150,7 +154,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             // get employer
             $employer = $employment->getCommittee();
             if (empty($employer)) {
-                $mid = $employer->getID();
+                $mid = $employment->getID();
                 $this->log("Employment [{$mid}] has no employer, this should not happen.");
                 continue;
             }
@@ -179,11 +183,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     //                    'end_date' => $employment->getAttribute('end_date'),
                     //                    'description' => $employment->getAttribute('title'),
                 ]);
+                $employments_imported++;
             } catch (CiviCRM_API3_Exception $ex) {
                 $this->log("Couldn't create EKIR employment of [{$employee_id}] with [{$employer_contact['id']}]: " . $ex->getMessage());
                 continue;
             }
         }
+        $this->log("{$employments_imported} of {$employment_count} employments imported.");
         $this->log("Simple import complete.");
     }
 }
