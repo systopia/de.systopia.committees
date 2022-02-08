@@ -27,6 +27,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
     const CONTACT_TRACKER_TYPE = 'session';
     const CONTACT_TRACKER_PREFIX = 'SESSION-';
+    const COMMITTEE_TRACKER_PREFIX = 'GREMIUM-';
     const XCM_PERSON_PROFILE = 'session_person';
     const XCM_COMMITTEE_PROFILE = 'session_organisation';
 
@@ -70,7 +71,8 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     public function syncModel($model, $transaction = false)
     {
         // first, make sure some stuff is there
-        $this->registerIDTrackerType(self::CONTACT_TRACKER_TYPE, "Session ID");
+        $this->registerIDTrackerType(self::CONTACT_TRACKER_TYPE, "Session Person ID");
+        $this->registerIDTrackerType(self::COMMITTEE_TRACKER_PREFIX, "Session Gremium ID");
         $this->createContactTypeIfNotExists('Gremium', "Gremium (Session)", 'Organization');
         $this->createRelationshipTypeIfNotExists(
             'is_committee_member_of',
@@ -120,7 +122,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $data['organization_name'] = $data['name'];
             $gremium_id = $this->runXCM($data, 'session_organisation');
             $this->log("Gremium '{$data['name']}' ([{$gremium_id}]) imported/updated.");
-            $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
         }
         $this->log(count($model->getAllCommittees()) . " committees imported/updated.");
 
@@ -170,7 +172,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             }
 
             // find gremium
-            $gremium_id = $this->getIDTContactID($gremium->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $gremium_id = $this->getIDTContactID($gremium->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
             if (empty($gremium_id)) {
                 $external_id = $gremium->getID();
                 $this->logError("Committee [{$external_id}] wasn't identified or created.");
