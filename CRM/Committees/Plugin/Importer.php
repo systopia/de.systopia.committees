@@ -42,6 +42,7 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
         return [
             'CRM_Committees_Implementation_SessionImporter' => "Session Importer (XLS)",
             'CRM_Committees_Implementation_PersonalOfficeImporter' => "PersonalOffice Importer (XLS)",
+            'CRM_Committees_Implementation_KuerschnerCsvImporter' => "Kürschner Liste Bundestag (CSV)",
         ];
     }
 
@@ -77,4 +78,100 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
         return $this->model;
     }
 
+    /**
+     * Read CSV file data
+     *
+     * @param resource $input_stream
+     *   the data stream. will be closed by the operation
+     *
+     * @param string $separator
+     *   column separator
+     *
+     * @param string $encoding
+     *   string encoding
+     *
+     * @param array $column_mapping
+     *   map column names, missing entries will be stripped
+     *
+     * @param int $cap
+     *   stop reading after $cap entries
+     *
+     * @param array $headers
+     *   if the file doesn't have a header, you can provide a list of header strings here
+     *   In this case, the first row will be considered to be data
+     *
+     * @return array
+     *   list of datasets (array), one per row
+     */
+    protected function readCSV($input_stream, $encoding = 'UTF-8', $separator = ';', $column_mapping = null, $cap = null, $headers = null)
+    {
+
+        // read headers
+        if (!isset($headers)) {
+            $headers = fgetcsv($input_stream, 0, $separator);
+        }
+        $indices = [];
+        foreach ($headers as $index => $header) {
+            $indices[$index] = $header;
+        }
+
+        // read data
+        $records = [];
+        while ($record = fgetcsv($input_stream, 0, $separator)) {
+            $labeled_record = [];
+            foreach ($indices as $index => $header) {
+                $raw_data = $record[$index];
+                if ($encoding) {
+                    $raw_data = iconv($encoding, "UTF-8", $raw_data);
+                }
+                $labeled_record[$header] = $raw_data;
+            }
+
+            // apply column mapping to record
+            if ($column_mapping) {
+                $mapped_record = [];
+                foreach ($column_mapping as $old_column => $new_column) {
+                    $mapped_record[$new_column] = $labeled_record[$old_column] ?? null;
+                }
+                $labeled_record = $mapped_record;
+            }
+
+            $records[] = $labeled_record;
+
+            // check cap
+            if ($cap && count($records) >= $cap) {
+                break;
+            }
+        }
+
+        // close file
+        fclose($input_stream);
+
+        // return records
+        return $records;
+    }
+
+
+    /**
+     * Extract a subset of the record
+     *
+     * @param array $record
+     *     named data
+     * @param array $attributes
+     *     attributes to be extracted
+     * @param array $mapping
+     *     attribute mapping to be applied after the copy process
+     *
+     * @return array
+     *     attribute subset
+     */
+    protected function copyAttributes($record, $attributes, $mapping = [])
+    {
+        $subset = [];
+        foreach ($attributes as $attribute) {
+            $target_attribute = $mapping[$attribute] ?? $attribute;
+            $subset[$target_attribute] = $record[$attribute] ?? '';
+        }
+        return $subset;
+    }
 }
