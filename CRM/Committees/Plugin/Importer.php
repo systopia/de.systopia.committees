@@ -96,6 +96,9 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      * @param int $cap
      *   stop reading after $cap entries
      *
+     * @param boolean $trim
+     *   trim the values
+     *
      * @param array $headers
      *   if the file doesn't have a header, you can provide a list of header strings here
      *   In this case, the first row will be considered to be data
@@ -103,7 +106,7 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      * @return array
      *   list of datasets (array), one per row
      */
-    protected function readCSV($input_stream, $encoding = 'UTF-8', $separator = ';', $column_mapping = null, $cap = null, $headers = null)
+    protected function readCSV($input_stream, $encoding = 'UTF-8', $separator = ';', $column_mapping = null, $cap = null, $trim = false, $headers = null)
     {
 
         // read headers
@@ -123,6 +126,9 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
                 $raw_data = $record[$index];
                 if ($encoding) {
                     $raw_data = iconv($encoding, "UTF-8", $raw_data);
+                }
+                if ($trim) {
+                    $raw_data = trim($raw_data);
                 }
                 $labeled_record[$header] = $raw_data;
             }
@@ -161,11 +167,13 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      *     attributes to be extracted
      * @param array $mapping
      *     attribute mapping to be applied after the copy process
+     * @param boolean $trim
+     *     attribute mapping to be applied after the copy process
      *
      * @return array
      *     attribute subset
      */
-    protected function copyAttributes($record, $attributes, $mapping = [])
+    protected function copyAttributes($record, $attributes, $mapping = [], $trim = false)
     {
         $subset = [];
         foreach ($attributes as $attribute) {
