@@ -54,14 +54,15 @@ class CommitteeModuleSurvey extends Event
      *
      * @return void
      */
-    public function registerImporterModule($module_key, $module_class, $display_name = null, $config_link = null, $help_text = null)
+    public function registerImporterModule($module_key, $module_class, $display_name = null, $config_link = null, $help_text = null, $params = null)
     {
         $this->importer_modules[$module_key] = [
             'key' => $module_key,
             'class' => $module_class,
             'display_name' => $display_name,
             'config_link' => $config_link,
-            'help_text' => $help_text
+            'help_text' => $help_text,
+            'params' => $params,
         ];
     }
 
@@ -74,6 +75,42 @@ class CommitteeModuleSurvey extends Event
     public function getRegisteredImporterModules()
     {
         return $this->importer_modules;
+    }
+
+    /**
+     * Get the importer module instance represented by the key
+     *
+     * @param string $key
+     *   the module key
+     *
+     * @return
+     *    module specs
+     */
+    public function getImportModule($key)
+    {
+        if (isset($this->importer_modules[$key])) {
+            $specs = $this->importer_modules[$key];
+            return new $specs['class']($specs['config']);
+        }
+        return null;
+    }
+
+    /**
+     * Get the importer module instance represented by the key
+     *
+     * @param string $key
+     *   the module key
+     *
+     * @return array|null
+     *    module specs
+     */
+    public function getImportModule($key)
+    {
+        if (isset($this->importer_modules[$key])) {
+            $specs = $this->importer_modules[$key];
+            return new $specs['class']($specs['config']);
+        }
+        return null;
     }
 
     /**
@@ -96,14 +133,15 @@ class CommitteeModuleSurvey extends Event
      *
      * @return void
      */
-    public function registerSyncerModule($module_key, $module_class, $display_name = null, $config_link = null, $help_text = null)
+    public function registerSyncerModule($module_key, $module_class, $display_name = null, $config_link = null, $help_text = null, $params = null)
     {
         $this->syncer_modules[$module_key] = [
             'key' => $module_key,
             'class' => $module_class,
             'display_name' => $display_name,
             'config_link' => $config_link,
-            'help_text' => $help_text
+            'help_text' => $help_text,
+            'params' => $params
         ];
     }
 

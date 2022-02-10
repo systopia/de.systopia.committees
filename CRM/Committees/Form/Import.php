@@ -17,7 +17,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
         $importer_list = [];
         foreach (CRM_Committees_Plugin_Importer::getAvailableImporters() as $importer) {
             /** @var array $importer */
-            $importer_list[$importer['class']] = $importer['display_name'];
+            $importer_list[$importer['key']] = $importer['display_name'];
         }
         $this->add(
             'select',
@@ -32,7 +32,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
         $syncer_list = [];
         foreach (CRM_Committees_Plugin_Syncer::getAvailableSyncers() as $syncer) {
             /** @var array $syncer */
-            $syncer_list[$syncer['class']] = $syncer['display_name'];
+            $syncer_list[$syncer['key']] = $syncer['display_name'];
         }
         $this->add(
             'select',
@@ -82,6 +82,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
     {
         $values = $this->exportValues();
 
+        
         // check importer
         if (!class_exists($values['importer'])) {
             $this->_errors['importer'] = E::ts("Class not found");

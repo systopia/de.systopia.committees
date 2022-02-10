@@ -87,24 +87,6 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     private $our_sheets = null;
 
     /**
-     * Get the label of the implementation
-     * @return string short label
-     */
-    public function getLabel() : string
-    {
-        return E::ts("Session Importer (XLS)");
-    }
-
-    /**
-     * Get a description of the implementation
-     * @return string (html) text to describe what this implementation does
-     */
-    public function getDescription() : string
-    {
-        return E::ts("Imports a 'Session' XLS export.");
-    }
-
-    /**
      * This function will be called *before* the plugin will do it's work.
      *
      * If your implementation has any external dependencies, you should

@@ -20,26 +20,13 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @todo migrate to separate extension
  */
-class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_Syncer
+class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Plugin_Syncer
 {
     use CRM_Committees_Tools_IdTrackerTrait;
-    use CRM_Committees_Tools_XcmTrait;
 
-    const CONTACT_TRACKER_TYPE = 'session';
-    const CONTACT_TRACKER_PREFIX = 'SESSION-';
-    const COMMITTEE_TRACKER_PREFIX = 'GREMIUM-';
-    const XCM_PERSON_PROFILE = 'session_person';
-    const XCM_COMMITTEE_PROFILE = 'session_organisation';
-
-    public function getLabel(): string
-    {
-        return E::ts("Session Syncer");
-    }
-
-    public function getDescription(): string
-    {
-        return E::ts("Imports Session Data");
-    }
+    const ID_TRACKER_TYPE = 'kuerschners';
+    const ID_TRACKER_PREFIX = 'KUE-';
+    const CONTACT_SOURCE = 'kuerschners_MdB_2021';
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -52,9 +39,6 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     {
         // we need the identity tracker
         $this->checkIdTrackerRequirements($this);
-
-        // we need the extended contact matcher (XCM)
-        $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE, self::XCM_COMMITTEE_PROFILE]);
     }
 
     /**
@@ -71,9 +55,10 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     public function syncModel($model, $transaction = false)
     {
         // first, make sure some stuff is there
-        $this->registerIDTrackerType(self::CONTACT_TRACKER_TYPE, "Session Person ID");
-        $this->registerIDTrackerType(self::COMMITTEE_TRACKER_PREFIX, "Session Gremium ID");
-        $this->createContactTypeIfNotExists('Gremium', "Gremium (Session)", 'Organization');
+        $this->registerIDTrackerType(self::ID_TRACKER_TYPE, "Kürschners");
+        $location_type_id = $this->createLocationTypeIfNotExists('name', "Gremium (Session)", 'Organization');
+        $lobby_contact_group_id = $this->getOrCreateGroup('Lobby-Kontakte');
+
         $this->createRelationshipTypeIfNotExists(
             'is_committee_member_of',
             'committee_has_member',
@@ -86,17 +71,9 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             "Aus der Sessions DB"
         );
 
-//        if ($transaction) {
-//            $transaction = new CRM_Core_Transaction();
-//        }
-
         // todo: diff models sync instead of import
         // todo: instead, we'll do a simple import for now
         $this->simpleImport($model);
-
-//        if ($transaction) {
-//            $transaction->commit();
-//        }
     }
 
     /**

@@ -32,16 +32,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     /** @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
     const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
 
-    public function getLabel(): string
-    {
-        return E::ts("Personal Office Syncer");
-    }
-
-    public function getDescription(): string
-    {
-        return E::ts("Imports Personal Office Data");
-    }
-
     /**
      * This function will be called *before* the plugin will do it's work.
      *

@@ -31,16 +31,6 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     const XCM_PERSON_PROFILE = 'session_person';
     const XCM_COMMITTEE_PROFILE = 'session_organisation';
 
-    public function getLabel(): string
-    {
-        return E::ts("Session Syncer");
-    }
-
-    public function getDescription(): string
-    {
-        return E::ts("Imports Session Data");
-    }
-
     /**
      * This function will be called *before* the plugin will do it's work.
      *

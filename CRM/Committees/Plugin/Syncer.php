@@ -23,6 +23,12 @@ use Civi\CommitteeModuleSurvey;
  */
 abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
 {
+    public function __construct($module_params = null)
+    {
+        parent::__construct($module_params);
+    }
+
+
     /**
      * Return a list of the available importers, represented by the implementation class name
      *
@@ -44,13 +50,13 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
      */
     public static function registerBuiltInSyncers($syncer_survey)
     {
-//        $syncer_survey->registerSyncerModule(
-//            'de.oxfam.kuerschner.syncer.one-shot',
-//            'CRM_Committees_Implementation_OxfamOneShotSyncer',
-//            E::ts("Kürschner/Oxfam One-Shot"),
-//            null, // todo
-//            E::ts("Importer for the Kürschner/Oxfam model. One-shot import, no synchronisation or retirement of previous data.")
-//        );
+        $syncer_survey->registerSyncerModule(
+            'de.oxfam.kuerschner.syncer.one-shot',
+            'CRM_Committees_Implementation_OxfamOneShotSyncer',
+            E::ts("Kürschner/Oxfam One-Shot"),
+            null, // todo
+            E::ts("Importer for the Kürschner/Oxfam model. One-shot import, no synchronisation or retirement of previous data.")
+        );
         $syncer_survey->registerSyncerModule(
             'de.ekir.po.syncer',
             'CRM_Committees_Implementation_PersonalOfficeSyncer',

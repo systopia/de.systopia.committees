@@ -21,6 +21,9 @@ use CRM_Committees_ExtensionUtil as E;
  */
 abstract class CRM_Committees_Plugin_Base
 {
+    /** @var array module config represented by the */
+    protected $_module_config;
+
     /** @var array data structure for the missing requirements */
     protected $missing_requirements = [];
 
@@ -30,21 +33,18 @@ abstract class CRM_Committees_Plugin_Base
     /** @var string short module name, see getModuleName */
     protected $_module_name = null;
 
-    /**
-     * Get the label of the implementation
-     * @return string short label
-     */
-    public abstract function getLabel() : string;
-
-    /**
-     * Get a description of the implementation
-     * @return string (html) text to describe what this implementation does
-     */
-    public abstract function getDescription() : string;
-
     /** @var resource the current logger, see getLogResource()  */
     static private $progress_logger = null;
 
+    /**
+     * Create a new instance of this module with the given config
+     *
+     * @param $module_config
+     */
+    public function __construct($module_config)
+    {
+        $this->_module_config = $module_config;
+    }
 
     /**
      * This function will be called to check whether the requirements are met

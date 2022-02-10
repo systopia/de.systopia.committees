@@ -27,8 +27,9 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
     /** @var CRM_Committees_Model_Model */
     protected $model = null;
 
-    public function __construct()
+    public function __construct($module_params = null)
     {
+        parent::__construct($module_params);
         $this->model = new CRM_Committees_Model_Model();
     }
 

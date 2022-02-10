@@ -48,24 +48,6 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
     private $main_sheet = null;
 
     /**
-     * Get the label of the implementation
-     * @return string short label
-     */
-    public function getLabel() : string
-    {
-        return E::ts("Personal Office Importer (XLS)");
-    }
-
-    /**
-     * Get a description of the implementation
-     * @return string (html) text to describe what this implementation does
-     */
-    public function getDescription() : string
-    {
-        return E::ts("Imports a 'Personal Office' XLS export.");
-    }
-
-    /**
      * This function will be called *before* the plugin will do it's work.
      *
      * If your implementation has any external dependencies, you should
