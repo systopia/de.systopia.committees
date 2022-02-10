@@ -109,4 +109,27 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
         return $this->model;
     }
 
+    /**
+     * Extract a subset of the record
+     *
+     * @param array $record
+     *     named data
+     * @param array $attributes
+     *     attributes to be extracted
+     * @param array $mapping
+     *     attribute mapping to be applied after the copy process
+     *
+     * @return array
+     *     attribute subset
+     */
+    protected function copyAttributes($record, $attributes, $mapping = [])
+    {
+        $subset = [];
+        foreach ($attributes as $attribute) {
+            $target_attribute = $mapping[$attribute] ?? $attribute;
+            $subset[$target_attribute] = $record[$attribute] ?? '';
+        }
+        return $subset;
+    }
+
 }
