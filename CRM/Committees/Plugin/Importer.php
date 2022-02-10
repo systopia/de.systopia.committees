@@ -14,10 +14,11 @@
 +--------------------------------------------------------*/
 
 use CRM_Committees_ExtensionUtil as E;
+use Civi\CommitteeModuleSurvey;
 
 /**
  * Base for all importers. Importers are able to
- *   1) receive a file/source of a predefinied type
+ *   1) receive a file/source of a predefined type
  *   2) verify the file/source
  *   3) import the data into the internal model
  */
@@ -38,11 +39,41 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      */
     public static function getAvailableImporters() : array
     {
-        // todo: gather this through Symfony hook, and dynamically (i.e. use the ->getLabel())
-        return [
-            'CRM_Committees_Implementation_SessionImporter' => "Session Importer (XLS)",
-            'CRM_Committees_Implementation_PersonalOfficeImporter' => "PersonalOffice Importer (XLS)",
-        ];
+        $importer_survey = new CommitteeModuleSurvey();
+        Civi::dispatcher()->dispatch(CommitteeModuleSurvey::EVENT_NAME, $importer_survey);
+        return $importer_survey->getRegisteredImporterModules();
+    }
+
+    /**
+     * Register the built-in importer modules
+     *
+     * @param CommitteeModuleSurvey $importer_survey
+     *
+     * @return void
+     */
+    public static function registerBuiltInImporters($importer_survey)
+    {
+        $importer_survey->registerImporterModule(
+            'de.oxfam.kuerschner',
+            'CRM_Committees_Implementation_OxfamSimpleImporter',
+            E::ts("Kürschner/Oxfam Simple Import"),
+            null, // todo
+            E::ts("Kürschner Bundestag Data - Oxfam Model - one-shot")
+        );
+        $importer_survey->registerImporterModule(
+            'de.ekir.po.importer',
+            'CRM_Committees_Implementation_PersonalOfficeImporter',
+            E::ts("Personal Office Importer (XLS)"),
+            null,
+            E::ts("Imports a 'Personal Office's XLS export.")
+        );
+        $importer_survey->registerImporterModule(
+            'de.ekir.session.syncer',
+            'CRM_Committees_Implementation_SessionImporter',
+            E::ts("Session Importer (XLS)"),
+            null,
+            E::ts("Imports a 'Session' XLS export.")
+        );
     }
 
     /**

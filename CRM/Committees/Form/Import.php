@@ -13,20 +13,32 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
     {
         $this->setTitle("Import Committee File");
 
+        // compile importer list
+        $importer_list = [];
+        foreach (CRM_Committees_Plugin_Importer::getAvailableImporters() as $importer) {
+            /** @var array $importer */
+            $importer_list[$importer['class']] = $importer['display_name'];
+        }
         $this->add(
             'select',
             'importer',
             E::ts("File Importer"),
-            CRM_Committees_Plugin_Importer::getAvailableImporters(),
+            $importer_list,
             true,
             ['class' => 'crm-select2 huge']
         );
 
+        // compile syncer list
+        $syncer_list = [];
+        foreach (CRM_Committees_Plugin_Syncer::getAvailableSyncers() as $syncer) {
+            /** @var array $syncer */
+            $syncer_list[$syncer['class']] = $syncer['display_name'];
+        }
         $this->add(
             'select',
             'syncer',
             E::ts("Data Model"),
-            CRM_Committees_Plugin_Syncer::getAvailableSyncers(),
+            $syncer_list,
             true,
             ['class' => 'crm-select2 huge']
         );

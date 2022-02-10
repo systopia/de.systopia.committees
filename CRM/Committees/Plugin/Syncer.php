@@ -13,6 +13,9 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
+use CRM_Committees_ExtensionUtil as E;
+use Civi\CommitteeModuleSurvey;
+
 /**
  * Base for all syncers. Syncers are able to export the given internal model,
  *  and apply it to CiviCRM. In that process, CiviCRM entities (like individuals,
@@ -27,11 +30,41 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
      */
     public static function getAvailableSyncers()
     {
-        // todo: gather this through Symfony hook
-        return [
-            'CRM_Committees_Implementation_SessionSyncer' => "Session",
-            'CRM_Committees_Implementation_PersonalOfficeSyncer' => "PersonalOffice"
-        ];
+        $syncer_survey = new CommitteeModuleSurvey();
+        Civi::dispatcher()->dispatch(CommitteeModuleSurvey::EVENT_NAME, $syncer_survey);
+        return $syncer_survey->getRegisteredSyncerModules();
+    }
+
+    /**
+     * Register the built-in syncer modules
+     *
+     * @param CommitteeModuleSurvey $syncer_survey
+     *
+     * @return void
+     */
+    public static function registerBuiltInSyncers($syncer_survey)
+    {
+//        $syncer_survey->registerSyncerModule(
+//            'de.oxfam.kuerschner.syncer.one-shot',
+//            'CRM_Committees_Implementation_OxfamOneShotSyncer',
+//            E::ts("Kürschner/Oxfam One-Shot"),
+//            null, // todo
+//            E::ts("Importer for the Kürschner/Oxfam model. One-shot import, no synchronisation or retirement of previous data.")
+//        );
+        $syncer_survey->registerSyncerModule(
+            'de.ekir.po.syncer',
+            'CRM_Committees_Implementation_PersonalOfficeSyncer',
+            E::ts("Personal Office Syncer"),
+            null, // todo
+            E::ts("Imports Personal Office Data")
+        );
+        $syncer_survey->registerSyncerModule(
+            'de.ekir.session.syncer',
+            'CRM_Committees_Implementation_SessionSyncer',
+            E::ts("Session Syncer"),
+            null, // todo
+            E::ts("Imports Session Data")
+        );
     }
 
     /**
