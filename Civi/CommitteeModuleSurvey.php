@@ -96,24 +96,6 @@ class CommitteeModuleSurvey extends Event
     }
 
     /**
-     * Get the importer module instance represented by the key
-     *
-     * @param string $key
-     *   the module key
-     *
-     * @return array|null
-     *    module specs
-     */
-    public function getImportModule($key)
-    {
-        if (isset($this->importer_modules[$key])) {
-            $specs = $this->importer_modules[$key];
-            return new $specs['class']($specs['config']);
-        }
-        return null;
-    }
-
-    /**
      * Register a new syncer module with the system
      *
      * @param string $module_key

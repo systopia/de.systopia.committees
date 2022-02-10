@@ -82,24 +82,6 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     private $raw_data = null;
 
     /**
-     * Get the label of the implementation
-     * @return string short label
-     */
-    public function getLabel() : string
-    {
-        return E::ts("Kürschner Liste Bundestag (CSV)");
-    }
-
-    /**
-     * Get a description of the implementation
-     * @return string (html) text to describe what this implementation does
-     */
-    public function getDescription() : string
-    {
-        return E::ts("Importiert Kürschner Liste Bundestag (CSV)");
-    }
-
-    /**
      * This function will be called *before* the plugin will do it's work.
      *
      * If your implementation has any external dependencies, you should
