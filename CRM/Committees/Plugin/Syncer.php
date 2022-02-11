@@ -52,8 +52,8 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
     {
         $syncer_survey->registerSyncerModule(
             'de.oxfam.kuerschner.syncer.one-shot',
-            'CRM_Committees_Implementation_OxfamOneShotSyncer',
-            E::ts("Kürschner/Oxfam One-Shot"),
+            'CRM_Committees_Implementation_OxfamSimpleSync',
+            E::ts("Kürschner/Oxfam SimpleImport"),
             null, // todo
             E::ts("Importer for the Kürschner/Oxfam model. One-shot import, no synchronisation or retirement of previous data.")
         );

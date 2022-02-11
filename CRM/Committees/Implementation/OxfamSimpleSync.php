@@ -20,7 +20,7 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @todo migrate to separate extension
  */
-class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Plugin_Syncer
+class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugin_Syncer
 {
     use CRM_Committees_Tools_IdTrackerTrait;
 
@@ -74,14 +74,14 @@ class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Pl
          **        RUN SYNCHRONISATION       **
          **************************************/
 
-        // sync committees
+        // SYNC COMMITEES
         $committee_id_to_contact_id = [];
         $committees = $model->getAllCommittees();
         $this->log("Syncing " . count($committees) . " committees...");
         foreach ($model->getAllCommittees() as $committee) {
-            $committee_name = $committee['name'];
-            if ($committee['type'] == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
-                $committee_name = E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $committee['name']]);
+            $committee_name = $committee->getAttribute('name');
+            if ($committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
+                $committee_name = E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $committee_name]);
             }
             // find contact
             $search_result = $this->callApi3('Contact', 'get', [
@@ -91,12 +91,12 @@ class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Pl
             if (!empty($search_result['id'])) {
                 // single hit
                 $this->log("Committee '{$committee_name}' found: " . $search_result['id']);
-                $committee_id_to_contact_id[$committee['id']] = $search_result['id'];
+                $committee_id_to_contact_id[$committee->getID()] = $search_result['id'];
 
             } else if (count($search_result['values']) > 1) {
                 // multiple hits
                 $first_committee = reset($search_result['values']);
-                $committee_id_to_contact_id[$committee['id']] = $first_committee['id'];
+                $committee_id_to_contact_id[$committee->getID()] = $first_committee['id'];
                 $this->log("Committee '{$committee_name}' not unique! Using ID [{$first_committee['id']}]", 'warn');
 
             } else {
@@ -105,10 +105,14 @@ class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Pl
                     'organization_name' => $committee_name,
                     'contact_type' => 'Organization'
                 ]);
-                $committee_id_to_contact_id[$committee['id']] = $create_result['id'];
+                $committee_id_to_contact_id[$committee->getID()] = $create_result['id'];
                 $this->log("Committee '{$committee_name}' created: ID [{$create_result['id']}");
             }
         }
+
+        // SYNC CONTACTS
+        
+
     }
 
     /**

@@ -79,7 +79,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id'];
     const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
     const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];
-    const ADDRESS_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_street_address' => 'street_address', 'government_postal_code' => 'postal_code', 'government_city' => 'city', 'government_address_1' => 'supplemental_address_1', 'government_address_2' => 'supplemental_address_2', 'government_address_3' => 'supplemental_addr4ss_3', 'government_address_4' => 'supplemental_address_4'];
+    const ADDRESS_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_street_address' => 'street_address', 'government_postal_code' => 'postal_code', 'government_city' => 'city', 'government_address_1' => 'supplemental_address_1', 'government_address_2' => 'supplemental_address_2', 'government_address_3' => 'supplemental_address_3', 'government_address_4' => 'supplemental_address_4'];
     const PHONE_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_phone_prefix' => 'phone_prefix', 'government_phone' => 'phone'];
     const ADDRESS_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_street_address' => 'street_address', 'constituency_postal_code' => 'postal_code', 'constituency_city' => 'city', 'constituency_address_1' => 'supplemental_address_1'];
     const PHONE_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_phone_prefix' => 'phone_prefix', 'constituency_phone' => 'phone'];
@@ -218,8 +218,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
 
             // extract CONSTITUENCY address
             $address = $this->copyAttributes($record, array_keys(self::ADDRESS_CONSTITUENCY_ATTRIBUTES), self::ADDRESS_CONSTITUENCY_ATTRIBUTES);
-            $address['supplemental_address_2'] = trim("{$address['supplemental_address_2_1']} {$address['supplemental_address_2_2']} {$address['supplemental_address_2_3']}");
-            unset($address['supplemental_address_2_1'], $address['supplemental_address_2_2'], $address['supplemental_address_2_3']);
+            $address['supplemental_address_1'] = trim($address['supplemental_address_1']);
             if (count(array_filter($address)) > 1) { // the contact_id is always there
                 $address['location_type'] = self::LOCATION_TYPE_WAHLKREIS;
                 $this->model->addAddress($address);
