@@ -236,4 +236,23 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
         $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
         return !empty($custom_field);
     }
+
+    /**
+     * Get or create a contact group.
+     *
+     * @param $attributes
+     *   attributes the group should be identified by,
+     *    or created by when not found
+     *
+     * @return integer
+     *   ID of the contact group
+     */
+    public function getOrCreateContactGroup($attributes)
+    {
+        $result = $this->callApi3('Group', 'getsingle', $attributes);
+        if (empty($result['id'])) {
+            $result = $this->callApi3('Group', 'create', $attributes);
+        }
+        return $result['id'];
+    }
 }

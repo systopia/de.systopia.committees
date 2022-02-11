@@ -82,14 +82,16 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
     {
         $values = $this->exportValues();
 
-        
         // check importer
-        if (!class_exists($values['importer'])) {
+        $importer_key = $values['importer'];
+        $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
+        if (empty($importers[$importer_key])) {
+            $this->_errors['importer'] = E::ts("Importer not found");
+        } elseif (!class_exists($importers[$importer_key]['class'])) {
             $this->_errors['importer'] = E::ts("Class not found");
         } else {
-            /** @var CRM_Committees_Plugin_Syncer $importer */
-            $importer = new $values['importer']();
-            $importer->checkRequirements();
+            // check requirements
+            $importer = new $importers[$importer_key]['class']();
             $missing_requirements = $importer->getMissingRequirements();
             if (!empty($missing_requirements)) {
                 $missing_requirement = reset($missing_requirements);
@@ -98,16 +100,19 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
         }
 
         // check syncer
-        if (!class_exists($values['syncer'])) {
+        $syncer_key = $values['syncer'];
+        $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
+        if (empty($syncers[$syncer_key])) {
+            $this->_errors['syncer'] = E::ts("Importer not found");
+        } elseif (!class_exists($syncers[$syncer_key]['class'])) {
             $this->_errors['syncer'] = E::ts("Class not found");
         } else {
-            /** @var CRM_Committees_Plugin_Syncer $syncer */
-            $syncer = new $values['syncer']();
-            $syncer->checkRequirements();
+            // check requirements
+            $syncer = new $syncers[$syncer_key]['class']();
             $missing_requirements = $syncer->getMissingRequirements();
             if (!empty($missing_requirements)) {
                 $missing_requirement = reset($missing_requirements);
-                $this->_errors['syncer'] = $missing_requirement['description'];
+                $this->_errors['syncer'] = $missing_requirement['label'];
             }
         }
 
@@ -122,32 +127,31 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
         Civi::settings()->set('committees_last_importer', $values['importer']);
         Civi::settings()->set('committees_last_syncer', $values['syncer']);
 
+        // get importer
+        $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
+        /** @var CRM_Committees_Plugin_Importer $importer */
+        $importer = new $importers[$values['importer']]['class']();
+
+        $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
+        /** @var \CRM_Committees_Plugin_Syncer $syncer */
+        $syncer = new $syncers[$values['syncer']]['class']();
+
+        // todo: move all of this to another place?
+        // todo: verify type as well
+
         // probe file
-        if (    class_exists($values['importer'])
-             && class_exists($values['syncer'])
-             && is_subclass_of($values['importer'], 'CRM_Committees_Plugin_Importer')
-             && is_subclass_of($values['syncer'], 'CRM_Committees_Plugin_Syncer')) {
+        $file = $this->_submitFiles['import_file'];
+        if (!$importer->probeFile($file['tmp_name'])) {
+            // this is not our file!
+            $this->reportErrors($importer->getErrors());
 
-            // todo: move to another place?
-            // todo: verify type as well
-            $file = $this->_submitFiles['import_file'];
-            /** @var CRM_Committees_Plugin_Importer $importer */
-            $importer = new $values['importer']();
-
-            /** @var \CRM_Committees_Plugin_Syncer $syncer */
-            $syncer = new $values['syncer']();
-            if (!$importer->probeFile($file['tmp_name'])) {
-                // this is not our file!
-                $this->reportErrors($importer->getErrors());
-
-            } else {
-                // let's import & sync
-                $importer->log("Starting importer " . get_class($importer));
-                $importer->importModel($file['tmp_name']);
-                $model = $importer->getModel();
-                $syncer->log("Starting syncer " . get_class($syncer));
-                $syncer->syncModel($model);
-            }
+        } else {
+            // let's import & sync
+            $importer->log("Starting importer " . get_class($importer));
+            $importer->importModel($file['tmp_name']);
+            $model = $importer->getModel();
+            $syncer->log("Starting syncer " . get_class($syncer));
+            $syncer->syncModel($model);
         }
     }
 

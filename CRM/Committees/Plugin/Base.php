@@ -247,4 +247,23 @@ abstract class CRM_Committees_Plugin_Base
         fputs($logger, $message);
         fputs($logger, "\n");
     }
+
+    /**
+     * Call the CiviCRM APIv3
+     *
+     * @param string $entity
+     * @param string $action
+     * @param array $params
+     *
+     * @return array result
+     */
+    public function callApi3($entity, $action, $params = [])
+    {
+        try {
+            return civicrm_api3($entity, $action, $params);
+        } catch (CiviCRM_API3_Exception $ex) {
+            $this->logException($ex);
+            return civicrm_api3_create_error("Error: " . $ex->getMessage());
+        }
+    }
 }

@@ -40,6 +40,7 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      */
     public static function getAvailableImporters() : array
     {
+        // todo: cache?
         $importer_survey = new CommitteeModuleSurvey();
         Civi::dispatcher()->dispatch(CommitteeModuleSurvey::EVENT_NAME, $importer_survey);
         return $importer_survey->getRegisteredImporterModules();
@@ -137,7 +138,6 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      */
     protected function readCSV($input_stream, $encoding = 'UTF-8', $separator = ';', $column_mapping = null, $cap = null, $headers = null)
     {
-
         // read headers
         if (!isset($headers)) {
             $headers = fgetcsv($input_stream, 0, $separator);

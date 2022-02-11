@@ -22,6 +22,12 @@ use CRM_Committees_ExtensionUtil as E;
  */
 class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees_Plugin_Importer
 {
+    /** @var string committee.type value for parliamentary committee (Ausschuss) */
+    const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
+
+    /** @var string committee.type value for parliamentary group (Fraktion) */
+    const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
+
     const CSV_MAPPING = [
         'LFDNR' => 'id',
         'TITEL' => 'formal_title',
@@ -69,6 +75,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     const LOCATION_TYPE_REGIERUNG = 'Regierung'; // government
     const LOCATION_TYPE_WAHLKREIS = 'Wahlkreis'; // constituency
 
+    // attribute mapping
     const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id'];
     const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
     const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];
@@ -145,7 +152,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     {
         // open file, and look for important values
         $file_handle = fopen($file_path, 'rb');
-        $data_set = $this->readCSV($file_handle, 'Windows-1252', ';', self::CSV_MAPPING, null, true);
+        $data_set = $this->readCSV($file_handle, 'Windows-1252', ';', self::CSV_MAPPING);
+        $this->log(count($data_set) . " data sets read.");
         foreach ($data_set as $record) {
             // extract member's of parliament (MOP)
             $mop = $this->copyAttributes($record, self::CONTACT_ATTRIBUTES);
@@ -227,6 +235,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 $this->model->addPhone($phone);
             }
         }
+        $this->log(count($this->model->getAllPersons()) . " individuals extracted.");
+        $this->log(count($this->model->getAllAddresses()) . " addresses extracted.");
+        $this->log(count($this->model->getAllPhones()) . " phone numbers extracted.");
 
 
         /**************************************
@@ -252,7 +263,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             $this->model->addCommittee([
                'name' => $committee_name,
                'id'   => $this->getCommitteeID($committee_name),
-               'type' => 'parliamentary_committee'
+               'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
            ]);
         }
 
@@ -265,7 +276,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                         [
                             'contact_id' => $record['id'],
                             'committee_id' => $this->getCommitteeID($committee_name),
-                            'type' => 'parliamentary_committee'
+                            'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
                         ]
                     );
                 }
@@ -294,7 +305,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         foreach ($parliamentary_groups_list as $parliamentary_group_name) {
             $this->model->addCommittee([
                'name' => $parliamentary_group_name,
-               'type' => 'parliamentary_group',
+               'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
                'id'   => $this->getCommitteeID($parliamentary_group_name),
            ]);
         }
@@ -306,10 +317,12 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                     [
                         'contact_id' => $record['id'],
                         'committee_id' => $this->getCommitteeID($parliamentary_group_name),
+                        'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
                     ]
                 );
             }
         }
+        $this->log(count($this->model->getAllCommittees()) . " committees extracted.");
 
         return true;
     }
@@ -339,7 +352,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     }
 
     /**
-     * Generate a unique ID from the committe name
+     * Generate a unique ID from the committee name
      *
      * @param string $committee_name
      *

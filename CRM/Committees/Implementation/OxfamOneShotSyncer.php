@@ -24,6 +24,12 @@ class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Pl
 {
     use CRM_Committees_Tools_IdTrackerTrait;
 
+    /** @var string committee.type value for parliamentary committee (Ausschuss) */
+    const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
+
+    /** @var string committee.type value for parliamentary group (Fraktion) */
+    const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
+
     const ID_TRACKER_TYPE = 'kuerschners';
     const ID_TRACKER_PREFIX = 'KUE-';
     const CONTACT_SOURCE = 'kuerschners_MdB_2021';
@@ -54,26 +60,55 @@ class CRM_Committees_Implementation_OxfamOneShotSyncer extends CRM_Committees_Pl
      */
     public function syncModel($model, $transaction = false)
     {
-        // first, make sure some stuff is there
+        // first, make sure some stuff is there:
+        // 1. ID Tracker
         $this->registerIDTrackerType(self::ID_TRACKER_TYPE, "Kürschners");
-        $location_type_id = $this->createLocationTypeIfNotExists('name', "Gremium (Session)", 'Organization');
-        $lobby_contact_group_id = $this->getOrCreateGroup('Lobby-Kontakte');
 
-        $this->createRelationshipTypeIfNotExists(
-            'is_committee_member_of',
-            'committee_has_member',
-            "Gremienmitglied bei",
-            'Gremienmitglied',
-            'Individual',
-            'Organization',
-            null,
-            'Gremium',
-            "Aus der Sessions DB"
-        );
+        // 2. Contact group 'Lobby-Kontakte'
+        $lobby_contact_group_id = $this->getOrCreateContactGroup(['title' => E::ts('Lobby-Kontakte')]);
 
-        // todo: diff models sync instead of import
-        // todo: instead, we'll do a simple import for now
-        $this->simpleImport($model);
+        // 3. add relationship types
+        // todo
+
+        /**************************************
+         **        RUN SYNCHRONISATION       **
+         **************************************/
+
+        // sync committees
+        $committee_id_to_contact_id = [];
+        $committees = $model->getAllCommittees();
+        $this->log("Syncing " . count($committees) . " committees...");
+        foreach ($model->getAllCommittees() as $committee) {
+            $committee_name = $committee['name'];
+            if ($committee['type'] == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
+                $committee_name = E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $committee['name']]);
+            }
+            // find contact
+            $search_result = $this->callApi3('Contact', 'get', [
+                'organization_name' => $committee_name,
+                'contact_type' => 'Organization'
+            ]);
+            if (!empty($search_result['id'])) {
+                // single hit
+                $this->log("Committee '{$committee_name}' found: " . $search_result['id']);
+                $committee_id_to_contact_id[$committee['id']] = $search_result['id'];
+
+            } else if (count($search_result['values']) > 1) {
+                // multiple hits
+                $first_committee = reset($search_result['values']);
+                $committee_id_to_contact_id[$committee['id']] = $first_committee['id'];
+                $this->log("Committee '{$committee_name}' not unique! Using ID [{$first_committee['id']}]", 'warn');
+
+            } else {
+                // doesn't exist -> create
+                $create_result = $this->callApi3('Contact', 'create', [
+                    'organization_name' => $committee_name,
+                    'contact_type' => 'Organization'
+                ]);
+                $committee_id_to_contact_id[$committee['id']] = $create_result['id'];
+                $this->log("Committee '{$committee_name}' created: ID [{$create_result['id']}");
+            }
+        }
     }
 
     /**
