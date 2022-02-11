@@ -68,4 +68,23 @@ trait CRM_Committees_Tools_ContactGroupTrait
             $this->trait_group_members[$group_id][$contact_id] = $contact_id;
         }
     }
+
+    /**
+     * Get or create a contact group.
+     *
+     * @param $attributes
+     *   attributes the group should be identified by,
+     *    or created by when not found
+     *
+     * @return integer
+     *   ID of the contact group
+     */
+    public function getOrCreateContactGroup($attributes)
+    {
+        $result = $this->callApi3('Group', 'getsingle', $attributes);
+        if (empty($result['id'])) {
+            $result = $this->callApi3('Group', 'create', $attributes);
+        }
+        return $result['id'];
+    }
 }

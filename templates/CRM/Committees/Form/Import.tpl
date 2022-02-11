@@ -13,7 +13,7 @@
 +-------------------------------------------------------*}
 
 {crmScope extensionKey='de.systopia.committees'}
-<div id="help">{ts}Caution: Running this may not only import new contacts, but also alter existing ones. It is <em>highly</em> recommended to create a backup of the database before you continue.{/ts}</div>
+<div id="help">{ts}Caution: Running this may not only import new contacts, but also alter existing ones. It is <em>highly</em> recommended to lock out all users and create a backup of the database before you continue. Then check the changes of the import and the log file carefully and thoroughly before opening the system to the users.{/ts}</div>
 
 <div class="crm-section">
   <div class="label">{$form.import_file.label}</div>

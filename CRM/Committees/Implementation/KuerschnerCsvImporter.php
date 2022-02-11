@@ -276,6 +276,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                             'contact_id' => $record['id'],
                             'committee_id' => $this->getCommitteeID($committee_name),
                             'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
+                            'role' => $member_role,
                         ]
                     );
                 }

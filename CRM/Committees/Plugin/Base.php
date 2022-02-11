@@ -36,6 +36,10 @@ abstract class CRM_Committees_Plugin_Base
     /** @var resource the current logger, see getLogResource()  */
     static private $progress_logger = null;
 
+    /** @var string $current_log_file (full path) */
+    protected $current_log_file = null;
+
+
     /**
      * Create a new instance of this module with the given config
      *
@@ -226,11 +230,21 @@ abstract class CRM_Committees_Plugin_Base
     {
         if (self::$progress_logger === null) {
             $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
-            $log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('Y-m-d_H:i:s') . '.log';
-            self::$progress_logger = fopen($log_file, 'w');
-            Civi::log()->debug("Committee importer started, log file is '{$log_file}");
+            $this->current_log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('Y-m-d_H:i:s') . '.log';
+            self::$progress_logger = fopen($this->current_log_file, 'w');
+            Civi::log()->debug("Committee importer started, log file is '{$this->current_log_file}");
         }
         return self::$progress_logger;
+    }
+
+    /**
+     * Return the current log file, full path
+     *
+     * @return string|null
+     */
+    public function getCurrentLogFile()
+    {
+        return $this->current_log_file;
     }
 
     /**

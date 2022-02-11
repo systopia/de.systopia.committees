@@ -69,7 +69,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $lobby_contact_group_id = $this->getOrCreateContactGroup(['title' => E::ts('Lobby-Kontakte')]);
 
         // 3. add relationship types
-        // todo
+        $this->createRelationshipTypeIfNotExists(
+            'is_committee_member_of',
+            'committee_has_member',
+            "Mitglied",
+            'Mitglied',
+            'Individual',
+            'Organization',
+            null,
+            null,
+            ""
+        );
 
         /**************************************
          **        RUN SYNCHRONISATION       **
@@ -112,7 +122,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
 
         // SYNC CONTACTS
+        $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
         $person_id_2_civicrm_id = [];
+        $person_update_count = 0;
         $gender_map = ['m' => 2, 'w' => '1']; // todo: config? detect?
         $prefix_map = ['Herr' => 3, 'Herrn' => 3, 'Frau' => '1']; // todo: config? detect?
         $address_by_contact = $model->getEntitiesByID($model->getAllAddresses(), 'contact_id');
@@ -178,10 +190,40 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                         $result = $this->callApi3('Email', 'create', $email_data);
                     }
                 }
+                $person_update_count++;
             }
             // contact found/created
             $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
             $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
         }
+        $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
+
+        // SYNC MEMBERSHIPS
+        $this->log("Syncing " . count($model->getAllMemberships()) . " committee memberships...");
+        $membership_update_count = 0;
+        foreach ($model->getAllMemberships() as $membership) {
+            /** @var $membership \CRM_Committees_Model_Membership */
+            $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            $committee_id = $committee_id_to_contact_id[$membership->getCommittee()->getID()];
+            $relationship_type_id = $this->getRelationshipTypeID('is_committee_member_of');
+            // todo: cache?
+            $relationship_exists = $this->callApi3('Relationship', 'getcount', [
+                'contact_id_a' => $person_civicrm_id,
+                'contact_id_b' => $committee_id,
+                'relationship_type_id' => $relationship_type_id,
+                'is_active' => 1,
+            ]);
+            if (!$relationship_exists) {
+                $this->callApi3('Relationship', 'create', [
+                    'contact_id_a' => $person_civicrm_id,
+                    'contact_id_b' => $committee_id,
+                    'relationship_type_id' => $relationship_type_id,
+                    'is_active' => 1,
+                    'description' => $membership->getAttribute('role'),
+                ]);
+                $membership_update_count++;
+            }
+        }
+        $this->log("Syncing committee memberships complete, {$membership_update_count} new memberships were created.");
     }
 }
