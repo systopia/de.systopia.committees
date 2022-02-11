@@ -23,6 +23,7 @@ use CRM_Committees_ExtensionUtil as E;
 class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugin_Syncer
 {
     use CRM_Committees_Tools_IdTrackerTrait;
+    use CRM_Committees_Tools_ContactGroupTrait;
 
     /** @var string committee.type value for parliamentary committee (Ausschuss) */
     const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
@@ -32,7 +33,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
     const ID_TRACKER_TYPE = 'kuerschners';
     const ID_TRACKER_PREFIX = 'KUE-';
-    const CONTACT_SOURCE = 'kuerschners_MdB_2021';
+    const CONTACT_SOURCE = 'kuerschners_MdB_2022';
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -111,108 +112,76 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
 
         // SYNC CONTACTS
-        
-
-    }
-
-    /**
-     * Quick hack: simply import all the entities, NO SYNCING!
-     *
-     * @todo replace with real synchronisation
-     *
-     * @param CRM_Committees_Model_Model $model
-     */
-    protected function simpleImport($model)
-    {
-        // join addresses, emails, phones
-        $model->joinAddressesToPersons();
-        $model->joinEmailsToPersons();
-        $model->joinPhonesToPersons();
-
-        // import Gremien
-        foreach ($model->getAllCommittees() as $committee) {
-            /** @var CRM_Committees_Model_Committee $committee */
-            $data = $committee->getData();
-            $data['contact_type'] = 'Organization';
-            $data['contact_sub_type'] = 'Gremium';
-            $data['organization_name'] = $data['name'];
-            $gremium_id = $this->runXCM($data, 'session_organisation');
-            $this->log("Gremium '{$data['name']}' ([{$gremium_id}]) imported/updated.");
-            $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
-        }
-        $this->log(count($model->getAllCommittees()) . " committees imported/updated.");
-
-        // import contacts
-        $counter = 0; // used to restrict log spamming
-        $person_count = count($model->getAllPersons());
-        $this->log("Starting to import/update {$person_count} persons.");
+        $person_id_2_civicrm_id = [];
+        $gender_map = ['m' => 2, 'w' => '1']; // todo: config? detect?
+        $prefix_map = ['Herr' => 3, 'Herrn' => 3, 'Frau' => '1']; // todo: config? detect?
+        $address_by_contact = $model->getEntitiesByID($model->getAllAddresses(), 'contact_id');
+        $email_by_contact = $model->getEntitiesByID($model->getAllEmails(), 'contact_id');
+        $phone_by_contact = $model->getEntitiesByID($model->getAllPhones(), 'contact_id');
         foreach ($model->getAllPersons() as $person) {
             /** @var CRM_Committees_Model_Person $person */
-            $data = $person->getData();
-            $data['contact_type'] = 'Individual';
-            $data['id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $person_id = $this->runXCM($data, 'session_person', false);
-            $this->setIDTContactID($person->getID(), $person_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $counter++;
-            if ($counter % 25 == 0) {
-                $this->log("{$counter} persons imported/updated.");
+            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            if ($person_civicrm_id) {
+                // todo: contact exists - update?
+                $this->log("Contact [{$person->getID()}] found: [{$person_civicrm_id}].");
+            } else {
+                // prepare data for Contact.create
+                $person_data = $person->getData();
+                $person_data['contact_type'] = 'Individual';
+                $person_data['source'] = self::CONTACT_SOURCE;
+                $person_data['gender_id'] = $gender_map[$person_data['gender_id']];
+                $person_data['prefix_id'] = $prefix_map[$person_data['prefix_id']];
+                unset($person_data['id']);
+
+                $result = $this->callApi3('Contact', 'create', $person_data);
+                $person_civicrm_id = $result['id'];
+                $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+                $this->log("Contact [{$person->getID()}] created with [{$person_civicrm_id}].");
+
+                // add addresses
+                if (isset($address_by_contact[$person->getID()])) {
+                    foreach ($address_by_contact[$person->getID()] as $address) {
+                        /** @var CRM_Committees_Model_Address $address */
+                        $address_data = $address->getData();
+                        unset($address_data['location_type']);
+                        $address_data['contact_id'] = $person_civicrm_id;
+                        $address_data['is_primary'] = 1;
+                        $address_data['location_type_id'] = 'Work';
+                        // todo: master_id Bundestag
+                        $result = $this->callApi3('Address', 'create', $address_data);
+                    }
+                }
+
+                // add phones
+                if (isset($phone_by_contact[$person->getID()])) {
+                    foreach ($phone_by_contact[$person->getID()] as $phone) {
+                        /** @var CRM_Committees_Model_Phone $phone */
+                        $phone_data = $phone->getData();
+                        unset($phone_data['location_type']);
+                        $phone_data['contact_id'] = $person_civicrm_id;
+                        $phone_data['is_primary'] = 1;
+                        $phone_data['location_type_id'] = 'Work';
+                        $phone_data['phone_type_id'] = 'Phone';
+                        $result = $this->callApi3('Phone', 'create', $phone_data);
+                    }
+                }
+
+                // add emails
+                if (isset($email_by_contact[$person->getID()])) {
+                    foreach ($email_by_contact[$person->getID()] as $email) {
+                        /** @var CRM_Committees_Model_Email $email */
+                        $email_data = $email->getData();
+                        unset($email_data['location_type']);
+                        $email_data['contact_id'] = $person_civicrm_id;
+                        $email_data['is_primary'] = 1;
+                        $email_data['location_type_id'] = 'Work';
+                        $result = $this->callApi3('Email', 'create', $email_data);
+                    }
+                }
             }
+            // contact found/created
+            $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
+            $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
         }
-        $this->log("{$counter} persons imported/updated.");
-
-        // import memberships
-        foreach ($model->getAllMemberships() as $membership) {
-            /** @var CRM_Committees_Model_Membership $membership */
-            // get person
-            $person = $membership->getPerson();
-            if (empty($person)) {
-                $mid = $membership->getID();
-                $this->log("Membership [{$mid}] has no person, this should not happen.");
-                continue;
-            }
-
-            // get committee
-            $gremium = $membership->getCommittee();
-            if (empty($gremium)) {
-                $mid = $membership->getID();
-                $this->log("Membership [{$mid}] has no committee, this should not happen.");
-                continue;
-            }
-
-            // find person
-            $person_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            if (empty($person_id)) {
-                $external_id = $person->getID();
-                $this->logError("Committees person [{$external_id}] wasn't identified or created.");
-                continue;
-            }
-
-            // find gremium
-            $gremium_id = $this->getIDTContactID($gremium->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
-            if (empty($gremium_id)) {
-                $external_id = $gremium->getID();
-                $this->logError("Committee [{$external_id}] wasn't identified or created.");
-                continue;
-            }
-
-            // create relationship
-            try {
-                $relationship_params =  [
-                    'contact_id_a' => $person_id,
-                    'contact_id_b' => $gremium_id,
-                    'relationship_type_id' => $this->getRelationshipTypeID('is_committee_member_of'),
-                    'start_date' => $membership->getAttribute('start_date'),
-                    'end_date' => $membership->getAttribute('end_date'),
-                    'description' => $membership->getAttribute('title'),
-                ];
-                civicrm_api3('Relationship', 'create', $relationship_params);
-            } catch (CiviCRM_API3_Exception $exception) {
-                $this->logException($exception, "Relationship between person [{$person->getID()}] and committee [{$gremium->getID()}] could not be created. Error was " . $exception->getMessage());
-            }
-        }
-
-        // wrap it up
-        $this->log("Committee import complete.");
-        $this->log("WARNING: a full synchronisation, i.e. the retirement of ended relationships is not yet implemented. This would mainly work for the initial import.");
     }
 }

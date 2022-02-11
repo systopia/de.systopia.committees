@@ -258,6 +258,23 @@ class CRM_Committees_Model_Model
     }
 
     /**
+     * Get a list of all address by 'id'
+     *
+     * @return array
+     *  'id' => [entities]
+     */
+    public function getEntitiesByID($entities, $id_field = 'id')
+    {
+        $result = [];
+        foreach ($entities as $entity) {
+            /** @var $entity CRM_Committees_Model_Entity */
+            $key = $id_field == 'id' ? $entity->getID() : $entity->getAttribute($id_field);
+            $result[$key][] = $entity;
+        }
+        return $result;
+    }
+
+    /**
      * Get a list of all emails
      *
      * @return array
