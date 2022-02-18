@@ -81,10 +81,20 @@ trait CRM_Committees_Tools_ContactGroupTrait
      */
     public function getOrCreateContactGroup($attributes)
     {
-        $result = $this->callApi3('Group', 'getsingle', $attributes);
-        if (empty($result['id'])) {
-            $result = $this->callApi3('Group', 'create', $attributes);
+        $result = $this->callApi3('Group', 'get', $attributes);
+        switch ($result['count']) {
+            case 1:
+                return $result['id'];
+
+            case 0:
+                $result = $this->callApi3('Group', 'create', $attributes);
+                return $result['id'];
+
+            default:
+                // more the one group found
+                $this->logError("Group identified by " . json_encode($attributes) . "is not unique, selecting one.");
+                $first_entry = reset($result['values']);
+                return $first_entry['id'];
         }
-        return $result['id'];
     }
 }
