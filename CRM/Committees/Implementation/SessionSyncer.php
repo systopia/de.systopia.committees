@@ -18,7 +18,7 @@ use CRM_Committees_ExtensionUtil as E;
 /**
  * Syncer for Session XLS Export
  *
- * @todo migrate to separate extension
+ * @todo migrate to separate extension or leave as example?
  */
 class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_Syncer
 {

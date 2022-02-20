@@ -18,7 +18,7 @@ use CRM_Committees_ExtensionUtil as E;
 /**
  * Importer for Session XLS Export
  *
- * @todo migrate to separate extension
+ * @todo migrate to separate extension or leave as example?
  */
 class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugin_Importer
 {
