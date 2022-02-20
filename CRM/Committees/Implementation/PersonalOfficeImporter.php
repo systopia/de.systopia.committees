@@ -18,7 +18,7 @@ use CRM_Committees_ExtensionUtil as E;
 /**
  * Importer for Session XLS Export
  *
- * @todo migrate to separate extension
+ * @todo migrate to separate extension or leave as example?
  */
 class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committees_Plugin_Importer
 {
@@ -28,7 +28,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         3 => 'formal_title',
         4 => 'last_name',
         5 => 'first_name',
-        //6 => 'unterdienststnr.',
+        6 => 'job_title_key',
         7 => 'portal_id',
         8 => 'email',
         9 => 'street_address',
@@ -140,7 +140,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             $record = $this->readRow($main_sheet, $row_nr, self::ROW_MAPPING);
 
             // extract contact
-            $contact = $this->copyAttributes($record, ['contact_id', 'formal_title', 'last_name', 'first_name'], ['contact_id' => 'id']);
+            $contact = $this->copyAttributes($record, ['contact_id', 'formal_title', 'last_name', 'first_name', 'job_title_key'], ['contact_id' => 'id']);
             $existing_contact = $this->model->getPerson($contact['id']);
             if (!$existing_contact) {
                 // add this contact

@@ -1,0 +1,117 @@
+{
+  "_lookup": ["name"],
+  "name": "pfarrer_innen_job_title_key",
+  "label": "Pfarrer*in Unterdienststnummern",
+  "_values": [
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "1",
+      "name": "KK_angest_pfarrer",
+      "label": "KK-Ebene: Angest.Pfarrer",
+      "description": "",
+      "filter": "1",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "2",
+      "name": "KK_pfarrer",
+      "label": "KK-Ebene: Pfarrer",
+      "description": "",
+      "filter": "1",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "3",
+      "name": "LK_angest_pfarrer",
+      "label": "LK-Ebene: Angest.Pfarrer",
+      "description": "",
+      "filter": "1",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "4",
+      "name": "LK_pfarrer",
+      "label": "LK-Ebene: Pfarrer",
+      "description": "",
+      "filter": "1",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "5",
+      "name": "TA_pd_angestellte",
+      "label": "TA-Probedienst: Angestellte",
+      "description": "",
+      "filter": "0",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "6",
+      "name": "TA_pd_beamte",
+      "label": "TA-Probedienst: Beamte",
+      "description": "",
+      "filter": "0",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "7",
+      "name": "TA_pz_angestellte",
+      "label": "TA-Probezeit: Angestellte",
+      "description": "",
+      "filter": "0",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "8",
+      "name": "TA_vikare_angestellte",
+      "label": "TA-Vikare:Angestellte",
+      "description": "",
+      "filter": "0",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "9",
+      "name": "TA_vikare_beamte",
+      "label": "TA-Vikare:Beamte",
+      "description": "",
+      "filter": "0",
+      "is_reserved": "0",
+      "is_active": "1"
+    },
+    {
+      "_lookup": ["name"],
+      "_translate": ["label", "description"],
+      "value": "10",
+      "name": "TA_angestellte",
+      "label": "Theolog.Ausbild:Angestellte",
+      "description": "",
+      "filter": "0",
+      "is_reserved": "0",
+      "is_active": "1"
+    }
+  ]
+}

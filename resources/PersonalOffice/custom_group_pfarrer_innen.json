@@ -1,0 +1,32 @@
+{
+  "_lookup": ["name"],
+  "_translate": ["title"],
+  "name": "pfarrer_innen",
+  "title": "Zusatzdaten Pfarrer*innen",
+  "extends": "Individual",
+  "collapse_display": "0",
+  "is_active": "1",
+  "is_multiple": "0",
+  "style": "Inline",
+  "table_name": "civicrm_value_pfarrer_innen",
+  "collapse_adv_display": "1",
+  "is_reserved": "0",
+  "_fields": [
+    {
+      "_lookup": ["column_name"],
+      "_translate": ["label"],
+      "name": "pfarrer_innen_job_title_key",
+      "column_name": "job_title_key",
+      "label": "Unterdienststnummer",
+      "data_type": "String",
+      "html_type": "Select",
+      "option_group_id": "pfarrer_innen_job_title_key",
+      "is_required": "0",
+      "is_searchable": "1",
+      "is_search_range": "0",
+      "is_active": "1",
+      "is_view": "0",
+      "in_selector": "1"
+    }
+  ]
+}
