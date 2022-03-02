@@ -51,11 +51,11 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
     public static function registerBuiltInSyncers($syncer_survey)
     {
         $syncer_survey->registerSyncerModule(
-            'de.oxfam.kuerschner.syncer.one-shot',
+            'de.oxfam.kuerschner.syncer.bund',
             'CRM_Committees_Implementation_OxfamSimpleSync',
-            E::ts("Kürschner/Oxfam SimpleImport"),
+            E::ts("Kürschner/Oxfam Bundestag"),
             null, // todo
-            E::ts("Importer for the Kürschner/Oxfam model. One-shot import, no synchronisation or retirement of previous data.")
+            E::ts("Importer for the Kürschner/Bundestag model using Oxfam mapping/model")
         );
         $syncer_survey->registerSyncerModule(
             'de.ekir.po.syncer',
