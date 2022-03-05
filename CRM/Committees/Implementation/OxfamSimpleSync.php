@@ -116,6 +116,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     'organization_name' => $committee_name,
                     'contact_type' => 'Organization'
                 ]);
+                $this->addContactToGroup($create_result['id'], $lobby_contact_group_id, true);
                 $committee_id_to_contact_id[$committee->getID()] = $create_result['id'];
                 $this->log("Committee '{$committee_name}' created: ID [{$create_result['id']}");
             }
@@ -125,8 +126,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
         $person_id_2_civicrm_id = [];
         $person_update_count = 0;
-        $gender_map = ['m' => 2, 'w' => '1']; // todo: config? detect?
-        $prefix_map = ['Herr' => 3, 'Herrn' => 3, 'Frau' => '1']; // todo: config? detect?
         $address_by_contact = $model->getEntitiesByID($model->getAllAddresses(), 'contact_id');
         $email_by_contact = $model->getEntitiesByID($model->getAllEmails(), 'contact_id');
         $phone_by_contact = $model->getEntitiesByID($model->getAllPhones(), 'contact_id');
@@ -142,6 +141,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $this->log("Contact [{$person->getID()}] found: [{$person_civicrm_id}]. Will be updated.");
                 $person_data['id'] = $person_civicrm_id;
             } else {
+                unset($person_data['id']);
                 $this->log("Contact [{$person->getID()}] not found. Will be created.");
             }
 
@@ -152,12 +152,12 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_data['gender_id'] = $this->getGenderId($person_data);
             $person_data['prefix_id'] = $this->getPrefixId($person_data);
             $person_data['suffix_id'] = $this->getSuffixId($person_data);
-            unset($person_data['id']);
 
             $result = $this->callApi3('Contact', 'create', $person_data);
             $person_civicrm_id = $result['id'];
             $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
             $this->log("Kürschner Contact [{$person->getID()}] created with CiviCRM-ID [{$person_civicrm_id}].");
+            $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
 
             // add addresses
             if (isset($address_by_contact[$person->getID()])) {
@@ -168,8 +168,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     if ($location_type_id) {
                         $address_data['contact_id'] = $person_civicrm_id;
                         $address_data['is_primary'] = 1;
-                        $address_data['supplemental_address_1'] = $address_data['organization_name'];
                         $address_data['supplemental_address_2'] = $address_data['supplemental_address_1'] ?? '';
+                        $address_data['supplemental_address_1'] = $address_data['organization_name'];
                         $address_data['location_type_id'] = $location_type_id;
                         $address_data['master_id'] = $this->getParliamentAddressID($address_data);
                         unset($address_data['location_type']);
@@ -210,7 +210,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
         // contact found/created
         $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
-        $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
         $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
 
         // SYNC MEMBERSHIPS
@@ -240,6 +239,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             }
         }
         $this->log("Syncing committee memberships complete, {$membership_update_count} new memberships were created.");
+        $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
     }
 
 
@@ -364,9 +364,11 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         static $parliament_address_id = null;
         if ($parliament_address_id === null) {
             // get or create parliament
+            $parliament_name = $parliament_address_data['organization_name'];
             $parliament = civicrm_api3('Contact', 'get', [
                 'contact_type' => 'Organization',
-                'organization_name' => $parliament_address_data['organization_name'],
+                'contact_sub_type' => $this->getCommitteeSubType(),
+                'organization_name' => $parliament_name,
                 'option.limit' => 1,
             ]);
             if (empty($parliament['id'])) {
@@ -391,8 +393,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 unset($parliament_address_data['organization_name']);
                 unset($parliament_address_data['supplemental_address_1']);
                 unset($parliament_address_data['supplemental_address_2']);
+                unset($parliament_address_data['location_type']);
                 $addresses = civicrm_api3('Address', 'create', $parliament_address_data);
-                $this->log("Added new address to '{$parliament_address_data['organization_name']}'");
+                $this->log("Added new address to '{$parliament_name}'.");
             }
             $parliament_address_id = $addresses['id'];
         }
@@ -421,6 +424,15 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 // don't import
                 return null;
         }
+    }
+
+    /**
+     * Get the organization subtype for committess
+     * @return void
+     */
+    protected function getCommitteeSubType()
+    {
+        $this->getContactType()
     }
 
 }

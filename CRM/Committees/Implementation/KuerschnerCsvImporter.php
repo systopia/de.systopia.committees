@@ -329,6 +329,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         }
         $this->log(count($this->model->getAllCommittees()) . " committees extracted.");
 
+        $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
         return true;
     }
 
