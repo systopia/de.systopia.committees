@@ -164,12 +164,19 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 foreach ($address_by_contact[$person->getID()] as $address) {
                     /** @var CRM_Committees_Model_Address $address */
                     $address_data = $address->getData();
-                    unset($address_data['location_type']);
-                    $address_data['contact_id'] = $person_civicrm_id;
-                    $address_data['is_primary'] = 1;
-                    $address_data['location_type_id'] = 'Work';
-                    // todo: master_id Bundestag
-                    $result = $this->callApi3('Address', 'create', $address_data);
+                    $location_type_id = $this->getAddressLocationType($address_data['location_type']);
+                    if ($location_type_id) {
+                        $address_data['contact_id'] = $person_civicrm_id;
+                        $address_data['is_primary'] = 1;
+                        $address_data['supplemental_address_1'] = $address_data['organization_name'];
+                        $address_data['supplemental_address_2'] = $address_data['supplemental_address_1'] ?? '';
+                        $address_data['location_type_id'] = $location_type_id;
+                        $address_data['master_id'] = $this->getParliamentAddressID($address_data);
+                        unset($address_data['location_type']);
+                        unset($address_data['is_primary']);
+                        unset($address_data['organization_name']);
+                        $result = $this->callApi3('Address', 'create', $address_data);
+                    }
                 }
             }
 
@@ -342,6 +349,78 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     protected function getContactSubType(array $person_data)
     {
         return null;
+    }
+
+    /**
+     * Get the ID of of the address of the "Bundestag"
+     *
+     * @param array $parliament_address_data
+     *   the address data of the parliament
+     *
+     * @return int
+     */
+    protected function getParliamentAddressID($parliament_address_data)
+    {
+        static $parliament_address_id = null;
+        if ($parliament_address_id === null) {
+            // get or create parliament
+            $parliament = civicrm_api3('Contact', 'get', [
+                'contact_type' => 'Organization',
+                'organization_name' => $parliament_address_data['organization_name'],
+                'option.limit' => 1,
+            ]);
+            if (empty($parliament['id'])) {
+                $parliament = civicrm_api3('Contact', 'create', [
+                    'contact_type' => 'Organization',
+                    'organization_name' => $parliament_address_data['organization_name'],
+                ]);
+                $this->log("Created new organisation '{$parliament_address_data['organization_name']}' as it wasn't found.");
+            }
+            $parliament_id = $parliament['id'];
+
+            // get or create the address
+            $addresses = civicrm_api3('Address', 'get', [
+                'contact_id' => $parliament_id,
+                'location_type_id' => 'Work',
+                'is_primary' => 1,
+            ]);
+            if (empty($addresses['id'])) {
+                $parliament_address_data['location_type_id'] = 'Work';
+                $parliament_address_data['is_primary'] = 1;
+                $parliament_address_data['contact_id'] = $parliament_id;
+                unset($parliament_address_data['organization_name']);
+                unset($parliament_address_data['supplemental_address_1']);
+                unset($parliament_address_data['supplemental_address_2']);
+                $addresses = civicrm_api3('Address', 'create', $parliament_address_data);
+                $this->log("Added new address to '{$parliament_address_data['organization_name']}'");
+            }
+            $parliament_address_id = $addresses['id'];
+        }
+
+        return $parliament_address_id;
+    }
+
+    /**
+     * Get the civicrm location type for the give kuerschner address type
+     *
+     * @param string $kuerschner_location_type
+     *   should be one of 'Bundestag' / 'Regierung' / 'Wahlkreis'
+     *
+     * @return string|null
+     *   return the location type name or ID, or null/empty to NOT import
+     */
+    protected function getAddressLocationType($kuerschner_location_type)
+    {
+        switch ($kuerschner_location_type) {
+            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG:
+                return 'Work';
+
+            default:
+            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_REGIERUNG:
+            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_WAHLKREIS:
+                // don't import
+                return null;
+        }
     }
 
 }

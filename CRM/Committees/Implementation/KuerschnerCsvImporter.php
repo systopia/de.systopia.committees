@@ -40,11 +40,11 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'FRAKTION' => 'Fraktion',
         'GREMIEN' => 'committees',
         'EMAIL1' => 'email',
-        'ADRESSEPARL' => 'NOT USED',
-        'ADRESSZUSATZPARL' => 'NOT USED',
-        'STRASSEPOSTFACHPARL' => 'NOT USED',
-        'PLZPARL' => 'NOT USED',
-        'ORTPARL' => 'NOT USED',
+        'ADRESSEPARL' => 'parliament_name',
+        'ADRESSZUSATZPARL' => 'parliament_address_1',
+        'STRASSEPOSTFACHPARL' => 'parliament_street_address',
+        'PLZPARL' => 'parliament_postal_code',
+        'ORTPARL' => 'parliament_city',
         'EUMITGLIEDSLANDPARL' => 'NOT USED',
         'TELEFONVORWAHLPARL' => 'parliament_phone_prefix',
         'TELEFONNUMMERPARL' => 'parliament_phone',
@@ -77,13 +77,13 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
 
     // attribute mapping
     const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id'];
+    const ADDRESS_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_name' => 'organization_name', 'parliament_street_address' => 'street_address', 'parliament_postal_code' => 'postal_code', 'parliament_city' => 'city', 'parliament_address_1' => 'supplemental_address_1'];
     const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
     const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];
     const ADDRESS_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_street_address' => 'street_address', 'government_postal_code' => 'postal_code', 'government_city' => 'city', 'government_address_1' => 'supplemental_address_1', 'government_address_2' => 'supplemental_address_2', 'government_address_3' => 'supplemental_address_3', 'government_address_4' => 'supplemental_address_4'];
     const PHONE_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_phone_prefix' => 'phone_prefix', 'government_phone' => 'phone'];
     const ADDRESS_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_street_address' => 'street_address', 'constituency_postal_code' => 'postal_code', 'constituency_city' => 'city', 'constituency_address_1' => 'supplemental_address_1'];
     const PHONE_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_phone_prefix' => 'phone_prefix', 'constituency_phone' => 'phone'];
-
 
     /** @var array our sheets extracted from the file */
     private $raw_data = null;
@@ -165,7 +165,12 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
              **       PARLIAMENT SECTION     **
              **********************************/
 
-            // todo: add 'Bundestag' Address? it's identical for all MOPs...
+            // extract PARLIAMENT address
+            $address = $this->copyAttributes($record, array_keys(self::ADDRESS_PARLIAMENT_ATTRIBUTES), self::ADDRESS_PARLIAMENT_ATTRIBUTES);
+            if (count(array_filter($address)) > 1) { // the contact_id is always there
+                $address['location_type'] = self::LOCATION_TYPE_BUNDESTAG;
+                $this->model->addAddress($address);
+            }
 
             // extract PARLIAMENT emails
             $email = $this->copyAttributes($record, array_keys(self::EMAIL_PARLIAMENT_ATTRIBUTES), self::EMAIL_PARLIAMENT_ATTRIBUTES);
