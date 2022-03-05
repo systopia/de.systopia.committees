@@ -34,6 +34,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     const ID_TRACKER_TYPE = 'kuerschners';
     const ID_TRACKER_PREFIX = 'KUE-';
     const CONTACT_SOURCE = 'kuerschners_MdB_2022';
+    const COMMITTE_SUBTYPE_NAME = 'Committee';
+    const COMMITTE_SUBTYPE_LABEL = 'Gremium';
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -114,6 +116,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 // doesn't exist -> create
                 $create_result = $this->callApi3('Contact', 'create', [
                     'organization_name' => $committee_name,
+                    'contact_sub_type' => $this->getCommitteeSubType(),
                     'contact_type' => 'Organization'
                 ]);
                 $this->addContactToGroup($create_result['id'], $lobby_contact_group_id, true);
@@ -138,11 +141,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             unset($person_data['id']);
 
             if ($person_civicrm_id) {
-                $this->log("Contact [{$person->getID()}] found: [{$person_civicrm_id}]. Will be updated.");
                 $person_data['id'] = $person_civicrm_id;
             } else {
                 unset($person_data['id']);
-                $this->log("Contact [{$person->getID()}] not found. Will be created.");
             }
 
             // prepare data for Contact.create
@@ -156,7 +157,11 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $result = $this->callApi3('Contact', 'create', $person_data);
             $person_civicrm_id = $result['id'];
             $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            $this->log("Kürschner Contact [{$person->getID()}] created with CiviCRM-ID [{$person_civicrm_id}].");
+            if (empty($person_data['id'])) {
+                $this->log("Kürschner Contact [{$person->getID()}] created with CiviCRM-ID [{$person_civicrm_id}].");
+            } else {
+                $this->log("Kürschner Contact [{$person->getID()}] updated (CiviCRM-ID [{$person_civicrm_id}]).");
+            }
             $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
 
             // add addresses
@@ -427,12 +432,19 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     }
 
     /**
-     * Get the organization subtype for committess
-     * @return void
+     * Get the organization subtype for committees
+     *
+     * @return string
+     *   the subtype name or null/empty string
      */
     protected function getCommitteeSubType()
     {
-        $this->getContactType()
+        static $was_created = false;
+        if (!$was_created) {
+            $this->createContactTypeIfNotExists(self::COMMITTE_SUBTYPE_NAME, self::COMMITTE_SUBTYPE_LABEL, 'Organization');
+            $was_created = true;
+        }
+        return self::COMMITTE_SUBTYPE_NAME;
     }
 
 }
