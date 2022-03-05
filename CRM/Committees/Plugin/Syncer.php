@@ -236,4 +236,74 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
         $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
         return !empty($custom_field);
     }
+
+    /**
+     * Cached option value lookup
+     *
+     * @param array $requested_option_value
+     *   Data for the option value. Must at least contain the $identifier_field
+     *
+     * @param string $option_group_id
+     *   Option group id or name
+     *
+     * @return array
+     *   option value data
+     */
+    public function getOrCreateOptionValue(array $requested_option_value, string $option_group_id, $identifier_field = 'label')
+    {
+        static $cached_option_groups = [];
+
+        // make sure the option group is cached
+        if (!isset($cached_option_groups[$option_group_id])) {
+            // load the option group
+            $query = civicrm_api3('OptionValue', 'get', [
+                'option.limit' => 0,
+                'option_group_id' => $option_group_id,
+                'return' => ['name', 'label', 'value', 'option_group_id']
+            ]);
+            foreach ($query['values'] as $option_value) {
+                $cached_option_groups[$option_group_id][] = $option_value;
+            }
+        }
+
+        // todo: index?
+
+        /* be lenient with wrong usage
+        if (!is_array($requested_option_value)) {
+            $requested_option_value = [
+                $identifier_field => $requested_option_value
+            ];
+        }*/
+
+        // search the option value
+        $option_group = $cached_option_groups[$option_group_id];
+        $existing_option_value = null;
+        foreach ($option_group as $option_value) {
+            if ($option_value[$identifier_field] == $requested_option_value[$identifier_field]) {
+                $existing_option_value = $option_value;
+                break;
+            }
+        }
+
+        // create option value if it doesn't exist
+        if (!isset($existing_option_value)) {
+            // doesn't exist, needs to be created using the $requested_option_value data
+            unset($requested_option_value['id']);
+            $requested_option_value['option_group_id'] = $option_group_id;
+            if (!isset($requested_option_value['name'])) {
+                $requested_option_value['name'] = $requested_option_value[$identifier_field];
+            }
+            if (!isset($requested_option_value['label'])) {
+                $requested_option_value['label'] = $requested_option_value[$identifier_field];
+            }
+            $result = civicrm_api3('OptionValue', 'create', $requested_option_value);
+            $existing_option_value = civicrm_api3('OptionValue', 'getsingle', ['id' => $result['id']]);
+            $this->log("Created new OptionValue '{$existing_option_value[$identifier_field]}' for OptionGroup '{$option_group_id}'.");
+
+            // add to cache
+            $cached_option_groups[$option_group_id][] = $existing_option_value;
+        }
+
+        return $existing_option_value;
+    }
 }

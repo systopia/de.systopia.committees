@@ -132,70 +132,78 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $phone_by_contact = $model->getEntitiesByID($model->getAllPhones(), 'contact_id');
         foreach ($model->getAllPersons() as $person) {
             /** @var CRM_Committees_Model_Person $person */
+            $person_data = $person->getData();
+
+            // look up ID
             $person_civicrm_id = $this->getIDTContactID($person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            unset($person_data['id']);
+
             if ($person_civicrm_id) {
-                // todo: contact exists - update?
-                $this->log("Contact [{$person->getID()}] found: [{$person_civicrm_id}].");
+                $this->log("Contact [{$person->getID()}] found: [{$person_civicrm_id}]. Will be updated.");
+                $person_data['id'] = $person_civicrm_id;
             } else {
-                // prepare data for Contact.create
-                $person_data = $person->getData();
-                $person_data['contact_type'] = 'Individual';
-                $person_data['source'] = self::CONTACT_SOURCE;
-                $person_data['gender_id'] = $gender_map[$person_data['gender_id']];
-                $person_data['prefix_id'] = $prefix_map[$person_data['prefix_id']];
-                unset($person_data['id']);
-
-                $result = $this->callApi3('Contact', 'create', $person_data);
-                $person_civicrm_id = $result['id'];
-                $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-                $this->log("Contact [{$person->getID()}] created with [{$person_civicrm_id}].");
-
-                // add addresses
-                if (isset($address_by_contact[$person->getID()])) {
-                    foreach ($address_by_contact[$person->getID()] as $address) {
-                        /** @var CRM_Committees_Model_Address $address */
-                        $address_data = $address->getData();
-                        unset($address_data['location_type']);
-                        $address_data['contact_id'] = $person_civicrm_id;
-                        $address_data['is_primary'] = 1;
-                        $address_data['location_type_id'] = 'Work';
-                        // todo: master_id Bundestag
-                        $result = $this->callApi3('Address', 'create', $address_data);
-                    }
-                }
-
-                // add phones
-                if (isset($phone_by_contact[$person->getID()])) {
-                    foreach ($phone_by_contact[$person->getID()] as $phone) {
-                        /** @var CRM_Committees_Model_Phone $phone */
-                        $phone_data = $phone->getData();
-                        unset($phone_data['location_type']);
-                        $phone_data['contact_id'] = $person_civicrm_id;
-                        $phone_data['is_primary'] = 1;
-                        $phone_data['location_type_id'] = 'Work';
-                        $phone_data['phone_type_id'] = 'Phone';
-                        $result = $this->callApi3('Phone', 'create', $phone_data);
-                    }
-                }
-
-                // add emails
-                if (isset($email_by_contact[$person->getID()])) {
-                    foreach ($email_by_contact[$person->getID()] as $email) {
-                        /** @var CRM_Committees_Model_Email $email */
-                        $email_data = $email->getData();
-                        unset($email_data['location_type']);
-                        $email_data['contact_id'] = $person_civicrm_id;
-                        $email_data['is_primary'] = 1;
-                        $email_data['location_type_id'] = 'Work';
-                        $result = $this->callApi3('Email', 'create', $email_data);
-                    }
-                }
-                $person_update_count++;
+                $this->log("Contact [{$person->getID()}] not found. Will be created.");
             }
-            // contact found/created
-            $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
-            $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
+
+            // prepare data for Contact.create
+            $person_data['contact_type'] = $this->getContactType($person_data);
+            $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
+            $person_data['source'] = self::CONTACT_SOURCE;
+            $person_data['gender_id'] = $this->getGenderId($person_data);
+            $person_data['prefix_id'] = $this->getPrefixId($person_data);
+            $person_data['suffix_id'] = $this->getSuffixId($person_data);
+            unset($person_data['id']);
+
+            $result = $this->callApi3('Contact', 'create', $person_data);
+            $person_civicrm_id = $result['id'];
+            $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            $this->log("Kürschner Contact [{$person->getID()}] created with CiviCRM-ID [{$person_civicrm_id}].");
+
+            // add addresses
+            if (isset($address_by_contact[$person->getID()])) {
+                foreach ($address_by_contact[$person->getID()] as $address) {
+                    /** @var CRM_Committees_Model_Address $address */
+                    $address_data = $address->getData();
+                    unset($address_data['location_type']);
+                    $address_data['contact_id'] = $person_civicrm_id;
+                    $address_data['is_primary'] = 1;
+                    $address_data['location_type_id'] = 'Work';
+                    // todo: master_id Bundestag
+                    $result = $this->callApi3('Address', 'create', $address_data);
+                }
+            }
+
+            // add phones
+            if (isset($phone_by_contact[$person->getID()])) {
+                foreach ($phone_by_contact[$person->getID()] as $phone) {
+                    /** @var CRM_Committees_Model_Phone $phone */
+                    $phone_data = $phone->getData();
+                    unset($phone_data['location_type']);
+                    $phone_data['contact_id'] = $person_civicrm_id;
+                    $phone_data['is_primary'] = 1;
+                    $phone_data['location_type_id'] = 'Work';
+                    $phone_data['phone_type_id'] = 'Phone';
+                    $result = $this->callApi3('Phone', 'create', $phone_data);
+                }
+            }
+
+            // add emails
+            if (isset($email_by_contact[$person->getID()])) {
+                foreach ($email_by_contact[$person->getID()] as $email) {
+                    /** @var CRM_Committees_Model_Email $email */
+                    $email_data = $email->getData();
+                    unset($email_data['location_type']);
+                    $email_data['contact_id'] = $person_civicrm_id;
+                    $email_data['is_primary'] = 1;
+                    $email_data['location_type_id'] = 'Work';
+                    $result = $this->callApi3('Email', 'create', $email_data);
+                }
+            }
+            $person_update_count++;
         }
+        // contact found/created
+        $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
+        $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
         $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
 
         // SYNC MEMBERSHIPS
@@ -226,4 +234,114 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
         $this->log("Syncing committee memberships complete, {$membership_update_count} new memberships were created.");
     }
+
+
+
+
+
+
+
+
+    /*****************************************************************************
+     **                            DETAILS CUSTOMISATION                        **
+     **         OVERWRITE THESE METHODS TO ADJUST TO YOUR DATA MODEL            **
+     *****************************************************************************/
+
+    /**
+     * Get the right gender ID for the given person data
+     *
+     * @param array $person_data
+     *   list of the raw attributes coming from the model.
+     */
+    protected function getPrefixId($person_data)
+    {
+        if (empty($person_data['prefix_id'])) {
+            return '';
+        }
+
+        $prefix_id = $person_data['prefix_id'];
+
+        // map
+        $mapping = [
+            'Frau' => 'Frau',
+            'Herrn' => 'Herr'
+        ];
+        if (isset($mapping[$prefix_id])) {
+            $prefix_id = $mapping[$prefix_id];
+        }
+
+        $option_value = $this->getOrCreateOptionValue(['label' => $prefix_id], 'individual_prefix');
+        return $option_value['value'];
+    }
+
+    /**
+     * Get the right gender ID for the given person data
+     *
+     * @param array $person_data
+     *   list of the raw attributes coming from the model.
+     */
+    protected function getGenderId(array $person_data)
+    {
+        if (empty($person_data['gender_id'])) {
+            return '';
+        }
+        $gender_id = $person_data['gender_id'];
+
+        // map
+        $mapping = [
+            'm' => 'männlich',
+            'w' => 'weiblich'
+        ];
+        if (isset($mapping[$gender_id])) {
+            $gender_id = $mapping[$gender_id];
+        }
+
+        $option_value = $this->getOrCreateOptionValue(['label' => $gender_id], 'gender');
+        return $option_value['value'];
+    }
+
+    /**
+     * Get the right gender ID for the given person data
+     *
+     * @param array $person_data
+     *   list of the raw attributes coming from the model.
+     */
+    protected function getSuffixId(array $person_data)
+    {
+        if (empty($person_data['formal_title'])) {
+            return '';
+        }
+
+        // no mapping, right?
+        $suffix = $person_data['formal_title'];
+        $option_value = $this->getOrCreateOptionValue(['label' => $suffix], 'individual_suffix');
+        return $option_value['value'];
+    }
+
+    /**
+     * Get the preferred contact type
+     *
+     * @param array $person_data
+     *   list of the raw attributes coming from the model.
+     *
+     * @return string
+     */
+    protected function getContactType(array $person_data)
+    {
+        return 'Individual';
+    }
+
+    /**
+     * Get the preferred contact type
+     *
+     * @param array $person_data
+     *   list of the raw attributes coming from the model.
+     *
+     * @return string|null
+     */
+    protected function getContactSubType(array $person_data)
+    {
+        return null;
+    }
+
 }
