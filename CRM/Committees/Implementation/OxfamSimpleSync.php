@@ -357,6 +357,38 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     }
 
     /**
+     * Get the ID of the currently imported parliament (CiviCRM Organization), e.g. "Bundestag"
+     *
+     * @param string $parliament_name
+     *   the address data of the parliament
+     *
+     * @return int
+     */
+    protected function getParliamentContactID($parliament_name)
+    {
+        static $parliament_id = null;
+        if (!$parliament_id) {
+            $parliament = civicrm_api3('Contact', 'get', [
+                'contact_type' => 'Organization',
+                'contact_sub_type' => $this->getCommitteeSubType(),
+                'organization_name' => $parliament_name,
+                'option.limit' => 1,
+            ]);
+            if (empty($parliament['id'])) {
+                $parliament = civicrm_api3('Contact', 'create', [
+                    'contact_type' => 'Organization',
+                    'contact_sub_type' => $this->getParliamentSubType(),
+                    'organization_name' => $parliament_name,
+                ]);
+                $this->log("Created new organisation '{$parliament_name}' as it wasn't found.");
+            }
+            $parliament_id = $parliament['id'];
+        }
+        return $parliament_id;
+    }
+
+
+    /**
      * Get the ID of of the address of the "Bundestag"
      *
      * @param array $parliament_address_data
@@ -370,21 +402,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if ($parliament_address_id === null) {
             // get or create parliament
             $parliament_name = $parliament_address_data['organization_name'];
-            $parliament = civicrm_api3('Contact', 'get', [
-                'contact_type' => 'Organization',
-                'contact_sub_type' => $this->getCommitteeSubType(),
-                'organization_name' => $parliament_name,
-                'option.limit' => 1,
-            ]);
-            if (empty($parliament['id'])) {
-                $parliament = civicrm_api3('Contact', 'create', [
-                    'contact_type' => 'Organization',
-                    'organization_name' => $parliament_address_data['organization_name'],
-                ]);
-                $this->log("Created new organisation '{$parliament_address_data['organization_name']}' as it wasn't found.");
-            }
-            $parliament_id = $parliament['id'];
-
+            $parliament_id = $this->getParliamentContactID($parliament_name);
             // get or create the address
             $addresses = civicrm_api3('Address', 'get', [
                 'contact_id' => $parliament_id,
@@ -445,6 +463,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $was_created = true;
         }
         return self::COMMITTE_SUBTYPE_NAME;
+    }
+
+    /**
+     * Get the organization subtype for the parliament
+     *
+     * @return string
+     *   the subtype name or null/empty string
+     */
+    protected function getParliamentSubType()
+    {
+        return null;
     }
 
 }
