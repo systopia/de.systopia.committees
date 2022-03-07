@@ -219,6 +219,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         // SYNC MEMBERSHIPS
         $this->log("Syncing " . count($model->getAllMemberships()) . " committee memberships...");
+        $current_memberships = $this->getCurrentMemberships();
         $membership_update_count = 0;
         foreach ($model->getAllMemberships() as $membership) {
             /** @var $membership \CRM_Committees_Model_Membership */
@@ -249,9 +250,87 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
 
 
+    /*****************************************************************************
+     **                        PULL CURRENT DATA FOR SYNC                       **
+     **         OVERWRITE THESE METHODS TO ADJUST TO YOUR DATA MODEL            **
+     **  TODO: extract a full model of the current data, then do a model diff   **
+     *****************************************************************************/
+
+    /**
+     * Get the contact IDs of the currently active committees
+     *
+     * @param CRM_Committees_Model_Model $model
+     *   the model to be synced to this CiviCRM
+     *
+     * @return array list of
+     *   committee_name => contact_id
+     */
+    protected function getCurrentCommittees($model)
+    {
+        $committee_name_to_contact_id = [];
+        foreach ($model->getAllCommittees() as $committee) {
+            /** @var $committee CRM_Committees_Model_Committee */
+            $committee_name = $committee->getAttribute('name');
+            $committee_search = civicrm_api3('Contact', 'get', [
+                'organization_name' => $committee_name,
+                'option.limit' => 1,
+                'contact_type' => 'Organization',
+                'option.sort' => 'id asc',
+            ]);
+            if (!empty($committee_search['id'])) {
+                $committee = reset($committee_search['values']);
+                $committee_name_to_contact_id[$committee_name] = $committee['id'];
+            }
+        }
+
+        // log and exit
+        $total_committee_count = count($model->getAllCommittees());
+        $found_committee_count = count($committee_name_to_contact_id);
+        $this->log("Found {$found_committee_count} of {$total_committee_count} in the system.");
+        return $committee_name_to_contact_id;
+    }
 
 
+    /**
+     * Get the current committee memberships
+     *
+     * @param CRM_Committees_Model_Model $model
+     *   the model to be synced to this CiviCRM
+     *
+     * @return array
+     *   list of property arrays:
+     *  'contact_id': contact ID
+     *  'committee_name': name of the committee
+     *  'committee_type': type of the committee
+     *  'role': membership role/type
+     *
+     * @todo maybe we can extract a complete model of the current situation,
+     *   and then have a generic diff routine, but that seems to exceed the budget at this point
+     */
+    protected function getCurrentMemberships($model, $parliament_name)
+    {
+        // get some basic data
+        $parliament_id = $this->getParliamentContactID($parliament_name);
+        $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
+        $roles = array_keys($role2relationship_type);
+        $relationship_type_ids = array_unique(array_values($role2relationship_type));
 
+        // get the current committees
+        $committee_name_to_contact_id = $this->getCurrentCommittees($model);
+
+        // get the current memberships of these committees
+        $committee_query = civicrm_api3('Relationship', 'get', [
+            'option.limit' => 0,
+            'relationship_type_id' => ['IN' => $relationship_type_ids],
+            'contact_id_b' => ['IN' => array_values($committee_name_to_contact_id)]
+        ]);
+
+        //
+        $memberships = [];
+        foreach ($committee_query['values'] as $committee_relationship) {
+
+        }
+    }
 
 
     /*****************************************************************************
@@ -361,6 +440,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      *
      * @param string $parliament_name
      *   the address data of the parliament
+     *
+     * @todo this currently only works for _one_ parliament
      *
      * @return int
      */
@@ -476,4 +557,112 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         return null;
     }
 
+    /**
+     * Get the relationship type ID to be used for the given membership
+     *
+     * @param CRM_Committees_Model_Membership $membership
+     *   the membership
+     *
+     * @return integer
+     *   relationship type ID
+     */
+    protected function getRelationshipTypeIdForMembership($membership) : int
+    {
+        $role = $membership->getAttribute('role');
+        $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
+        if (isset($role2relationship_type[$role])) {
+            return $role2relationship_type[$role];
+        } else {
+            $this->log("Warning: Couldn't map role '{$role} to relationship type! Using member...");
+            return $role2relationship_type['Mitglied'];
+        }
+    }
+
+    /**
+     * Get the mapping of the role name to the relationship type id
+     *
+     * @return array
+     *   role name to relationship type ID
+     */
+    protected function getRoleToRelationshipTypeIdMapping() : array
+    {
+        static $role2relationship_type = null;
+        if ($role2relationship_type === null) {
+            $role2relationship_type = [];
+
+            // create relationship types
+            $chairperson_relationship = $this->createRelationshipTypeIfNotExists(
+                'is_committee_chairperson_of',
+                'has_committee_chairperson',
+                "Vorsitzende*r von",
+                "Vorsitzende*r ist",
+                'Individual',
+                'Organization',
+                null,
+                $this->getCommitteeSubType(),
+                ""
+            );
+
+            $deputy_chairperson_relationship = $this->createRelationshipTypeIfNotExists(
+                'is_committee_deputy_chairperson_of',
+                'has_committee_deputy_chairperson',
+                "stellv. Vorsitzende*r von",
+                "stellv. Vorsitzende*r ist",
+                'Individual',
+                'Organization',
+                null,
+                $this->getCommitteeSubType(),
+                ""
+            );
+
+            $obperson_relationship = $this->createRelationshipTypeIfNotExists(
+                'is_committee_obperson_of',
+                'has_committee_obperson',
+                "Obperson von",
+                "Obperson ist",
+                'Individual',
+                'Organization',
+                null,
+                $this->getCommitteeSubType(),
+                ""
+            );
+
+            $member_relationship = $this->createRelationshipTypeIfNotExists(
+                'is_committee_member_of',
+                'has_committee_member',
+                "Mitglied von",
+                "Mitglied ist",
+                'Individual',
+                'Organization',
+                null,
+                $this->getCommitteeSubType(),
+                ""
+            );
+
+            $deputy_member_relationship = $this->createRelationshipTypeIfNotExists(
+                'is_committee_deputy_member_of',
+                'has_committee_deputy_member',
+                "stellv. Mitglied von",
+                "stellv. Mitglied ist",
+                'Individual',
+                'Organization',
+                null,
+                $this->getCommitteeSubType(),
+                ""
+            );
+
+            // compile role mapping:
+            $role2relationship_type['stellv. Mitglied'] = $deputy_member_relationship['id'];
+            $role2relationship_type['Mitglied'] = $member_relationship['id'];
+            $role2relationship_type['stellv. Mitglied'] = $member_relationship['id'];
+            $role2relationship_type['Obmann'] = $obperson_relationship['id'];
+            $role2relationship_type['Obfrau'] = $obperson_relationship['id'];
+            $role2relationship_type['Obperson'] = $obperson_relationship['id'];
+            $role2relationship_type['Vorsitzender'] = $chairperson_relationship['id'];
+            $role2relationship_type['Vorsitzende'] = $chairperson_relationship['id'];
+            $role2relationship_type['stellv. Vorsitzender'] = $deputy_chairperson_relationship['id'];
+            $role2relationship_type['stellv. Vorsitzende'] = $deputy_chairperson_relationship['id'];
+        }
+        return $role2relationship_type;
+    }
 }
