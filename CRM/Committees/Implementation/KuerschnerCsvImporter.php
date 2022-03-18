@@ -266,7 +266,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         foreach ($committee_list as $committee_name) {
             $this->model->addCommittee([
                'name' => $committee_name,
-               'id'   => $this->getCommitteeID($committee_name),
+               'id'   => self::getCommitteeID($committee_name),
                'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
            ]);
         }
@@ -279,7 +279,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                     $this->model->addCommitteeMembership(
                         [
                             'contact_id' => $record['id'],
-                            'committee_id' => $this->getCommitteeID($committee_name),
+                            'committee_id' => self::getCommitteeID($committee_name),
                             'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
                             'role' => $member_role,
                         ]
@@ -311,7 +311,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             $this->model->addCommittee([
                'name' => $parliamentary_group_name,
                'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
-               'id'   => $this->getCommitteeID($parliamentary_group_name),
+               'id'   => self::getCommitteeID($parliamentary_group_name),
            ]);
         }
         // extract committee memberships
@@ -321,7 +321,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 $this->model->addCommitteeMembership(
                     [
                         'contact_id' => $record['id'],
-                        'committee_id' => $this->getCommitteeID($parliamentary_group_name),
+                        'committee_id' => self::getCommitteeID($parliamentary_group_name),
                         'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
                     ]
                 );
@@ -364,7 +364,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      *
      * @return string ID
      */
-    protected function getCommitteeID($committee_name)
+    public static function getCommitteeID($committee_name)
     {
         return substr(sha1($committee_name), 0, 8);
     }

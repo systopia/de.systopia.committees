@@ -26,6 +26,9 @@ trait CRM_Committees_Tools_IdTrackerTrait
     /** @var array static ID cache */
     protected static $idt_trackerID2contactID = null;
 
+    /** @var array static reverse ID cache */
+    protected static $contactID2idt_trackerID = null;
+
     /**
      * Get the (cached) contact ID via the IdentityTracker
      *
@@ -62,6 +65,35 @@ trait CRM_Committees_Tools_IdTrackerTrait
         $tracker_id = $prefix . $internal_id;
         return self::$idt_trackerID2contactID[$tracker_id] ?? null;
     }
+
+    /**
+     * Get the (cached) contact ID via the IdentityTracker
+     *
+     * @param string $internal_id
+     *   ID as used by the data source
+     *
+     * @param string $id_type
+     *   a registered contact tracker type
+     *
+     * @param string $prefix
+     *   ID prefix
+     */
+    public function getContactIDtoTids($id_type, $prefix = '')
+    {
+        // make sure the cache is filled
+        if (self::$idt_trackerID2contactID === null) {
+            $this->getIDTContactID(0, $id_type, $prefix);
+        }
+
+        // compile a reverse list
+        $contactID_2_trackerIDs = [];
+        foreach (self::$idt_trackerID2contactID as $tracker_id => $contact_id) {
+            $contactID_2_trackerIDs[$contact_id][] = $tracker_id;
+        }
+
+        return $contactID_2_trackerIDs;
+    }
+
 
     /**
      * Write a new ID Tracker ID via the IdentityTracker

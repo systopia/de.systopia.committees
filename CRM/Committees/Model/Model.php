@@ -248,6 +248,21 @@ class CRM_Committees_Model_Model
     }
 
     /**
+     * Generate a list of all membership, indexed by person
+     *
+     * @return array
+     */
+    public function getAllMembershipsByPersonId()
+    {
+        $membership_by_person_id = [];
+        foreach ($this->memberships as $membership) {
+            /** @var CRM_Committees_Model_Membership $membership */
+            $membership_by_person_id[$membership->getPerson()->getID()][] = $membership;
+        }
+        return $membership_by_person_id;
+    }
+
+    /**
      * Get a list of all addresses
      *
      * @return array
