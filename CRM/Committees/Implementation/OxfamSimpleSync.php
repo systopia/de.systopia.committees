@@ -156,8 +156,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_data['prefix_id'] = $this->getPrefixId($person_data);
             $person_data['suffix_id'] = $this->getSuffixId($person_data);
 
-            /** todo: re-enable: $result = $this->callApi3('Contact', 'create', $person_data); */
-            continue;
+            $result = $this->callApi3('Contact', 'create', $person_data);
 
             $person_civicrm_id = $result['id'];
             $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
@@ -221,70 +220,48 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
         $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
 
+
         // SYNC MEMBERSHIPS
         $requested_memberships = $model->getAllMemberships();
         $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
 
-        $present_memberships = $this->getCurrentMemberships($model);
-        $this->log(count($present_memberships) . " existing committee memberships identified.");
+        $present_model = $this->getCurrentMemberships($model);
+        $this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
-        // end memberships that are present, but NOT requested
-        $requested_memberships_by_person_id = $model->getAllMembershipsByPersonId();
-        foreach ($present_memberships as $present_membership) {
-            if (empty($requested_memberships_by_person_id[$present_membership['contact_id']])) {
-                // this membership needs to be ended/deactivated
-                $this->callApi3('Relationship', 'create', [
-                    'relationship_id' => $present_membership['relationship_id'],
-                    'is_active' => 1,
-                ]);
-                $this->log("Committee membership (relationship [{relationship_id}]) disabled.");
-            }
+        $ignore_attributes = ['committee_name', 'relationship_id']; // todo: fine-tune
+        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
+        $total_changes = count($new_memberships) + count($changed_memberships) + count($obsolete_memberships);
+        $this->log("{$total_changes} changes to committee memberships detected.");
+
+        // first: disable absent (deleted)
+        foreach ($obsolete_memberships as $membership) {
+            // this membership needs to be ended/deactivated
+            $this->callApi3('Relationship', 'create', [
+                'id' => $membership['relationship_id'],
+                'is_active' => 0,
+            ]);
         }
+        $obsolete_count = count($obsolete_memberships);
+        $this->log("{$obsolete_count} obsolete committee memberships deactivated.");
 
-        // create memberships that are requested, but NOT present
-        foreach ($requested_memberships as $requested_membership) {
-            $present_memberships;
-
-            /** @var $requested_membership CRM_Committees_Model_Membership */
-            $person_civicrm_id = $this->getIDTContactID($requested_membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            $committee_id = $committee_id_to_contact_id[$requested_membership->getCommittee()->getID()];
-            $relationship_type_id = $this->getRelationshipTypeIdForMembership($requested_membership);
-            $relationship_exists = $this->callApi3('Relationship', 'getcount', [
+        // then: create the new ones
+        foreach ($new_memberships as $new_membership) {
+            /** @var CRM_Committees_Model_Membership $new_membership */
+            $person_civicrm_id = $this->getIDTContactID($new_membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            $committee_id = $committee_id_to_contact_id[$new_membership->getCommittee()->getID()];
+            $relationship_type_id = $this->getRelationshipTypeIdForMembership($new_membership);
+            $this->callApi3('Relationship', 'create', [
                 'contact_id_a' => $person_civicrm_id,
                 'contact_id_b' => $committee_id,
                 'relationship_type_id' => $relationship_type_id,
                 'is_active' => 1,
+                'description' => $new_membership->getAttribute('role'),
             ]);
-            $this->log("Committee membership (relationship [{relationship_id}]) created.");
         }
+        $new_count = count($new_memberships);
+        $this->log("{$new_count} new committee memberships created.");
+        $this->log("Syncing committee memberships complete.");
 
-
-        // todo
-        $membership_update_count = 0;
-        foreach ($model->getAllMemberships() as $membership) {
-            /** @var $membership \CRM_Committees_Model_Membership */
-            $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            $committee_id = $committee_id_to_contact_id[$membership->getCommittee()->getID()];
-            $relationship_type_id = $this->getRelationshipTypeID('is_committee_member_of');
-            // todo: cache?
-            $relationship_exists = $this->callApi3('Relationship', 'getcount', [
-                'contact_id_a' => $person_civicrm_id,
-                'contact_id_b' => $committee_id,
-                'relationship_type_id' => $relationship_type_id,
-                'is_active' => 1,
-            ]);
-            if (!$relationship_exists) {
-                $this->callApi3('Relationship', 'create', [
-                    'contact_id_a' => $person_civicrm_id,
-                    'contact_id_b' => $committee_id,
-                    'relationship_type_id' => $relationship_type_id,
-                    'is_active' => 1,
-                    'description' => $membership->getAttribute('role'),
-                ]);
-                $membership_update_count++;
-            }
-        }
-        $this->log("Syncing committee memberships complete, {$membership_update_count} new memberships were created.");
         $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
     }
 
@@ -332,36 +309,33 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
 
     /**
-     * Get the current committee memberships
+     * Get the current committee memberships as a partial model
      *
-     * @param CRM_Committees_Model_Model $model
+     * @param CRM_Committees_Model_Model $imported_model
      *   the model to be synced to this CiviCRM
      *
-     * @return array
-     *   list of property arrays:
-     *  'contact_id': contact ID
-     *  'committee_name': name of the committee
-     *  'committee_type': type of the committee
-     *  'role': membership role/type
+     * @return CRM_Committees_Model_Model
+     *   new model that only contains the memberships extracted from the current DB
      *
      * @todo maybe we can extract a complete model of the current situation,
      *   and then have a generic diff routine, but that seems to exceed the budget at this point
      */
-    protected function getCurrentMemberships($model)
+    protected function getCurrentMemberships($imported_model)
     {
         // get some basic data
-        $parliament_id = $this->getParliamentContactID($model);
+        $present_model = new CRM_Committees_Model_Model();
+        $parliament_id = $this->getParliamentContactID($imported_model);
         $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
         $relationship_type_ids = array_unique(array_values($role2relationship_type));
 
         // get the current committees
-        $committee_name_to_contact_id = $this->getCurrentCommittees($model);
+        $committee_name_to_contact_id = $this->getCurrentCommittees($imported_model);
         $committee_ids = array_values($committee_name_to_contact_id);
         $committee_ids[] = $parliament_id;
 
         // get committee name to type
         $committee_name_to_type = [];
-        foreach ($model->getAllCommittees() as $committee) {
+        foreach ($imported_model->getAllCommittees() as $committee) {
             /** @var CRM_Committees_Model_Committee $committee */
             $committee_name_to_type[$committee->getAttribute('name')] = $committee->getAttribute('type');
         }
@@ -375,7 +349,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         ]);
 
         // extract existing memberships
-        $memberships = [];
         $contactID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
         $contact_id_to_committee_name = array_flip($committee_name_to_contact_id);
         foreach ($committee_query['values'] as $committee_relationship) {
@@ -383,17 +356,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $committee_id = $committee_relationship['contact_id_b'];
             $person_ids = $contactID_2_trackerIDs[$contact_id] ?? [];
             foreach ($person_ids as $person_id) {
-                $memberships[] = [
+                $present_model->addCommitteeMembership([
                     'contact_id'      => substr($person_id, strlen(self::ID_TRACKER_PREFIX)),
                     'committee_id'    => CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($contact_id_to_committee_name[$committee_id]),
                     'committee_name'  => $contact_id_to_committee_name[$committee_id],
                     'type'            => $committee_name_to_type[$contact_id_to_committee_name[$committee_id]],
                     'role'            => $committee_relationship['description'],
                     'relationship_id' => $committee_relationship['id']
-                ];
+                ]);
             }
         }
-        return $memberships;
+        return $present_model;
     }
 
 
@@ -562,7 +535,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
 
     /**
-     * Get the ID of of the address of the "Bundestag"
+     * Get the ID of the address of the "Bundestag"
      *
      * @param CRM_Committees_Model_Model $model
      *
@@ -664,7 +637,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if (isset($role2relationship_type[$role])) {
             return $role2relationship_type[$role];
         } else {
-            $this->log("Warning: Couldn't map role '{$role} to relationship type! Using member...");
+            if ($role) {
+                $this->log("Warning: Couldn't map role '{$role}' to relationship type! Using member...");
+            }
             return $role2relationship_type['Mitglied'];
         }
     }

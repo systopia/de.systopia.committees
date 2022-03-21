@@ -121,4 +121,43 @@ abstract class CRM_Committees_Model_Entity
     {
         return array_keys($this->attributes);
     }
+
+    /**
+     * Diff the attributes of this entity against another one
+     *
+     * @param $entity CRM_Committees_Model_Entity
+     *   an entity
+     *
+     * @param $ignore_attributes array
+     *   list of entities to be ignored
+     *
+     * @return array
+     *  [attribute => [this entity value, other entity value]
+     *
+     */
+    public function diff(CRM_Committees_Model_Entity $entity, array $ignore_attributes = [])
+    {
+        $diff = [];
+        $this_entity_data = $this->getData();
+        $other_entity_data = $entity->getData();
+
+        // @todo the following can probably be implemented more efficiently
+        $attributes = array_merge($this_entity_data, $other_entity_data);
+        foreach ($ignore_attributes as $attribute) {
+            unset($attributes[$attribute]);
+        }
+        $attributes = array_keys($attributes);
+
+        // @todo the following can probably be implemented more efficiently
+        foreach ($attributes as $attribute) {
+            $this_value = $this_entity_data[$attribute] ?? null;
+            $other_value = $other_entity_data[$attribute] ?? null;
+            if ($this_value !== $other_value) {
+                $diff[$attribute] = [$this_value, $other_value];
+            }
+        }
+
+        return $diff;
+    }
+
 }
