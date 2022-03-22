@@ -235,9 +235,10 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
+            /** @var CRM_Committees_Model_Membership $membership */
             // this membership needs to be ended/deactivated
             $this->callApi3('Relationship', 'create', [
-                'id' => $membership['relationship_id'],
+                'id' => $membership->getAttribute('relationship_id'),
                 'is_active' => 0,
             ]);
         }
@@ -361,7 +362,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     'committee_id'    => CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($contact_id_to_committee_name[$committee_id]),
                     'committee_name'  => $contact_id_to_committee_name[$committee_id],
                     'type'            => $committee_name_to_type[$contact_id_to_committee_name[$committee_id]],
-                    'role'            => $committee_relationship['description'],
+                    'role'            => $committee_relationship['description'] ?? '',
                     'relationship_id' => $committee_relationship['id']
                 ]);
             }
