@@ -178,4 +178,34 @@ abstract class CRM_Committees_Model_Entity
         return $diff;
     }
 
+    /**
+     * Get the person/committee as linked by the attribute contact_id,
+     *   if it is part of the model
+     *
+     * @param CRM_Committees_Model_Model|null $model
+     *   the model from which to take the entity. Default is *this one*
+     *
+     * @return CRM_Committees_Model_Entity
+     *
+     */
+    public function getContact($model = null)
+    {
+        if (!$model) $model = $this->model;
+        $contact_id = $this->getAttribute('contact_id');
+
+        // try the person first
+        $person = $model->getPerson($contact_id);
+        if ($person) {
+            return $person;
+        }
+
+        // try a committee
+        $committee = $model->getCommittee($contact_id);
+        if ($committee) {
+            return $committee;
+        }
+
+        // nothing found
+        return null;
+    }
 }

@@ -288,6 +288,72 @@ class CRM_Committees_Model_Model
     }
 
     /**
+     * Diff the emails of this model against another i.e. identify the ones:
+     *   that are new, that have been changed, that ore obsolete
+     *
+     * @param $model CRM_Committees_Model_Model
+     *   the model to compare with
+     *
+     * @param array $ignore_attributes
+     *   list of entity attributes to ignore
+     *
+     * @return array of arrays:
+     *  [
+     *      new entities (only in other model),
+     *      entities changed (with additional attribute 'differing_attributes'),
+     *      entities missing (only in this model)
+     *  ]
+     */
+    public function diffEmails(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    {
+        return $this->diffEntities($model, 'emails', ['email'], $ignore_attributes);
+    }
+
+    /**
+     * Diff the phones of this model against another i.e. identify the ones:
+     *   that are new, that have been changed, that ore obsolete
+     *
+     * @param $model CRM_Committees_Model_Model
+     *   the model to compare with
+     *
+     * @param array $ignore_attributes
+     *   list of entity attributes to ignore
+     *
+     * @return array of arrays:
+     *  [
+     *      new entities (only in other model),
+     *      entities changed (with additional attribute 'differing_attributes'),
+     *      entities missing (only in this model)
+     *  ]
+     */
+    public function diffPhones(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    {
+        return $this->diffEntities($model, 'phones', ['id'], $ignore_attributes);
+    }
+
+    /**
+     * Diff the addresses of this model against another i.e. identify the ones:
+     *   that are new, that have been changed, that ore obsolete
+     *
+     * @param $model CRM_Committees_Model_Model
+     *   the model to compare with
+     *
+     * @param array $ignore_attributes
+     *   list of entity attributes to ignore
+     *
+     * @return array of arrays:
+     *  [
+     *      new entities (only in other model),
+     *      entities changed (with additional attribute 'differing_attributes'),
+     *      entities missing (only in this model)
+     *  ]
+     */
+    public function diffAddresses(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    {
+        return $this->diffEntities($model, 'addresses', ['id'], $ignore_attributes);
+    }
+
+    /**
      * Diff the persons of this model against another i.e. identify the ones:
      *   that are new, that have been changed, that ore obsolete
      *

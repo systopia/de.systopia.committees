@@ -121,7 +121,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
 
         /**********************************************
-         **               SYNC CONTACTS              **
+         **           SYNC BASE CONTACTS            **
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
 
@@ -146,7 +146,12 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
             $person_data['source'] = self::CONTACT_SOURCE;
             $result = $this->callApi3('Contact', 'create', $person_data);
+
+            // contact post-processing
             $this->setIDTContactID($new_person->getID(), $result['id'], self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            $new_person->setAttribute('contact_id', $result['id']);
+            $present_model->addPerson($new_person->getData());
+
             $this->log("Kürschner Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
         }
 
@@ -169,6 +174,41 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $obsolete_person_count = count($obsolete_persons);
             $this->log("There are {$obsolete_person_count} obsolete persons, but they will not be removed.");
         }
+
+        /**********************************************
+         **           SYNC CONTACT EMAILS            **
+         **********************************************/
+        $this->extractCurrentDetails($model, $present_model, 'email');
+        [$new_emails, $changed_emails, $obsolete_emails] = $present_model->diffEmails($model, ['location_type']);
+        foreach ($new_emails as $email) {
+            /** @var CRM_Committees_Model_Email $email */
+            $email_data = $email->getData();
+            $person = $email->getContact($present_model);
+            if ($person) {
+                $email_data['contact_id'] = $person->getAttribute('contact_id');
+                $this->callApi3('Email', 'create', $email_data);
+                $this->log("Added email '{$email_data['email']} to contact [{$email_data['contact_id']}]");
+            }
+        }
+        if ($changed_emails) {
+            $changed_emails_count = count($changed_emails);
+            $this->log("Some attributes have changed for {$changed_emails_count}, be we won't adjust that.");
+        }
+        if ($obsolete_emails) {
+            $obsolete_emails_count = count($obsolete_emails);
+            $this->log("{$obsolete_emails_count} emails are not listed in input, but won't delete.");
+        }
+
+
+
+//        $this->extractCurrentDetails($model, $present_model, 'phone');
+//        $this->extractCurrentDetails($model, $present_model, 'address');
+
+
+
+        return;
+
+
 
         $person_id_2_civicrm_id = [];
         $person_update_count = 0;
@@ -261,7 +301,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
 
 
-        return;
         // SYNC MEMBERSHIPS
         $requested_memberships = $model->getAllMemberships();
         $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
@@ -525,8 +564,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
     }
 
+
     /**
-     * Extract the currenlty imported contacts from the CiviCRMs and add them to the 'present model'
+     * Extract the currently imported contacts from CiviCRM and add them to the 'present model'
      *
      * @param CRM_Committees_Model_Model $requested_model
      *   the model to be synced to this CiviCRM
@@ -556,6 +596,82 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                       'prefix_id'    => $contact_found['prefix_id'],
                       'suffix_id'    => $contact_found['suffix_id'],
                   ]);
+            }
+        }
+    }
+
+    /**
+     * Extract the currently imported contacts from the CiviCRMs and add them to the 'present model'
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current contacts to, as extracted from the DB
+     *
+     * @param string $type
+     *   phone, email or address
+     */
+    protected function extractCurrentDetails($requested_model, $present_model, $type)
+    {
+        // some basic configurations for the different types
+        $load_attributes = [
+            'email' => ['contact_id', 'email', 'location_type_id'],
+            'phone' => ['contact_id', 'phone', 'location_type_id'],
+        ];
+        $copy_attributes = [
+            'email' => ['email'],
+            'phone' => ['phone'],
+        ];
+
+        // check with all known CiviCRM contacts
+        $contact_id_to_person_id = [];
+        foreach ($present_model->getAllPersons() as $person) {
+            /** @var CRM_Committees_Model_Person $person */
+            $contact_id = (int) $person->getAttribute('contact_id');
+            if ($contact_id) {
+                $contact_id_to_person_id[$contact_id] = $person->getID();
+            }
+        }
+
+        // stop here if there's no known contacts
+        if (empty($contact_id_to_person_id)) {
+            return [];
+        }
+
+        // load the given attributes
+        $existing_details = $this->callApi3($type, 'get', [
+            'id' => ['IN' => array_keys($contact_id_to_person_id)],
+            'return' => implode(',', $load_attributes[$type]),
+            'option.limit' => 0,
+        ]);
+
+        // strip duplicates
+        $data_by_id = [];
+        foreach ($existing_details['values'] as $detail) {
+            $person_id = $contact_id_to_person_id[$detail['contact_id']];
+            $data = ['contact_id' => $person_id];
+            foreach ($copy_attributes[$type] as $attribute) {
+                $data[$attribute] = $detail[$attribute];
+            }
+            $key = implode('##', $data);
+            $data_by_id[$key] = $data;
+        }
+
+        // finally, add all to the model
+        foreach ($data_by_id as $data) {
+            switch ($type) {
+                case 'phone':
+                    $present_model->addPhone($data);
+                    break;
+                case 'email':
+                    $present_model->addEmail($data);
+                    break;
+                case 'address':
+                    $present_model->addAddress($data);
+                    break;
+                default:
+                    throw new Exception("Unknown type {$type} for extractCurrentDetails function.");
             }
         }
     }
