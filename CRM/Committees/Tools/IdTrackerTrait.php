@@ -24,10 +24,7 @@ use CRM_Committees_ExtensionUtil as E;
 trait CRM_Committees_Tools_IdTrackerTrait
 {
     /** @var array static ID cache */
-    protected static $idt_trackerID2contactID = null;
-
-    /** @var array static reverse ID cache */
-    protected static $contactID2idt_trackerID = null;
+    protected static $idt_trackerID2contactIDbyPrefix = null;
 
     /**
      * Get the (cached) contact ID via the IdentityTracker
@@ -44,8 +41,8 @@ trait CRM_Committees_Tools_IdTrackerTrait
     public function getIDTContactID($internal_id, $id_type, $prefix = '')
     {
         // load all tracker IDs via SQL (once)
-        if (self::$idt_trackerID2contactID === null) {
-            self::$idt_trackerID2contactID = [];
+        if (!isset(self::$idt_trackerID2contactIDbyPrefix[$prefix])) {
+            self::$idt_trackerID2contactIDbyPrefix[$prefix] = [];
             $id_record = CRM_Core_DAO::executeQuery(
                 "
                 SELECT
@@ -53,17 +50,21 @@ trait CRM_Committees_Tools_IdTrackerTrait
                   identifier  AS tracker_id
                 FROM civicrm_value_contact_id_history
                 WHERE identifier_type = %1
+                  AND identifier LIKE CONCAT(%2, '%')
                 ",
-                [1 => [$id_type, 'String']]
+                [
+                    1 => [$id_type, 'String'],
+                    2 => [$prefix, 'String']
+                ]
             );
             while ($id_record->fetch()) {
-                self::$idt_trackerID2contactID[$id_record->tracker_id] = $id_record->contact_id;
+                self::$idt_trackerID2contactIDbyPrefix[$prefix][$id_record->tracker_id] = $id_record->contact_id;
             }
         }
 
         // look up tracker
         $tracker_id = $prefix . $internal_id;
-        return self::$idt_trackerID2contactID[$tracker_id] ?? null;
+        return self::$idt_trackerID2contactIDbyPrefix[$prefix][$tracker_id] ?? null;
     }
 
     /**
@@ -81,17 +82,39 @@ trait CRM_Committees_Tools_IdTrackerTrait
     public function getContactIDtoTids($id_type, $prefix = '')
     {
         // make sure the cache is filled
-        if (self::$idt_trackerID2contactID === null) {
+        if (!isset(self::$idt_trackerID2contactIDbyPrefix[$prefix])) {
             $this->getIDTContactID(0, $id_type, $prefix);
         }
 
         // compile a reverse list
         $contactID_2_trackerIDs = [];
-        foreach (self::$idt_trackerID2contactID as $tracker_id => $contact_id) {
+        foreach (self::$idt_trackerID2contactIDbyPrefix[$prefix] as $tracker_id => $contact_id) {
             $contactID_2_trackerIDs[$contact_id][] = $tracker_id;
         }
 
         return $contactID_2_trackerIDs;
+    }
+
+    /**
+     * Get the (cached) contact ID via the IdentityTracker
+     *
+     * @param string $internal_id
+     *   ID as used by the data source
+     *
+     * @param string $id_type
+     *   a registered contact tracker type
+     *
+     * @param string $prefix
+     *   ID prefix
+     */
+    public function getTrackerIDtoContactID($id_type, $prefix = '')
+    {
+        // make sure the cache is filled
+        if (!isset(self::$idt_trackerID2contactIDbyPrefix[$prefix])) {
+            $this->getIDTContactID(0, $id_type, $prefix);
+        }
+
+        return self::$idt_trackerID2contactIDbyPrefix[$prefix];
     }
 
 
@@ -113,7 +136,7 @@ trait CRM_Committees_Tools_IdTrackerTrait
     public function setIDTContactID($internal_id, $civicrm_id, $id_type, $prefix = '')
     {
         // make sure the cache is filled
-        if (self::$idt_trackerID2contactID === null) {
+        if (!isset(self::$idt_trackerID2contactIDbyPrefix[$prefix])) {
             $this->getIDTContactID($internal_id, $id_type, $prefix);
         }
 
@@ -126,7 +149,7 @@ trait CRM_Committees_Tools_IdTrackerTrait
         ]);
 
         // add to our cache
-        self::$idt_trackerID2contactID[$tracker_id] = $civicrm_id;
+        self::$idt_trackerID2contactIDbyPrefix[$prefix][$tracker_id] = $civicrm_id;
     }
 
 

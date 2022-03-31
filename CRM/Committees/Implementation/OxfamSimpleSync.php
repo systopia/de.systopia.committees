@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA Committee Framework                           |
-| Copyright (C) 2021 SYSTOPIA                            |
+| Copyright (C) 2021-2022 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
@@ -16,9 +16,7 @@
 use CRM_Committees_ExtensionUtil as E;
 
 /**
- * Syncer for Session XLS Export
- *
- * @todo migrate to separate extension
+ * Syncer for KuerschnerCsvImporter parliamentary committe model
  */
 class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugin_Syncer
 {
@@ -33,7 +31,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
     const ID_TRACKER_TYPE = 'kuerschners';
     const ID_TRACKER_PREFIX = 'KUE-';
-    const CONTACT_SOURCE = 'kuerschners_MdB_2022';
+    const ID_TRACKER_PREFIX_COMMITTEE = 'BUND-AUSSCHUSS-';  // todo: adjustment needed, if same importer should be used for other parliaments
+    const ID_TRACKER_PREFIX_FRAKTION = 'BUND-FRAKTION-';    // todo: adjustment needed, if same importer should be used for other parliaments
+    const CONTACT_SOURCE = 'Kuerschners Bundestag';         // todo: adjustment needed, if same importer should be used for other parliaments
     const COMMITTE_SUBTYPE_NAME = 'Committee';
     const COMMITTE_SUBTYPE_LABEL = 'Gremium';
 
@@ -70,62 +70,56 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // 2. Contact group 'Lobby-Kontakte'
         $lobby_contact_group_id = $this->getOrCreateContactGroup(['title' => E::ts('Lobby-Kontakte')]);
 
-        // 3. add relationship types
-        $this->createRelationshipTypeIfNotExists(
-            'is_committee_member_of',
-            'committee_has_member',
-            "Mitglied",
-            'Mitglied',
-            'Individual',
-            'Organization',
-            null,
-            null,
-            ""
-        );
-
         /**************************************
          **        RUN SYNCHRONISATION       **
          **************************************/
 
-        // SYNC COMMITEES
-        $committee_id_to_contact_id = [];
-        $committees = $model->getAllCommittees();
-        $this->log("Syncing " . count($committees) . " committees...");
+        /** @var $present_model CRM_Committees_Model_Model this model will contain the data currently present in the DB  */
+        $present_model = new CRM_Committees_Model_Model();
+
+        /**********************************************
+         **               SYNC COMMITTEES            **
+         **********************************************/
+        // first: apply fraction name corrections to the new model
         foreach ($model->getAllCommittees() as $committee) {
-            $committee_name = $committee->getAttribute('name');
             if ($committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
-                $committee_name = E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $committee_name]);
-                $committee->setAttribute('name', $committee_name);
+                $new_committee_name = $this->getFraktionName($committee->getAttribute('name'));
+                $committee->setAttribute('name', $new_committee_name);
             }
-            // find contact
-            // todo: check link to parliament?
-            $search_result = $this->callApi3('Contact', 'get', [
-                'organization_name' => $committee_name,
-                'contact_type' => 'Organization'
-            ]);
-            if (!empty($search_result['id'])) {
-                // single hit
-                $this->log("Committee '{$committee_name}' identified: CID-" . $search_result['id']);
-                $committee_id_to_contact_id[$committee->getID()] = $search_result['id'];
+        }
 
-            } else if (count($search_result['values']) > 1) {
-                // multiple hits
-                $first_committee = reset($search_result['values']);
-                $committee_id_to_contact_id[$committee->getID()] = $first_committee['id'];
-                $this->log("Committee '{$committee_name}' not unique! Using ID [{$first_committee['id']}]", 'warn');
-
-            } else {
-                // doesn't exist -> create
-                $create_result = $this->callApi3('Contact', 'create', [
+        // now extract current committees and run the diff
+        $this->extractCurrentCommittees($model, $present_model);
+        [$new_committees, $changed_committees, $obsolete_committees] = $present_model->diffCommittees($model, ['contact_id']);
+        if ($new_committees) {
+            foreach ($new_committees as $new_committee) {
+                /** @var CRM_Committees_Model_Committee $new_committee */
+                $committee_name = $new_committee->getAttribute('name');
+                if ($new_committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
+                    $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
+                } else {
+                    $tracker_prefix = self::ID_TRACKER_PREFIX_COMMITTEE;
+                }
+                $result = $this->callApi3('Contact', 'create', [
                     'organization_name' => $committee_name,
                     'contact_sub_type' => $this->getCommitteeSubType(),
                     'contact_type' => 'Organization'
                 ]);
-                $this->addContactToGroup($create_result['id'], $lobby_contact_group_id, true);
-                $committee_id_to_contact_id[$committee->getID()] = $create_result['id'];
-                $this->log("Committee '{$committee_name}' created: ID [{$create_result['id']}");
+                $this->setIDTContactID($new_committee->getID(), $result['id'], self::ID_TRACKER_TYPE, $tracker_prefix);
+                $this->addContactToGroup($result['id'], $lobby_contact_group_id, true);
+                $new_committee->setAttribute('contact_id', $result['id']);
+                $present_model->addCommittee($new_committee->getData());
             }
+            $this->log(count($new_committees) . " new committees created.");
         }
+        // add warnings:
+        if ($changed_committees) {
+            if ($changed_committees) $this->log("TODO: There are changes to some committees, but these currently won't be applied.");
+        }
+        if ($obsolete_committees) {
+            $this->log("There are obsolete committees, but they will not be removed.");
+        }
+        
 
         // SYNC CONTACTS
         $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
@@ -155,7 +149,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_data['gender_id'] = $this->getGenderId($person_data);
             $person_data['prefix_id'] = $this->getPrefixId($person_data);
             $person_data['suffix_id'] = $this->getSuffixId($person_data);
-
             $result = $this->callApi3('Contact', 'create', $person_data);
 
             $person_civicrm_id = $result['id'];
@@ -225,13 +218,21 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $requested_memberships = $model->getAllMemberships();
         $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
 
-        $present_model = $this->getCurrentMemberships($model);
+        $this->addCurrentMemberships($model, $present_model);
         $this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
         $ignore_attributes = ['committee_name', 'relationship_id']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
+        // analysis: remove
+        $new_membership = reset($new_memberships);
+        $other_memberships = [];
+        foreach ($obsolete_memberships as $obsolete_membership) {
+            if ($obsolete_membership->getAttribute('contact_id') == $new_membership->getAttribute('contact_id')) {
+                $other_memberships[] = $new_membership;
+            }
+        }
         $total_changes = count($new_memberships) + count($changed_memberships) + count($obsolete_memberships);
-        $this->log("{$total_changes} changes to committee memberships detected.");
+        $this->log("{$total_changes} additions or changes to committee memberships detected.");
 
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
@@ -263,7 +264,59 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $this->log("{$new_count} new committee memberships created.");
         $this->log("Syncing committee memberships complete.");
 
+        // that's it
         $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
+    }
+
+    /**
+     * Extract the current committee memberships and add to the present_model
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current memberships to, as extracted from the DB
+     */
+    protected function addCurrentMemberships($requested_model, $present_model)
+    {
+        // get some basic data
+        $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
+        $relationship_type_ids = array_unique(array_values($role2relationship_type));
+
+        // get the current committees
+        $parliament_ids = [$this->getParliamentContactID($requested_model)];
+        $fraction_ids = array_keys($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_FRAKTION));
+        $committee_ids = array_keys($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_COMMITTEE));
+        $all_committee_ids = array_merge($parliament_ids, $fraction_ids, $committee_ids);
+
+        // get the current memberships of these committees
+        $committee_query = civicrm_api3('Relationship', 'get', [
+            'option.limit' => 0,
+            'relationship_type_id' => ['IN' => $relationship_type_ids],
+            //'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
+            'contact_id_b' => ['IN' => $all_committee_ids]
+        ]);
+
+        // extract existing committee memberships
+        $contactID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        $contact_id_to_committee_name = array_flip($committee_name_to_contact_id);
+        foreach ($committee_query['values'] as $committee_relationship) {
+            $contact_id = $committee_relationship['contact_id_a'];
+            $committee_id = $committee_relationship['contact_id_b'];
+            $person_ids = $contactID_2_trackerIDs[$contact_id] ?? [];
+            foreach ($person_ids as $person_id) {
+                $present_model->addCommitteeMembership([
+                       'contact_id'      => substr($person_id, strlen(self::ID_TRACKER_PREFIX)),
+                       'committee_id'    => CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($contact_id_to_committee_name[$committee_id]),
+                       'committee_name'  => $contact_id_to_committee_name[$committee_id],
+                       'type'            => $committee_name_to_type[$contact_id_to_committee_name[$committee_id]],
+                       'role'            => $committee_relationship['description'] ?? '',
+                       'relationship_id' => $committee_relationship['id']
+                   ]);
+            }
+        }
+
+        return $present_model;
     }
 
 
@@ -271,72 +324,73 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     /*****************************************************************************
      **                        PULL CURRENT DATA FOR SYNC                       **
      **         OVERWRITE THESE METHODS TO ADJUST TO YOUR DATA MODEL            **
-     **  TODO: extract a full model of the current data, then do a model diff   **
      *****************************************************************************/
 
-    /**
-     * Get the contact IDs of the currently active committees
-     *
-     * @param CRM_Committees_Model_Model $model
-     *   the model to be synced to this CiviCRM
-     *
-     * @return array list of
-     *   committee_name => contact_id
-     */
-    protected function getCurrentCommittees($model)
-    {
-        $committee_name_to_contact_id = [];
-        foreach ($model->getAllCommittees() as $committee) {
-            /** @var $committee CRM_Committees_Model_Committee */
-            $committee_name = $committee->getAttribute('name');
-            $committee_search = civicrm_api3('Contact', 'get', [
-                'organization_name' => $committee_name,
-                'option.limit' => 1,
-                'contact_type' => 'Organization',
-                'option.sort' => 'id asc',
-            ]);
-            if (!empty($committee_search['id'])) {
-                $committee = reset($committee_search['values']);
-                $committee_name_to_contact_id[$committee_name] = $committee['id'];
-            }
-        }
-
-        // log and exit
-        $total_committee_count = count($model->getAllCommittees());
-        $found_committee_count = count($committee_name_to_contact_id);
-        $this->log("Found {$found_committee_count} of {$total_committee_count} committees in the system.");
-        return $committee_name_to_contact_id;
-    }
+//    /**
+//     * Get the contact IDs of the currently active committees
+//     *
+//     * @param CRM_Committees_Model_Model $model
+//     *   the model to be synced to this CiviCRM
+//     *
+//     * @return array list of
+//     *   committee_name => contact_id
+//     */
+//    protected function getCurrentCommittees($model)
+//    {
+//        $committee_name_to_contact_id = [];
+//        foreach ($model->getAllCommittees() as $committee) {
+//            /** @var $committee CRM_Committees_Model_Committee */
+//            $committee_name = $committee->getAttribute('name');
+//            $committee_search = civicrm_api3('Contact', 'get', [
+//                'organization_name' => $committee_name,
+//                'option.limit' => 1,
+//                'contact_type' => 'Organization',
+//                'option.sort' => 'id asc',
+//            ]);
+//            if (!empty($committee_search['id'])) {
+//                $committee = reset($committee_search['values']);
+//                $committee_name_to_contact_id[$committee_name] = $committee['id'];
+//            } else {
+//                $this->log("Committee '{$committee_name}' not found.", 'debug');
+//            }
+//        }
+//
+//        // log and exit
+//        $total_committee_count = count($model->getAllCommittees());
+//        $found_committee_count = count($committee_name_to_contact_id);
+//        $this->log("Found {$found_committee_count} of {$total_committee_count} committees in the system.");
+//        return $committee_name_to_contact_id;
+//    }
 
 
     /**
      * Get the current committee memberships as a partial model
      *
-     * @param CRM_Committees_Model_Model $imported_model
+     * @param CRM_Committees_Model_Model $requested_model
      *   the model to be synced to this CiviCRM
      *
-     * @return CRM_Committees_Model_Model
-     *   new model that only contains the memberships extracted from the current DB
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current memberships to, as extracted from the DB
      *
      * @todo maybe we can extract a complete model of the current situation,
      *   and then have a generic diff routine, but that seems to exceed the budget at this point
      */
-    protected function getCurrentMemberships($imported_model)
+    protected function _old_addCurrentMemberships($requested_model, $present_model)
     {
         // get some basic data
-        $present_model = new CRM_Committees_Model_Model();
-        $parliament_id = $this->getParliamentContactID($imported_model);
+        $parliament_id = $this->getParliamentContactID($requested_model);
         $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
         $relationship_type_ids = array_unique(array_values($role2relationship_type));
 
         // get the current committees
-        $committee_name_to_contact_id = $this->getCurrentCommittees($imported_model);
+        $committee_ids = [];
+        $committee_name_to_contact_id = $this->getCurrentCommittees($requested_model);
         $committee_ids = array_values($committee_name_to_contact_id);
         $committee_ids[] = $parliament_id;
 
         // get committee name to type
         $committee_name_to_type = [];
-        foreach ($imported_model->getAllCommittees() as $committee) {
+        foreach ($requested_model->getAllCommittees() as $committee) {
             /** @var CRM_Committees_Model_Committee $committee */
             $committee_name_to_type[$committee->getAttribute('name')] = $committee->getAttribute('type');
         }
@@ -345,11 +399,11 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $committee_query = civicrm_api3('Relationship', 'get', [
             'option.limit' => 0,
             'relationship_type_id' => ['IN' => $relationship_type_ids],
-            'is_active' => 1,
+            //'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
             'contact_id_b' => ['IN' => $committee_ids]
         ]);
 
-        // extract existing memberships
+        // extract existing committee memberships
         $contactID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
         $contact_id_to_committee_name = array_flip($committee_name_to_contact_id);
         foreach ($committee_query['values'] as $committee_relationship) {
@@ -367,7 +421,60 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 ]);
             }
         }
+
         return $present_model;
+    }
+
+    /**
+     * Get the current committees as a partial model
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current committees to, as extracted from the DB
+     */
+    protected function extractCurrentCommittees($requested_model, $present_model)
+    {
+        // add existing committees
+        $existing_committees = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_COMMITTEE);
+        if ($existing_committees) {
+            $committees_found = $this->callApi3('Contact', 'get', [
+                'contact_type' => 'Organization',
+                'id' => ['IN' => array_keys($existing_committees)],
+                'return' => 'id,organization_name',
+                'option.limit' => 0,
+            ]);
+            foreach ($committees_found['values'] as $committee_found) {
+                $present_committee_id = $existing_committees[$committee_found['id']][0];
+                $present_model->addCommittee([
+                     'name'       => $committee_found['organization_name'],
+                     'type'       => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
+                     'id'         => substr($present_committee_id, strlen(self::ID_TRACKER_PREFIX_COMMITTEE)),
+                     'contact_id' => $committee_found['id'],
+                 ]);
+            }
+        }
+
+        // add fractions
+        $existing_fractions = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_FRAKTION);
+        if ($existing_fractions) {
+            $fractions_found = $this->callApi3('Contact', 'get', [
+                'contact_type' => 'Organization',
+                'id' => ['IN' => array_keys($existing_fractions)],
+                'return' => 'id,organization_name',
+                'option.limit' => 0,
+            ]);
+            foreach ($fractions_found['values'] as $fraction_found) {
+                $present_fraction_id = $existing_fractions[$fraction_found['id']][0];
+                $present_model->addCommittee([
+                     'name'       => $fraction_found['organization_name'],
+                     'type'       => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
+                     'id'         => substr($present_fraction_id, strlen(self::ID_TRACKER_PREFIX_FRAKTION)),
+                     'contact_id' => $fraction_found['id'],
+                 ]);
+            }
+        }
     }
 
 
@@ -731,5 +838,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $role2relationship_type['stellv. Vorsitzende'] = $deputy_chairperson_relationship['id'];
         }
         return $role2relationship_type;
+    }
+
+    /**
+     * Generate a name for the Fraktion based on the party
+     *
+     * @param $party_name
+     *
+     * @return string
+     */
+    public function getFraktionName($party_name)
+    {
+        return E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $party_name]);
     }
 }

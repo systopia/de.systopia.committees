@@ -280,6 +280,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                         [
                             'contact_id' => $record['id'],
                             'committee_id' => self::getCommitteeID($committee_name),
+                            'committee_name' => $committee_name,
                             'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
                             'role' => $member_role,
                         ]
@@ -322,7 +323,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                     [
                         'contact_id' => $record['id'],
                         'committee_id' => self::getCommitteeID($parliamentary_group_name),
+                        'committee_name' => $parliamentary_group_name,
                         'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
+                        'role' => 'Mitglied',
                     ]
                 );
             }
