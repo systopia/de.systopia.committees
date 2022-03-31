@@ -78,6 +78,24 @@ abstract class CRM_Committees_Model_Entity
     }
 
     /**
+     * Get all data from the entity,
+     *   except for the attributes in hte list
+     *
+     * @param array $strip_attributes
+     *   list of attribute to be stripped from the result
+     *
+     * @return array data
+     */
+    public function getDataWithout($strip_attributes)
+    {
+        $data = $this->attributes;
+        foreach ($strip_attributes as $strip_attribute) {
+            unset($data[$strip_attribute]);
+        }
+        return $data;
+    }
+
+    /**
      * Get an attribute of the entity
      *
      * @param string $attribute_name

@@ -80,7 +80,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         /**********************************************
          **               SYNC COMMITTEES            **
          **********************************************/
-        // first: apply fraction name corrections to the new model
+        // first: apply custom adjustments to the committees
         foreach ($model->getAllCommittees() as $committee) {
             if ($committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
                 $new_committee_name = $this->getFraktionName($committee->getAttribute('name'));
@@ -119,10 +119,57 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if ($obsolete_committees) {
             $this->log("There are obsolete committees, but they will not be removed.");
         }
-        
 
-        // SYNC CONTACTS
+        /**********************************************
+         **               SYNC CONTACTS              **
+         **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
+
+        // first: apply custom adjustments to the committees
+        foreach ($model->getAllPersons() as $person) {
+            /** @var CRM_Committees_Model_Person $person */
+            $person_data = $person->getData();
+            $person->setAttribute('gender_id', $this->getGenderId($person_data));
+            $person->setAttribute('suffix_id', $this->getSuffixId($person_data));
+            $person->setAttribute('prefix_id', $this->getPrefixId($person_data));
+        }
+
+        // then compare to current model and apply changes
+        $this->extractCurrentContacts($model, $present_model);
+        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title']);
+
+        // create missing contacts
+        foreach ($new_persons as $new_person) {
+            /** @var CRM_Committees_Model_Person $new_person */
+            $person_data = $new_person->getDataWithout(['id']);
+            $person_data['contact_type'] = $this->getContactType($person_data);
+            $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
+            $person_data['source'] = self::CONTACT_SOURCE;
+            $result = $this->callApi3('Contact', 'create', $person_data);
+            $this->setIDTContactID($new_person->getID(), $result['id'], self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            $this->log("Kürschner Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
+        }
+
+        // apply changes to existing contacts
+        foreach ($changed_persons as $changed_person) {
+            /** @var CRM_Committees_Model_Person $changed_person */
+            $person_update = [
+                'id' => $this->getIDTContactID($changed_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX)
+            ];
+            $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
+            foreach ($differing_attributes as $differing_attribute) {
+                $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
+            }
+            $result = $this->callApi3('Contact', 'create', $person_update);
+            $this->log("Kürschner Contact [{$changed_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $changed_person->getAttribute('differing_attributes'));
+        }
+
+        // note obsolete contacts
+        if (!empty($obsolete_persons)) {
+            $obsolete_person_count = count($obsolete_persons);
+            $this->log("There are {$obsolete_person_count} obsolete persons, but they will not be removed.");
+        }
+
         $person_id_2_civicrm_id = [];
         $person_update_count = 0;
         $address_by_contact = $model->getEntitiesByID($model->getAllAddresses(), 'contact_id');
@@ -214,6 +261,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
 
 
+        return;
         // SYNC MEMBERSHIPS
         $requested_memberships = $model->getAllMemberships();
         $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
@@ -477,6 +525,41 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
     }
 
+    /**
+     * Extract the currenlty imported contacts from the CiviCRMs and add them to the 'present model'
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current contacts to, as extracted from the DB
+     */
+    protected function extractCurrentContacts($requested_model, $present_model)
+    {
+        // add existing contacts
+        $existing_contacts = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        if ($existing_contacts) {
+            $contacts_found = $this->callApi3('Contact', 'get', [
+                'contact_type' => 'Individual',
+                'id' => ['IN' => array_keys($existing_contacts)],
+                'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id,suffix_id',
+                'option.limit' => 0,
+            ]);
+            foreach ($contacts_found['values'] as $contact_found) {
+                $present_contact_id = $existing_contacts[$contact_found['id']][0];
+                $present_model->addPerson([
+                      'id'           => substr($present_contact_id, strlen(self::ID_TRACKER_PREFIX)),
+                      'contact_id'   => $contact_found['id'],
+                      'first_name'   => $contact_found['first_name'],
+                      'last_name'    => $contact_found['last_name'],
+                      'gender_id'    => $contact_found['gender_id'],
+                      'prefix_id'    => $contact_found['prefix_id'],
+                      'suffix_id'    => $contact_found['suffix_id'],
+                  ]);
+            }
+        }
+    }
+
 
     /*****************************************************************************
      **                            DETAILS CUSTOMISATION                        **
@@ -484,7 +567,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      *****************************************************************************/
 
     /**
-     * Get the right gender ID for the given person data
+     * Get the right prefix ID for the given person data
      *
      * @param array $person_data
      *   list of the raw attributes coming from the model.
@@ -509,6 +592,34 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $option_value = $this->getOrCreateOptionValue(['label' => $prefix_id], 'individual_prefix');
         return $option_value['value'];
     }
+
+    /**
+     * Get the right prefix string for the given CiviCRM prefix ID
+     *
+     * @param array $person_data
+     *   list of the raw attributes coming from the model.
+     */
+    protected function getPrefixString($person_data)
+    {
+        if (empty($person_data['prefix_id'])) {
+            return '';
+        }
+
+        $prefix_id = $person_data['prefix_id'];
+
+        // map
+        $mapping = [
+            'Frau' => 'Frau',
+            'Herrn' => 'Herr'
+        ];
+        if (isset($mapping[$prefix_id])) {
+            $prefix_id = $mapping[$prefix_id];
+        }
+
+        $option_value = $this->getOrCreateOptionValue(['label' => $prefix_id], 'individual_prefix');
+        return $option_value['value'];
+    }
+
 
     /**
      * Get the right gender ID for the given person data
