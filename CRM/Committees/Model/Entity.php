@@ -168,8 +168,8 @@ abstract class CRM_Committees_Model_Entity
 
         // @todo the following can probably be implemented more efficiently
         foreach ($attributes as $attribute) {
-            $this_value = $this_entity_data[$attribute] ?? null;
-            $other_value = $other_entity_data[$attribute] ?? null;
+            $this_value = $this_entity_data[$attribute] ?? '';
+            $other_value = $other_entity_data[$attribute] ?? '';
             if ($this_value !== $other_value) {
                 $diff[$attribute] = [$this_value, $other_value];
             }
@@ -207,5 +207,23 @@ abstract class CRM_Committees_Model_Entity
 
         // nothing found
         return null;
+    }
+
+    /**
+     * Remove this entity from the current model
+     */
+    public function removeFromModel()
+    {
+        $this->model->removeEntity($this);
+    }
+
+    /**
+     * Get the model this entity belongs to
+     *
+     * @return CRM_Committees_Model_Model
+     */
+    public function getModel()
+    {
+        return $this->model;
     }
 }

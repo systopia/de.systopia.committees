@@ -675,4 +675,33 @@ class CRM_Committees_Model_Model
 
         return [$new_entities, $changed_entities, $missing_entities];
     }
+
+    /**
+     * Remove the given entity from this model
+     *
+     * @param CRM_Committees_Model_Entity $entity
+     */
+    public function removeEntity(CRM_Committees_Model_Entity $entity)
+    {
+        if ($entity->getModel() !== $this) {
+            throw new Exception("Entity belongs to another model.");
+        }
+
+        if ($entity instanceof CRM_Committees_Model_Person) {
+            unset($this->persons[$entity->getID()]);
+        } elseif ($entity instanceof CRM_Committees_Model_Address) {
+            unset($this->addresses[$entity->getID()]);
+        } elseif ($entity instanceof CRM_Committees_Model_Email) {
+            unset($this->emails[$entity->getID()]);
+        } elseif ($entity instanceof CRM_Committees_Model_Phone) {
+            unset($this->phones[$entity->getID()]);
+        } elseif ($entity instanceof CRM_Committees_Model_Committee) {
+            unset($this->committees[$entity->getID()]);
+        } elseif ($entity instanceof CRM_Committees_Model_Membership) {
+            unset($this->memberships[$entity->getID()]);
+        } elseif ($entity instanceof CRM_Committees_Model_Person) {
+            unset($this->persons[$entity->getID()]);
+            throw new Exception("removeEntity:Person incomplete, needs to affect depending entities as well");
+        }
+    }
 }

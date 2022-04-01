@@ -125,7 +125,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
 
-        // first: apply custom adjustments to the committees
+        // first: apply custom adjustments to the persons
         foreach ($model->getAllPersons() as $person) {
             /** @var CRM_Committees_Model_Person $person */
             $person_data = $person->getData();
@@ -232,109 +232,45 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $this->log("{$obsolete_phones_count} phones are not listed in input, but won't delete.");
         }
 
-
-
-        //        $this->extractCurrentDetails($model, $present_model, 'phone');
-//        $this->extractCurrentDetails($model, $present_model, 'address');
-
-
-
-        return;
-
-
-
-        $person_id_2_civicrm_id = [];
-        $person_update_count = 0;
-        $address_by_contact = $model->getEntitiesByID($model->getAllAddresses(), 'contact_id');
-        $email_by_contact = $model->getEntitiesByID($model->getAllEmails(), 'contact_id');
-        $phone_by_contact = $model->getEntitiesByID($model->getAllPhones(), 'contact_id');
-        foreach ($model->getAllPersons() as $person) {
-            /** @var CRM_Committees_Model_Person $person */
-            $person_data = $person->getData();
-
-            // look up ID
-            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            unset($person_data['id']);
-
-            if ($person_civicrm_id) {
-                $person_data['id'] = $person_civicrm_id;
-            } else {
-                unset($person_data['id']);
+        /**********************************************
+         **           SYNC CONTACT ADDRESSES         **
+         **********************************************/
+        // first: apply custom adjustments to the addresses
+        foreach ($model->getAllAddresses() as $address) {
+            /** @var CRM_Committees_Model_Address $address */
+            if ($address->getAttribute('location_type') != CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+                $address->removeFromModel();
             }
-
-            // prepare data for Contact.create
-            $person_data['contact_type'] = $this->getContactType($person_data);
-            $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
-            $person_data['source'] = self::CONTACT_SOURCE;
-            $person_data['gender_id'] = $this->getGenderId($person_data);
-            $person_data['prefix_id'] = $this->getPrefixId($person_data);
-            $person_data['suffix_id'] = $this->getSuffixId($person_data);
-            $result = $this->callApi3('Contact', 'create', $person_data);
-
-            $person_civicrm_id = $result['id'];
-            $this->setIDTContactID($person->getID(), $person_civicrm_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            if (empty($person_data['id'])) {
-                $this->log("Kürschner Contact [{$person->getID()}] created with CiviCRM-ID [{$person_civicrm_id}].");
-            } else {
-                $this->log("Kürschner Contact [{$person->getID()}] updated (CiviCRM-ID [{$person_civicrm_id}]).");
-            }
-            $this->addContactToGroup($person_civicrm_id, $lobby_contact_group_id, true);
-
-            // add addresses
-            if (isset($address_by_contact[$person->getID()])) {
-                foreach ($address_by_contact[$person->getID()] as $address) {
-                    /** @var CRM_Committees_Model_Address $address */
-                    $address_data = $address->getData();
-                    $location_type_id = $this->getAddressLocationType($address_data['location_type']);
-                    if ($location_type_id) {
-                        $address_data['contact_id'] = $person_civicrm_id;
-                        $address_data['is_primary'] = 1;
-                        $address_data['supplemental_address_2'] = $address_data['supplemental_address_1'] ?? '';
-                        $address_data['supplemental_address_1'] = $address_data['organization_name'];
-                        $address_data['location_type_id'] = $location_type_id;
-                        $address_data['master_id'] = $this->getParliamentAddressID($model);
-                        unset($address_data['location_type']);
-                        unset($address_data['is_primary']);
-                        unset($address_data['organization_name']);
-                        $result = $this->callApi3('Address', 'create', $address_data);
-                    }
-                }
-            }
-
-            // add phones
-            if (isset($phone_by_contact[$person->getID()])) {
-                foreach ($phone_by_contact[$person->getID()] as $phone) {
-                    /** @var CRM_Committees_Model_Phone $phone */
-                    $phone_data = $phone->getData();
-                    unset($phone_data['location_type']);
-                    $phone_data['contact_id'] = $person_civicrm_id;
-                    $phone_data['is_primary'] = 1;
-                    $phone_data['location_type_id'] = 'Work';
-                    $phone_data['phone_type_id'] = 'Phone';
-                    $result = $this->callApi3('Phone', 'create', $phone_data);
-                }
-            }
-
-            // add emails
-            if (isset($email_by_contact[$person->getID()])) {
-                foreach ($email_by_contact[$person->getID()] as $email) {
-                    /** @var CRM_Committees_Model_Email $email */
-                    $email_data = $email->getData();
-                    unset($email_data['location_type']);
-                    $email_data['contact_id'] = $person_civicrm_id;
-                    $email_data['is_primary'] = 1;
-                    $email_data['location_type_id'] = 'Work';
-                    $result = $this->callApi3('Email', 'create', $email_data);
-                }
-            }
-            $person_update_count++;
         }
-        // contact found/created
-        $person_id_2_civicrm_id[$person->getID()] = $person_civicrm_id;
-        $this->log("Syncing contacts complete, {$person_update_count} new contacts were created.");
 
+        $this->extractCurrentDetails($model, $present_model, 'address');
+        [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name']);
+        foreach ($new_addresses as $address) {
+            /** @var \CRM_Committees_Model_Address $address */
+            $address_data = $address->getData();
+            $person = $address->getContact($present_model);
+            if ($person) {
+                $address_data['contact_id'] = $person->getAttribute('contact_id');
+                $this->callApi3('Address', 'create', $address_data);
+                $this->log("Added address '{$address_data['street_address']}/{$address_data['postal_code']} {$address_data['city']}' to contact [{$address_data['contact_id']}]");
+            }
+        }
+        if (!$new_addresses) {
+            $this->log("No new addresses detected in import data.");
+        }
+        if ($changed_addresses) {
+            $changed_addresses_count = count($changed_addresses);
+            $this->log("Some attributes have changed for {$changed_addresses_count}, be we won't adjust that.");
+        }
+        if ($obsolete_addresses) {
+            $obsolete_addresses_count = count($obsolete_addresses);
+            $this->log("{$obsolete_addresses_count} addresses are not listed in input, but won't delete.");
+        }
 
-        // SYNC MEMBERSHIPS
+        /**********************************************
+         **        SYNC COMMITTEE MEMBERSHIPS        **
+         **********************************************/
+        return;
         $requested_memberships = $model->getAllMemberships();
         $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
 
@@ -651,10 +587,12 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $load_attributes = [
             'email' => ['contact_id', 'email', 'location_type_id'],
             'phone' => ['contact_id', 'phone', 'location_type_id'],
+            'address' => ['contact_id', 'street_address', 'postal_code', 'city', 'location_type_id'],
         ];
         $copy_attributes = [
             'email' => ['email'],
             'phone' => ['phone'],
+            'address' => ['street_address', 'postal_code', 'city', 'supplemental_address_1', 'supplemental_address_2', 'supplemental_address_3'],
         ];
 
         // check with all known CiviCRM contacts
@@ -685,7 +623,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_id = $contact_id_to_person_id[$detail['contact_id']];
             $data = ['contact_id' => $person_id];
             foreach ($copy_attributes[$type] as $attribute) {
-                $data[$attribute] = $detail[$attribute];
+                $data[$attribute] = $detail[$attribute] ?? '';
             }
             $key = implode('##', $data);
             $data_by_id[$key] = $data;
