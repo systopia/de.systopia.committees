@@ -270,7 +270,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         /**********************************************
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **********************************************/
-        return;
         $requested_memberships = $model->getAllMemberships();
         $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
 
@@ -279,14 +278,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         $ignore_attributes = ['committee_name', 'relationship_id']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
-        // analysis: remove
-        $new_membership = reset($new_memberships);
-        $other_memberships = [];
-        foreach ($obsolete_memberships as $obsolete_membership) {
-            if ($obsolete_membership->getAttribute('contact_id') == $new_membership->getAttribute('contact_id')) {
-                $other_memberships[] = $new_membership;
-            }
-        }
         $total_changes = count($new_memberships) + count($changed_memberships) + count($obsolete_memberships);
         $this->log("{$total_changes} additions or changes to committee memberships detected.");
 
@@ -306,7 +297,10 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
             $person_civicrm_id = $this->getIDTContactID($new_membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            $committee_id = $committee_id_to_contact_id[$new_membership->getCommittee()->getID()];
+            $tracker_prefix = ($new_membership->getCommittee()->getAttribute('type') == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE) ?
+                self::ID_TRACKER_PREFIX_COMMITTEE : self::ID_TRACKER_PREFIX_FRAKTION;
+            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
+            //$committee_id_to_contact_id[$new_membership->getCommittee()->getID()];
             $relationship_type_id = $this->getRelationshipTypeIdForMembership($new_membership);
             $this->callApi3('Relationship', 'create', [
                 'contact_id_a' => $person_civicrm_id,
@@ -355,19 +349,35 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         // extract existing committee memberships
         $contactID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-        $contact_id_to_committee_name = array_flip($committee_name_to_contact_id);
+        $committee_committee_ID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_COMMITTEE);
+        $committee_fraktion_ID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_FRAKTION);
         foreach ($committee_query['values'] as $committee_relationship) {
+            // identify the committee
+            if (isset($committee_committee_ID_2_trackerIDs[$committee_relationship['contact_id_b']])) {
+                // this is a committee
+                $committee_id = substr(reset($committee_committee_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_COMMITTEE));
+                $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE;
+            } else {
+                $committee_id = substr(reset($committee_fraktion_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_FRAKTION));
+                $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP;
+            }
+            $committee = $requested_model->getCommittee($committee_id);
+            if (!$committee) {
+                $this->logError("Committee [{$committee_id}] was referenced but not found in the mdoel.");
+                continue;
+            }
+
+            // identify the contact
             $contact_id = $committee_relationship['contact_id_a'];
-            $committee_id = $committee_relationship['contact_id_b'];
             $person_ids = $contactID_2_trackerIDs[$contact_id] ?? [];
             foreach ($person_ids as $person_id) {
                 $present_model->addCommitteeMembership([
                        'contact_id'      => substr($person_id, strlen(self::ID_TRACKER_PREFIX)),
-                       'committee_id'    => CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($contact_id_to_committee_name[$committee_id]),
-                       'committee_name'  => $contact_id_to_committee_name[$committee_id],
-                       'type'            => $committee_name_to_type[$contact_id_to_committee_name[$committee_id]],
+                       'committee_id'    => $committee_id,
+                       'committee_name'  => $committee->getAttribute('name'),
+                       'type'            => $committee_type,
                        'role'            => $committee_relationship['description'] ?? '',
-                       'relationship_id' => $committee_relationship['id']
+                       'relationship_id' => $committee_relationship['id'],
                    ]);
             }
         }
