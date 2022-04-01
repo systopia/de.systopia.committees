@@ -275,6 +275,10 @@ class CRM_Committees_Model_Model
      * @param array $ignore_attributes
      *   list of entity attributes to ignore
      *
+     * @param array $id_properties
+     *   list of entity attributes used to define equality
+     *   default is ['committee_id', 'contact_id']
+     *
      * @return array of arrays:
      *  [
      *      new entities (only in other model),
@@ -282,9 +286,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffMemberships(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    public function diffMemberships(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
     {
-        return $this->diffEntities($model, 'memberships', ['contact_id', 'committee_id'], $ignore_attributes);
+        if (!$id_properties) {
+            $id_properties = ['contact_id', 'committee_id'];
+        }
+        return $this->diffEntities($model, 'memberships', $id_properties, $ignore_attributes);
     }
 
     /**
@@ -297,6 +304,10 @@ class CRM_Committees_Model_Model
      * @param array $ignore_attributes
      *   list of entity attributes to ignore
      *
+     * @param array $id_properties
+     *   list of entity attributes used to define equality
+     *   default is ['email', 'contact_id']
+     *
      * @return array of arrays:
      *  [
      *      new entities (only in other model),
@@ -304,9 +315,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffEmails(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    public function diffEmails(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
     {
-        return $this->diffEntities($model, 'emails', ['email'], $ignore_attributes);
+        if (!$id_properties) {
+            $id_properties = ['email', 'contact_id'];
+        }
+        return $this->diffEntities($model, 'emails', $id_properties, $ignore_attributes);
     }
 
     /**
@@ -319,6 +333,10 @@ class CRM_Committees_Model_Model
      * @param array $ignore_attributes
      *   list of entity attributes to ignore
      *
+     * @param array $id_properties
+     *   list of entity attributes used to define equality
+     *   default is ['phone', 'contact_id']
+     *
      * @return array of arrays:
      *  [
      *      new entities (only in other model),
@@ -326,9 +344,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffPhones(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    public function diffPhones(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
     {
-        return $this->diffEntities($model, 'phones', ['id'], $ignore_attributes);
+        if (!$id_properties) {
+            $id_properties = ['phone', 'contact_id'];
+        }
+        return $this->diffEntities($model, 'phones', $id_properties, $ignore_attributes);
     }
 
     /**
@@ -341,6 +362,10 @@ class CRM_Committees_Model_Model
      * @param array $ignore_attributes
      *   list of entity attributes to ignore
      *
+     * @param array $id_properties
+     *   list of entity attributes used to define equality
+     *   default is ['contact_id', 'postal_code', 'city', 'street_address']
+     *
      * @return array of arrays:
      *  [
      *      new entities (only in other model),
@@ -348,9 +373,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffAddresses(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    public function diffAddresses(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
     {
-        return $this->diffEntities($model, 'addresses', ['id'], $ignore_attributes);
+        if (!$id_properties) {
+            $id_properties = ['contact_id', 'postal_code', 'city', 'street_address'];
+        }
+        return $this->diffEntities($model, 'addresses', $id_properties, $ignore_attributes);
     }
 
     /**

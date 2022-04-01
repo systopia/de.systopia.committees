@@ -149,12 +149,15 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
             // contact post-processing
             $this->setIDTContactID($new_person->getID(), $result['id'], self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+            $this->addContactToGroup($result['id'], $lobby_contact_group_id, true);
             $new_person->setAttribute('contact_id', $result['id']);
             $present_model->addPerson($new_person->getData());
 
             $this->log("Kürschner Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
         }
-
+        if (!$new_persons) {
+            $this->log("No new contacts detected in import data.");
+        }
         // apply changes to existing contacts
         foreach ($changed_persons as $changed_person) {
             /** @var CRM_Committees_Model_Person $changed_person */
@@ -190,6 +193,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $this->log("Added email '{$email_data['email']} to contact [{$email_data['contact_id']}]");
             }
         }
+        if (!$new_emails) {
+            $this->log("No new emails detected in import data.");
+        }
         if ($changed_emails) {
             $changed_emails_count = count($changed_emails);
             $this->log("Some attributes have changed for {$changed_emails_count}, be we won't adjust that.");
@@ -199,9 +205,36 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $this->log("{$obsolete_emails_count} emails are not listed in input, but won't delete.");
         }
 
+        /**********************************************
+         **           SYNC CONTACT PHONES            **
+         **********************************************/
+        $this->extractCurrentDetails($model, $present_model, 'phone');
+        [$new_phones, $changed_phones, $obsolete_phones] = $present_model->diffPhones($model, ['location_type']);
+        foreach ($new_phones as $phone) {
+            /** @var CRM_Committees_Model_Phone $phone */
+            $phone_data = $phone->getData();
+            $person = $phone->getContact($present_model);
+            if ($person) {
+                $phone_data['contact_id'] = $person->getAttribute('contact_id');
+                $this->callApi3('Phone', 'create', $phone_data);
+                $this->log("Added phone '{$phone_data['phone']} to contact [{$phone_data['contact_id']}]");
+            }
+        }
+        if (!$new_phones) {
+            $this->log("No new phones detected in import data.");
+        }
+        if ($changed_phones) {
+            $changed_phones_count = count($changed_phones);
+            $this->log("Some attributes have changed for {$changed_phones_count}, be we won't adjust that.");
+        }
+        if ($obsolete_phones) {
+            $obsolete_phones_count = count($obsolete_phones);
+            $this->log("{$obsolete_phones_count} phones are not listed in input, but won't delete.");
+        }
 
 
-//        $this->extractCurrentDetails($model, $present_model, 'phone');
+
+        //        $this->extractCurrentDetails($model, $present_model, 'phone');
 //        $this->extractCurrentDetails($model, $present_model, 'address');
 
 
@@ -641,7 +674,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         // load the given attributes
         $existing_details = $this->callApi3($type, 'get', [
-            'id' => ['IN' => array_keys($contact_id_to_person_id)],
+            'contact_id' => ['IN' => array_keys($contact_id_to_person_id)],
             'return' => implode(',', $load_attributes[$type]),
             'option.limit' => 0,
         ]);
