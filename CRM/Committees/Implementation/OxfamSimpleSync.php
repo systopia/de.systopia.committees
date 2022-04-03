@@ -34,7 +34,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     const ID_TRACKER_PREFIX_PARLIAMENT = 'PARLIAMENT-';     // todo: adjustment needed, if same importer should be used for other parliaments
     const ID_TRACKER_PREFIX_COMMITTEE = 'BUND-AUSSCHUSS-';  // todo: adjustment needed, if same importer should be used for other parliaments
     const ID_TRACKER_PREFIX_FRAKTION = 'BUND-FRAKTION-';    // todo: adjustment needed, if same importer should be used for other parliaments
-    const CONTACT_SOURCE = 'Kuerschners Bundestag';         // todo: adjustment needed, if same importer should be used for other parliaments
+    const CONTACT_SOURCE = 'kuerschners_MdB_';              // todo: adjustment needed, if same importer should be used for other parliaments
     const COMMITTE_SUBTYPE_NAME = 'Committee';
     const COMMITTE_SUBTYPE_LABEL = 'Gremium';
 
@@ -145,7 +145,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_data = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = $this->getContactType($person_data);
             $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
-            $person_data['source'] = self::CONTACT_SOURCE;
+            $person_data['source'] = self::CONTACT_SOURCE . date('Y');
             $result = $this->callApi3('Contact', 'create', $person_data);
 
             // contact post-processing
@@ -160,17 +160,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $this->log("No new contacts detected in import data.");
         }
         // apply changes to existing contacts
-        foreach ($changed_persons as $changed_person) {
-            /** @var CRM_Committees_Model_Person $changed_person */
+        foreach ($changed_persons as $current_person) {
+            /** @var CRM_Committees_Model_Person $current_person */
             $person_update = [
-                'id' => $this->getIDTContactID($changed_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX)
+                'id' => $this->getIDTContactID($current_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX)
             ];
-            $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
+            $differing_attributes = explode(',', $current_person->getAttribute('differing_attributes'));
+            $changed_person = $model->getPerson($current_person->getID());
             foreach ($differing_attributes as $differing_attribute) {
                 $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
             }
             $result = $this->callApi3('Contact', 'create', $person_update);
-            $this->log("Kürschner Contact [{$changed_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $changed_person->getAttribute('differing_attributes'));
+            $this->log("Kürschner Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
         }
 
         // note obsolete contacts
@@ -187,6 +188,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_emails as $email) {
             /** @var CRM_Committees_Model_Email $email */
             $email_data = $email->getData();
+            $email_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $email_data['is_primary'] = 1;
             $person = $email->getContact($present_model);
             if ($person) {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
@@ -214,6 +217,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_phones as $phone) {
             /** @var CRM_Committees_Model_Phone $phone */
             $phone_data = $phone->getData();
+            $phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $phone_data['is_primary'] = 1;
             $person = $phone->getContact($present_model);
             if ($person) {
                 $phone_data['contact_id'] = $person->getAttribute('contact_id');
@@ -249,6 +254,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
             $address_data = $address->getData();
+            $address_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $address_data['is_primary'] = 1;
+            $address_data['master_id'] = $this->getParliamentAddressID($model);
             $person = $address->getContact($present_model);
             if ($person) {
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
@@ -304,7 +312,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'is_active' => 1,
                 'description' => $new_membership->getAttribute('role'),
             ]);
-            $this->log("Added new committee membership [{$person_civicrm_id}] - [{$committee_id}].");
+            $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
