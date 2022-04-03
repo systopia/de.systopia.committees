@@ -47,7 +47,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
             'file',
             'import_file',
             ts('Import Data File'),
-            'size=30 maxlength=255',
+            ['size' => 30, 'maxlength' => 255],
             TRUE
         );
 

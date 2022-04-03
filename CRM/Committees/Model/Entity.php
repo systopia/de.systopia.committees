@@ -78,6 +78,24 @@ abstract class CRM_Committees_Model_Entity
     }
 
     /**
+     * Get all data from the entity,
+     *   except for the attributes in hte list
+     *
+     * @param array $strip_attributes
+     *   list of attribute to be stripped from the result
+     *
+     * @return array data
+     */
+    public function getDataWithout($strip_attributes)
+    {
+        $data = $this->attributes;
+        foreach ($strip_attributes as $strip_attribute) {
+            unset($data[$strip_attribute]);
+        }
+        return $data;
+    }
+
+    /**
      * Get an attribute of the entity
      *
      * @param string $attribute_name
@@ -120,5 +138,92 @@ abstract class CRM_Committees_Model_Entity
     public function getFields()
     {
         return array_keys($this->attributes);
+    }
+
+    /**
+     * Diff the attributes of this entity against another one
+     *
+     * @param $entity CRM_Committees_Model_Entity
+     *   an entity
+     *
+     * @param $ignore_attributes array
+     *   list of entities to be ignored
+     *
+     * @return array
+     *  [attribute => [this entity value, other entity value]
+     *
+     */
+    public function diff(CRM_Committees_Model_Entity $entity, array $ignore_attributes = [])
+    {
+        $diff = [];
+        $this_entity_data = $this->getData();
+        $other_entity_data = $entity->getData();
+
+        // @todo the following can probably be implemented more efficiently
+        $attributes = array_merge($this_entity_data, $other_entity_data);
+        foreach ($ignore_attributes as $attribute) {
+            unset($attributes[$attribute]);
+        }
+        $attributes = array_keys($attributes);
+
+        // @todo the following can probably be implemented more efficiently
+        foreach ($attributes as $attribute) {
+            $this_value = $this_entity_data[$attribute] ?? '';
+            $other_value = $other_entity_data[$attribute] ?? '';
+            if ($this_value !== $other_value) {
+                $diff[$attribute] = [$this_value, $other_value];
+            }
+        }
+
+        return $diff;
+    }
+
+    /**
+     * Get the person/committee as linked by the attribute contact_id,
+     *   if it is part of the model
+     *
+     * @param CRM_Committees_Model_Model|null $model
+     *   the model from which to take the entity. Default is *this one*
+     *
+     * @return CRM_Committees_Model_Entity
+     *
+     */
+    public function getContact($model = null)
+    {
+        if (!$model) $model = $this->model;
+        $contact_id = $this->getAttribute('contact_id');
+
+        // try the person first
+        $person = $model->getPerson($contact_id);
+        if ($person) {
+            return $person;
+        }
+
+        // try a committee
+        $committee = $model->getCommittee($contact_id);
+        if ($committee) {
+            return $committee;
+        }
+
+        // nothing found
+        return null;
+    }
+
+    /**
+     * Remove this entity from the current model
+     */
+    public function removeFromModel()
+    {
+        $this->model->removeEntity($this);
+    }
+
+    /**
+     * Get the model this entity belongs to
+     *
+     * @return CRM_Committees_Model_Model
+     */
+    public function getModel()
+    {
+        return $this->model;
     }
 }
