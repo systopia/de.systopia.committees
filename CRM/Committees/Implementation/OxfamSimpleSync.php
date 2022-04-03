@@ -272,7 +272,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **********************************************/
         $this->addCurrentMemberships($model, $present_model);
-        $this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
+        //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
         $ignore_attributes = ['committee_name', 'relationship_id']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
@@ -304,6 +304,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'is_active' => 1,
                 'description' => $new_membership->getAttribute('role'),
             ]);
+            $this->log("Added new committee membership [{$person_civicrm_id}] - [{$committee_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
