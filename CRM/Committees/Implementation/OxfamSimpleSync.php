@@ -123,7 +123,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         /**********************************************
          **           SYNC BASE CONTACTS            **
          **********************************************/
-        $this->log("Syncing " . count($model->getAllPersons()) . " individuals...");
+        $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
 
         // first: apply custom adjustments to the persons
         foreach ($model->getAllPersons() as $person) {
@@ -270,30 +270,24 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         /**********************************************
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **********************************************/
-        $requested_memberships = $model->getAllMemberships();
-        $this->log("Syncing " . count($requested_memberships) . " committee memberships...");
-
         $this->addCurrentMemberships($model, $present_model);
         $this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
         $ignore_attributes = ['committee_name', 'relationship_id']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
-        $total_changes = count($new_memberships) + count($changed_memberships) + count($obsolete_memberships);
-        $this->log("{$total_changes} additions or changes to committee memberships detected.");
-
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
             // this membership needs to be ended/deactivated
+            $relationship_type_id = $membership->getAttribute('relationship_id');
             $this->callApi3('Relationship', 'create', [
-                'id' => $membership->getAttribute('relationship_id'),
+                'id' => $relationship_type_id,
                 'is_active' => 0,
             ]);
+            $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
         }
-        $obsolete_count = count($obsolete_memberships);
-        $this->log("{$obsolete_count} obsolete committee memberships deactivated.");
 
-        // then: create the new ones
+        // CREATE the new ones
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
             $person_civicrm_id = $this->getIDTContactID($new_membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
@@ -312,9 +306,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
-        $this->log("Syncing committee memberships complete.");
 
-        // that's it
+        // UPDATE the existing ones (if necessary)
+        foreach ($changed_memberships as $changed_membership) {
+            /** @var CRM_Committees_Model_Membership $changed_membership */
+            $this->callApi3('Relationship', 'create', [
+                'id' => $changed_membership['id'],
+                'description' => $changed_membership->getAttribute('role'),
+            ]);
+            $this->log("Updated committee membership [{$changed_membership['id']}].");
+        }
+
+        // THAT'S IT, WE'RE DONE
         $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
     }
 
