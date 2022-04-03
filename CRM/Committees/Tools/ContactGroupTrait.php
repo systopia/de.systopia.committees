@@ -81,7 +81,7 @@ trait CRM_Committees_Tools_ContactGroupTrait
      */
     public function getOrCreateContactGroup($attributes)
     {
-        $result = $this->callApi3('Group', 'get', $attributes);
+        $result = $this->callApi3('Group', 'get', $attributes + ['option.limit' => 0]);
         switch ($result['count']) {
             case 1:
                 return $result['id'];

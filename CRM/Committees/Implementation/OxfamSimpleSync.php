@@ -31,6 +31,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
     const ID_TRACKER_TYPE = 'kuerschners';
     const ID_TRACKER_PREFIX = 'KUE-';
+    const ID_TRACKER_PREFIX_PARLIAMENT = 'PARLIAMENT-';     // todo: adjustment needed, if same importer should be used for other parliaments
     const ID_TRACKER_PREFIX_COMMITTEE = 'BUND-AUSSCHUSS-';  // todo: adjustment needed, if same importer should be used for other parliaments
     const ID_TRACKER_PREFIX_FRAKTION = 'BUND-FRAKTION-';    // todo: adjustment needed, if same importer should be used for other parliaments
     const CONTACT_SOURCE = 'Kuerschners Bundestag';         // todo: adjustment needed, if same importer should be used for other parliaments
@@ -114,7 +115,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
         // add warnings:
         if ($changed_committees) {
-            if ($changed_committees) $this->log("TODO: There are changes to some committees, but these currently won't be applied.");
+            $this->log("There are changes to some committees, but these currently won't be applied.");
         }
         if ($obsolete_committees) {
             $this->log("There are obsolete committees, but they will not be removed.");
@@ -833,21 +834,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         static $parliament_id = null;
         if (!$parliament_id) {
             $parliament_name = $this->getParliamentName($model);
-            $parliament = civicrm_api3('Contact', 'get', [
-                'contact_type' => 'Organization',
-                'contact_sub_type' => $this->getCommitteeSubType(),
-                'organization_name' => $parliament_name,
-                'option.limit' => 1,
-            ]);
-            if (empty($parliament['id'])) {
-                $parliament = civicrm_api3('Contact', 'create', [
+            $parliament_identifier = CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($parliament_name);
+            $parliament_id = $this->getIDTContactID($parliament_identifier, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_PARLIAMENT);
+            if (!$parliament_id) {
+                $parliament = $this->callApi3('Contact', 'create', [
                     'contact_type' => 'Organization',
                     'contact_sub_type' => $this->getParliamentSubType(),
                     'organization_name' => $parliament_name,
                 ]);
+                $parliament_id = $parliament['id'];
                 $this->log("Created new organisation '{$parliament_name}' as it wasn't found.");
+                $this->setIDTContactID($parliament_identifier, $parliament_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_PARLIAMENT);
             }
-            $parliament_id = $parliament['id'];
         }
         return $parliament_id;
     }

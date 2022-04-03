@@ -274,6 +274,13 @@ abstract class CRM_Committees_Plugin_Base
     public function callApi3($entity, $action, $params = [])
     {
         try {
+            // do some sanity checks
+            if (strtolower($action) == 'get') {
+                // check if limit is disabled
+                if (!isset($params['option.limit']) && !isset($params['options']['limit'])) {
+                    $this->log("APIv3 {$entity}.get call has implicit limit: " . json_encode($params), 'warn');
+                }
+            }
             return civicrm_api3($entity, $action, $params);
         } catch (CiviCRM_API3_Exception $ex) {
             $this->logException($ex);
