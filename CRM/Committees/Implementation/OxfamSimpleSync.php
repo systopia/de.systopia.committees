@@ -610,12 +610,12 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // some basic configurations for the different types
         $load_attributes = [
             'email' => ['contact_id', 'email', 'location_type_id'],
-            'phone' => ['contact_id', 'phone', 'location_type_id'],
+            'phone' => ['contact_id', 'phone', 'location_type_id', 'phone_type_id', 'phone_numeric'],
             'address' => ['contact_id', 'street_address', 'postal_code', 'city', 'location_type_id'],
         ];
         $copy_attributes = [
             'email' => ['email'],
-            'phone' => ['phone'],
+            'phone' => ['phone', 'phone_numeric'],
             'address' => ['street_address', 'postal_code', 'city', 'supplemental_address_1', 'supplemental_address_2', 'supplemental_address_3'],
         ];
 

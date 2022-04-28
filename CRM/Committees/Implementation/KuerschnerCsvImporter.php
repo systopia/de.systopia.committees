@@ -185,6 +185,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             $phone['phone'] = str_replace(['"', '='], '', $phone['phone']);
             if (!empty($phone['phone'])) {
                 unset($phone['phone_prefix']);
+                $phone['phone_numeric'] = preg_replace('/[^0-9]/', '', $phone['phone']);
                 $phone['location_type'] = self::LOCATION_TYPE_BUNDESTAG;
                 $this->model->addPhone($phone);
             }

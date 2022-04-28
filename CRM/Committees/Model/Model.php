@@ -347,7 +347,7 @@ class CRM_Committees_Model_Model
     public function diffPhones(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
     {
         if (!$id_properties) {
-            $id_properties = ['phone', 'contact_id'];
+            $id_properties = ['phone_numeric', 'contact_id'];
         }
         return $this->diffEntities($model, 'phones', $id_properties, $ignore_attributes);
     }
