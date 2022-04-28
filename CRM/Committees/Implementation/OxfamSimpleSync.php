@@ -219,6 +219,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $phone_data = $phone->getData();
             $phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
             $phone_data['is_primary'] = 1;
+            $phone_data['phone_type_id'] = $this->getPhoneTypeId($phone_data);
             $person = $phone->getContact($present_model);
             if ($person) {
                 $phone_data['contact_id'] = $person->getAttribute('contact_id');
@@ -786,6 +787,28 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     protected function getContactType(array $person_data)
     {
         return 'Individual';
+    }
+
+    /**
+     * Get the phone type for the given phone data
+     *
+     * @param array $phone_data
+     *   list of the raw attributes coming from the model.
+     *
+     * @return integer
+     */
+    protected function getPhoneTypeId(array $phone_data)
+    {
+        // in this implementation, phone types are always 'landline'
+        static $phone_type_id = null;
+        if ($phone_type_id === null) {
+            $landline_option_value = $this->getOrCreateOptionValue(
+                ['name' => 'Phone', 'label' => E::ts('Phone')],
+                'phone_type',
+                'name');
+            $phone_type_id = $landline_option_value['value'];
+        }
+        return $phone_type_id;
     }
 
     /**
