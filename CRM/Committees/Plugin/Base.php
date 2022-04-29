@@ -230,7 +230,7 @@ abstract class CRM_Committees_Plugin_Base
     {
         if (self::$progress_logger === null) {
             $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
-            $this->current_log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('Y-m-d_H:i:s') . '.log';
+            $this->current_log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('YmdHis') . '.log';
             self::$progress_logger = fopen($this->current_log_file, 'w');
             Civi::log()->debug("Committee importer started, log file is '{$this->current_log_file}");
         }
