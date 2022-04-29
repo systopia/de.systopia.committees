@@ -339,7 +339,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $this->addCurrentMemberships($model, $present_model);
         //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
-        $ignore_attributes = ['committee_name', 'relationship_id']; // todo: fine-tune
+        $ignore_attributes = ['committee_name', 'relationship_id', 'role']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
@@ -391,7 +391,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             /** @var CRM_Committees_Model_Membership $changed_membership */
             // Are there any changes that we can apply on this level? Since we dropped the 'description' attribute
             // (see https://projekte.systopia.de/issues/17336#note-23 item 5), everything is a different relationship.
-            $this->log("Skipped minor chang for committee membership [{$changed_membership['id']}].");
+            $this->log("Skipped minor change for committee membership [{$changed_membership->getID()}].");
 
             /* $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership['id'],
