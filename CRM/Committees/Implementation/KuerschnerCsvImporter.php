@@ -114,9 +114,16 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     {
         if ($this->checkRequirements()) {
             try {
-                // open file, and look for important values
+                // open file and check encoding
+                $encoding = $this->getFileEncoding($file_path);
+                if (!in_array($encoding, ['iso-8859-1'])) {
+                    $this->logError(E::ts("Unexpected File Encoding"), 'error', E::ts("The importer expects an ISO-8859-1 encoded CSV file!"));
+                    return false;
+                }
+
+                // open and try to process file
                 $file_handle = fopen($file_path, 'rb');
-                $data = $this->readCSV($file_handle, 'Windows-1252', ';', null, 10);
+                $data = $this->readCSV($file_handle, $encoding, ';', null, 10);
                 if (empty($data)) {
                     $this->logError(E::ts("File doesn't contain data"));
                     return false;

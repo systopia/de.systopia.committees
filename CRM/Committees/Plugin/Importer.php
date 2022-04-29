@@ -206,4 +206,24 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
         }
         return $subset;
     }
+
+    /**
+     * Detect/defer file encoding.
+     *
+     * @param string $file_path
+     *
+     * @return string file encoding
+     */
+    protected function getFileEncoding($file_path)
+    {
+        if (file_exists($file_path) && is_readable($file_path)) {
+            // taken from https://stackoverflow.com/a/28971923
+            exec('file -i ' . $file_path, $output);
+            if (isset($output[0])){
+                $ex = explode('charset=', $output[0]);
+                return $ex[1] ?? null;
+            }
+        }
+        return null;
+    }
 }

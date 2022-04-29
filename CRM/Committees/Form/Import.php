@@ -167,7 +167,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
     {
         foreach ($errors as $error) {
             CRM_Core_Session::setStatus(
-                $error['message'],
+                $error['description'],
                 E::ts("Import Error"),
                 $error['level']
             );
