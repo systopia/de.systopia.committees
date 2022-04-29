@@ -315,7 +315,7 @@ class CRM_Committees_Model_Model
     public function diffMemberships(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
     {
         if (!$id_properties) {
-            $id_properties = ['contact_id', 'committee_id'];
+            $id_properties = ['contact_id', 'committee_id', 'relationship_type_id'];
         }
         return $this->diffEntities($model, 'memberships', $id_properties, $ignore_attributes);
     }
