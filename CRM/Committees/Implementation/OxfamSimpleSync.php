@@ -457,7 +457,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             }
             $committee = $requested_model->getCommittee($committee_id);
             if (!$committee) {
-                $this->logError("Committee [{$committee_id}] was referenced but not found in the mdoel.");
+                $this->logError("Committee [{$committee_id}] was referenced but not found in the model.");
                 continue;
             }
 
