@@ -29,6 +29,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     /** @var string committee.type value for parliamentary group (Fraktion) */
     const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
 
+    /** @var string committee.type value for parliament */
+    const COMMITTEE_TYPE_PARLIAMENT = 'parliament';
+
     const ID_TRACKER_TYPE = 'kuerschners';
     const ID_TRACKER_PREFIX = 'KUE-';
     const ID_TRACKER_PREFIX_PARLIAMENT = 'PARLIAMENT-';     // todo: adjustment needed, if same importer should be used for other parliaments
@@ -70,6 +73,28 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         // 2. Contact group 'Lobby-Kontakte'
         $lobby_contact_group_id = $this->getOrCreateContactGroup(['title' => E::ts('Lobby-Kontakte')]);
+
+        // 3. Add a direct parliament -> member-of-parliament relationship (not in the model)
+        // see https://projekte.systopia.de/issues/17336#Problemf%C3%A4lle
+        $parliament_name = $this->getParliamentName($model);
+        $parliament_identifier = CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($parliament_name);
+        $model->addCommittee([
+             'name' => $parliament_name,
+             'id'   => $parliament_identifier,
+             'type' => self::COMMITTEE_TYPE_PARLIAMENT,
+        ]);
+        foreach ($model->getAllPersons() as $person) {
+            /** @var $person CRM_Committees_Model_Person */
+            $model->addCommitteeMembership(
+                [
+                    'contact_id' => $person->getID(),
+                    'committee_id' => $parliament_identifier,
+                    'committee_name' => $parliament_name,
+                    'type' => self::COMMITTEE_TYPE_PARLIAMENT,
+                    'role' => 'Mitglied',
+                ]
+            );
+        }
 
         /**************************************
          **        RUN SYNCHRONISATION       **
@@ -324,8 +349,20 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
             $person_civicrm_id = $this->getIDTContactID($new_membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            $tracker_prefix = ($new_membership->getCommittee()->getAttribute('type') == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE) ?
-                self::ID_TRACKER_PREFIX_COMMITTEE : self::ID_TRACKER_PREFIX_FRAKTION;
+            switch ($new_membership->getCommittee()->getAttribute('type')) {
+                case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE:
+                    $tracker_prefix = self::ID_TRACKER_PREFIX_COMMITTEE;
+                    break;
+
+                case self::COMMITTEE_TYPE_PARLIAMENT:
+                    $tracker_prefix = self::ID_TRACKER_PREFIX_PARLIAMENT;
+                    break;
+
+                default:
+                case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP:
+                    $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
+                    break;
+            }
             $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
             //$committee_id_to_contact_id[$new_membership->getCommittee()->getID()];
             $relationship_type_id = $this->getRelationshipTypeIdForMembership($new_membership);
@@ -388,12 +425,19 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $contactID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
         $committee_committee_ID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_COMMITTEE);
         $committee_fraktion_ID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_FRAKTION);
+        $parliament_id = self::getParliamentContactID($requested_model);
+        $parliament_identifier = reset($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_PARLIAMENT)[$parliament_id]);
         foreach ($committee_query['values'] as $committee_relationship) {
-            // identify the committee
-            if (isset($committee_committee_ID_2_trackerIDs[$committee_relationship['contact_id_b']])) {
-                // this is a committee
+            // identify the committee type
+            if ($committee_relationship['contact_id_b'] == $parliament_id) {
+                // this is the membership with the parliament itself
+                $committee_id = substr($parliament_identifier, strlen(self::ID_TRACKER_PREFIX_PARLIAMENT));
+                $committee_type = self::COMMITTEE_TYPE_PARLIAMENT;
+            } elseif (isset($committee_committee_ID_2_trackerIDs[$committee_relationship['contact_id_b']])) {
+                // this is a committee (ausschuss)
                 $committee_id = substr(reset($committee_committee_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_COMMITTEE));
                 $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE;
+                // this must be a parliamentary group (fraktion)
             } else {
                 $committee_id = substr(reset($committee_fraktion_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_FRAKTION));
                 $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP;
@@ -903,7 +947,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      */
     protected function getParliamentSubType()
     {
-        return null;
+        return $this->getCommitteeSubType();
     }
 
     /**
