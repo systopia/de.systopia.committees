@@ -74,7 +74,10 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // 2. Contact group 'Lobby-Kontakte'
         $lobby_contact_group_id = $this->getOrCreateContactGroup(['title' => E::ts('Lobby-Kontakte')]);
 
-        // 3. Add a direct parliament -> member-of-parliament relationship (not in the model)
+        // 3. make sure parliament is there
+        $this->getParliamentContactID($model);
+
+        // 4. Add a direct parliament -> member-of-parliament relationship (not in the model)
         // see https://projekte.systopia.de/issues/17336#Problemf%C3%A4lle
         $parliament_name = $this->getParliamentName($model);
         $parliament_identifier = CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($parliament_name);
@@ -123,6 +126,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $committee_name = $new_committee->getAttribute('name');
                 if ($new_committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
                     $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
+                } elseif ($new_committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENT) {
+                    $tracker_prefix = self::ID_TRACKER_PREFIX_PARLIAMENT;
                 } else {
                     $tracker_prefix = self::ID_TRACKER_PREFIX_COMMITTEE;
                 }
@@ -523,6 +528,16 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                  ]);
             }
         }
+
+        // add parliament
+        $parliament_name = $this->getParliamentName($requested_model);
+        $parliament_identifier = CRM_Committees_Implementation_KuerschnerCsvImporter::getCommitteeID($parliament_name);
+        $present_model->addCommittee([
+             'name'       => $parliament_name,
+             'type'       => self::COMMITTEE_TYPE_PARLIAMENT,
+             'id'         => $parliament_identifier,
+             'contact_id' => $this->getParliamentContactID($requested_model)
+         ]);
     }
 
 
