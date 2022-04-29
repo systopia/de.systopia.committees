@@ -252,6 +252,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         $this->extractCurrentDetails($model, $present_model, 'address');
         [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name']);
+        $unwanted_relationship_counter = 0;
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
             $address_data = $address->getData();
@@ -261,9 +262,31 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person = $address->getContact($present_model);
             if ($person) {
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
+                $last_relationship_id = (int) CRM_Core_DAO::singleValueQuery("SELECT MAX(id) FROM civicrm_relationship;");
                 $this->callApi3('Address', 'create', $address_data);
                 $this->log("Added address '{$address_data['street_address']}/{$address_data['postal_code']} {$address_data['city']}' to contact [{$address_data['contact_id']}]");
+
+                // check if the shared address (master_id) has created a relationship, and delete it (not wanted)
+                $new_relationship_id = (int) CRM_Core_DAO::singleValueQuery("SELECT MAX(id) FROM civicrm_relationship;");
+                if ($new_relationship_id > $last_relationship_id) {
+                    // delete it (those?)
+                    $unwanted_relationships = CRM_Core_DAO::executeQuery("
+                        SELECT relationship.id AS relationship_id  
+                        FROM civicrm_relationship relationship
+                        WHERE relationship.id > %1
+                          AND relationship.contact_id_a = %2", [
+                            1 => [$last_relationship_id, 'Integer'],
+                            2 => [$person->getAttribute('contact_id'), 'Integer'],
+                        ]);
+                    while ($unwanted_relationships->fetch()) {
+                        $this->callApi3('Relationship', 'delete', ['id' => $unwanted_relationships->relationship_id]);
+                        $unwanted_relationship_counter++;
+                    }
+                }
             }
+        }
+        if ($unwanted_relationship_counter) {
+            $this->log("{$unwanted_relationship_counter} unwanted relationships (employee of) have been deleted");
         }
         if (!$new_addresses) {
             $this->log("No new addresses detected in import data.");
