@@ -1071,7 +1071,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             // compile role mapping:
             $role2relationship_type['stellv. Mitglied'] = $deputy_member_relationship['id'];
             $role2relationship_type['Mitglied'] = $member_relationship['id'];
-            $role2relationship_type['stellv. Mitglied'] = $member_relationship['id'];
             $role2relationship_type['Obmann'] = $obperson_relationship['id'];
             $role2relationship_type['Obfrau'] = $obperson_relationship['id'];
             $role2relationship_type['Obperson'] = $obperson_relationship['id'];
