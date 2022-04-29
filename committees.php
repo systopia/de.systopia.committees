@@ -180,30 +180,20 @@ function committees_civicrm_themes(&$themes)
     _committees_civix_civicrm_themes($themes);
 }
 
-// --- Functions below this ship commented out. Uncomment as required. ---
-
-/**
- * Implements hook_civicrm_preProcess().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_preProcess
- */
-//function committees_civicrm_preProcess($formName, &$form) {
-//
-//}
-
 /**
  * Implements hook_civicrm_navigationMenu().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
  */
-//function committees_civicrm_navigationMenu(&$menu) {
-//  _committees_civix_insert_navigation_menu($menu, 'Mailings', [
-//    'label' => E::ts('New subliminal message'),
-//    'name' => 'mailing_subliminal_message',
-//    'url' => 'civicrm/mailing/subliminal',
-//    'permission' => 'access CiviMail',
-//    'operator' => 'OR',
-//    'separator' => 0,
-//  ]);
-//  _committees_civix_navigationMenu($menu);
-//}
+function committees_civicrm_navigationMenu(&$menu)
+{
+    _committees_civix_insert_navigation_menu($menu, 'Contacts', [
+        'label' => E::ts('Import/Synchronise Committees'),
+        'name' => 'sync_committees',
+        'url' => 'civicrm/committees/upload',
+        'permission' => 'import contacts',
+        'operator' => 'OR',
+        'separator' => 0,
+    ]);
+    _committees_civix_navigationMenu($menu);
+}
