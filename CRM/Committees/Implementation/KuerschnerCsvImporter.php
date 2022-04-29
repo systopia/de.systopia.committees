@@ -259,7 +259,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             // extract member's of parliament
             if (!empty($record['committees'])) {
                 $committees = $this->unpackCommittees($record['committees']);
-                foreach ($committees as $committee_name => $member_role) {
+                foreach ($committees as [$committee_name, $member_role]) {
                     if (!in_array($committee_name, $committee_list)) {
                         $committee_list[] = $committee_name;
                     }
@@ -279,7 +279,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         foreach ($data_set as $record) {
             if (!empty($record['committees'])) {
                 $committees = $this->unpackCommittees($record['committees']);
-                foreach ($committees as $committee_name => $member_role) {
+                foreach ($committees as [$committee_name, $member_role]) {
                     $this->model->addCommitteeMembership(
                         [
                             'contact_id' => $record['id'],
@@ -389,8 +389,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         $committee2function = [];
         $entries = explode('),', $packed_committee_string);
         foreach ($entries as $entry) {
-            if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) \(([a-zA-ZäöüÄÖÜß \.]+)$/', $entry, $match)) {
-                $committee2function[trim($match[1])] = trim($match[2]);
+            //if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) \(([a-zA-ZäöüÄÖÜß \.]+)$/', $entry, $match)) {
+            if (preg_match('/^([^\(]+) \(([^\(]+)$/', $entry, $match)) {
+                $committee2function[] = [trim($match[1]), trim($match[2], " \t\n\r\0\x0B)")];
             }
         }
         return $committee2function;
