@@ -3,7 +3,7 @@
   <item>
     <path>civicrm/committees/upload</path>
     <page_callback>CRM_Committees_Form_Import</page_callback>
-    <title>Import</title>
-    <access_arguments>access CiviCRM</access_arguments>
+    <title>Import / Sync Committees</title>
+    <access_arguments>import contacts</access_arguments>
   </item>
 </menu>
