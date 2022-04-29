@@ -18,6 +18,29 @@
  */
 class CRM_Committees_Model_Email extends CRM_Committees_Model_Entity
 {
+    /** @var string model property to force all emails to be lower case */
+    const MODEL_PROPERTY_EMAIL_LOWER_CASE = 'MODEL_PROPERTY_EMAIL_LOWER_CASE';
+
+    /**
+     * Create a new object with the data
+     *
+     * @param CRM_Committees_Model_Model $model
+     *    the model this entity belongs to
+     *
+     * @param array $data
+     *  data as a named array of attributes
+     */
+    public function __construct($model, $data)
+    {
+        // enforce email lower case if enabled
+        if ($model->getProperty(self::MODEL_PROPERTY_EMAIL_LOWER_CASE)) {
+            if (isset($data['email'])) {
+                $data['email'] = strtolower($data['email']);
+            }
+        }
+        return parent::__construct($model, $data);
+    }
+
     /**
      * Validate the given values
      *

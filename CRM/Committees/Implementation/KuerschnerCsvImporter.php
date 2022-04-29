@@ -150,6 +150,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      */
     public function importModel($file_path) : bool
     {
+        // configure model to enforce lower case emails
+        $this->model->setProperty(CRM_Committees_Model_Email::MODEL_PROPERTY_EMAIL_LOWER_CASE, true);
+
         // open file, and look for important values
         $file_handle = fopen($file_path, 'rb');
         $data_set = $this->readCSV($file_handle, 'Windows-1252', ';', self::CSV_MAPPING);

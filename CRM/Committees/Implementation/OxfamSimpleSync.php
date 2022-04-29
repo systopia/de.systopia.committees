@@ -108,6 +108,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         /** @var $present_model CRM_Committees_Model_Model this model will contain the data currently present in the DB  */
         $present_model = new CRM_Committees_Model_Model();
+        $present_model->setProperty(CRM_Committees_Model_Email::MODEL_PROPERTY_EMAIL_LOWER_CASE, true);
 
         /**********************************************
          **               SYNC COMMITTEES            **

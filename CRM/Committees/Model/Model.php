@@ -21,6 +21,9 @@ class CRM_Committees_Model_Model
     /** @var string default separated to be used for compound keys */
     const DEFAULT_KEY_SEPARATOR = '::';
 
+    /** @var array model properties */
+    protected $model_properties = [];
+
     /** @var array list of committees, indexed by its ID */
     protected $committees = [];
 
@@ -38,6 +41,29 @@ class CRM_Committees_Model_Model
 
     /** @var array list of emails, indexed by its ID */
     protected $emails = [];
+
+    /**
+     * Get a property from the given model
+     *
+     * @param string $property_name
+     *
+     * @return string|int|boolean
+     */
+    public function getProperty($property_name)
+    {
+        return $this->model_properties[$property_name] ?? null;
+    }
+
+    /**
+     * Get a property from the given model
+     *
+     * @param string $property_name
+     * @param string|int|boolean $value
+     */
+    public function setProperty(string $property_name, $value)
+    {
+        $this->model_properties[$property_name] = $value;
+    }
 
     /**
      * Add a new person to the model
