@@ -67,6 +67,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      */
     public function syncModel($model, $transaction = false)
     {
+        // to be sure, disable the execution time limit
+        ini_set('max_execution_time', '0');
+
         // first, make sure some stuff is there:
         // 1. ID Tracker
         $this->registerIDTrackerType(self::ID_TRACKER_TYPE, "Kürschners");
