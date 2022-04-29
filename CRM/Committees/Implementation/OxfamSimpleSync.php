@@ -389,13 +389,15 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // UPDATE the existing ones (if necessary)
         foreach ($changed_memberships as $changed_membership) {
             /** @var CRM_Committees_Model_Membership $changed_membership */
-            // Are there any changes that we can roll out on this level? Since we dropped the 'description'
-            // (see https://projekte.systopia.de/issues/17336#note-23 item 5) attribute, everything is a new relationship
-            $this->callApi3('Relationship', 'create', [
+            // Are there any changes that we can apply on this level? Since we dropped the 'description' attribute
+            // (see https://projekte.systopia.de/issues/17336#note-23 item 5), everything is a different relationship.
+            $this->log("Skipped minor chang for committee membership [{$changed_membership['id']}].");
+
+            /* $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership['id'],
                 //'description' => $changed_membership->getAttribute('role'),
             ]);
-            $this->log("Updated committee membership [{$changed_membership['id']}].");
+            $this->log("Updated committee membership [{$changed_membership['id']}]."); */
         }
 
         // THAT'S IT, WE'RE DONE
