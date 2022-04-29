@@ -902,17 +902,29 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'contact_id' => $parliament_id,
                 'location_type_id' => 'Work',
                 'is_primary' => 1,
+                'option.limit' => 1,
             ]);
             if (empty($addresses['id'])) {
-                $parliament_address_data['location_type_id'] = 'Work';
-                $parliament_address_data['is_primary'] = 1;
-                $parliament_address_data['contact_id'] = $parliament_id;
-                unset($parliament_address_data['organization_name']);
-                unset($parliament_address_data['supplemental_address_1']);
-                unset($parliament_address_data['supplemental_address_2']);
-                unset($parliament_address_data['location_type']);
-                $addresses = civicrm_api3('Address', 'create', $parliament_address_data);
-                $this->log("Added new address to '{$parliament_name}'.");
+                // find a parliamentary address
+                foreach ($model->getAllAddresses() as $address) {
+                    /** @var CRM_Committees_Model_Address $address */
+                    if ($address->getAttribute('location_type')
+                        == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+                        // this should be the parliament's address
+                        $parliament_address_data = [
+                            'location_type_id' => 'Work',
+                            'is_primary' => 1,
+                            'contact_id' => $parliament_id,
+                            'street_address' => $address->getAttribute('street_address'),
+                            'postal_code' => $address->getAttribute('postal_code'),
+                            'city' => $address->getAttribute('city'),
+                            'supplemental_address_1' => $address->getAttribute('supplemental_address_1'),
+                        ];
+                        $addresses = civicrm_api3('Address', 'create', $parliament_address_data);
+                        $this->log("Added new address to '{$parliament_name}'.");
+                        break;
+                    }
+                }
             }
             $parliament_address_id = $addresses['id'];
         }
