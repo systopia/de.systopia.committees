@@ -379,7 +379,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'contact_id_b' => $committee_id,
                 'relationship_type_id' => $relationship_type_id,
                 'is_active' => 1,
-                'description' => $new_membership->getAttribute('role'),
+                //'description' => $new_membership->getAttribute('role'),
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
         }
@@ -389,9 +389,11 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // UPDATE the existing ones (if necessary)
         foreach ($changed_memberships as $changed_membership) {
             /** @var CRM_Committees_Model_Membership $changed_membership */
+            // Are there any changes that we can roll out on this level? Since we dropped the 'description'
+            // (see https://projekte.systopia.de/issues/17336#note-23 item 5) attribute, everything is a new relationship
             $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership['id'],
-                'description' => $changed_membership->getAttribute('role'),
+                //'description' => $changed_membership->getAttribute('role'),
             ]);
             $this->log("Updated committee membership [{$changed_membership['id']}].");
         }
