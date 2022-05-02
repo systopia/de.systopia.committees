@@ -473,7 +473,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $committee_id = substr(reset($committee_fraktion_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_FRAKTION));
                 $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP;
             }
-            $committee = $requested_model->getCommittee($committee_id);
+            $committee = $present_model->getCommittee($committee_id);
             if (!$committee) {
                 $this->logError("Committee [{$committee_id}] was referenced but not found in the model.");
                 continue;
