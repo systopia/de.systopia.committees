@@ -211,7 +211,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // note obsolete contacts
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
-            $this->log("There are {$obsolete_person_count} obsolete persons, but they will not be removed.");
+            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted.");
         }
 
         /**********************************************
