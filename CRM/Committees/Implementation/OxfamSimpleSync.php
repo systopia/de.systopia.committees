@@ -1006,7 +1006,12 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             return $role2relationship_type[$role];
         } else {
             if ($role) {
-                $this->log("Warning: Couldn't map role '{$role}' to relationship type! Using member...");
+                try {
+                    $person_id = $membership->getPerson()->getID();
+                    $this->log("Warning: Couldn't map role '{$role}' of person [{$person_id}] to relationship type! Using member...");
+                } catch (Exception $ex) {
+                    $this->log("Warning: Couldn't map role '{$role}' to relationship type! Using member...");
+                }
             }
             return $role2relationship_type['Mitglied'];
         }
