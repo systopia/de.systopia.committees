@@ -287,4 +287,32 @@ abstract class CRM_Committees_Plugin_Base
             return civicrm_api3_create_error("Error: " . $ex->getMessage());
         }
     }
+
+    /**
+     * Obfuscate a string, e.g. for logging, by replacing the middle part with a placeholder
+     *
+     * @param $string string
+     *   the string to be obfuscated
+     *
+     * @param int $keep_leading
+     *   only keep the leading n characters
+     *
+     * @param int $keep_trailing
+     *   only keep the trailing n characters
+     *
+     * @param string $fill
+     *   character to replace the remaining characters with
+     *
+     * @return string
+     *   obfuscated string
+     */
+    public function obfuscate($string, $keep_leading = 3, $keep_trailing = 3, $fill = '...')
+    {
+        if (strlen($string) > $keep_leading + $keep_trailing) {
+            return substr($string,0, $keep_leading) . $fill . substr($string, -$keep_trailing);
+        } else {
+            // if it's so short, should we do something else?
+            return $string;
+        }
+    }
 }

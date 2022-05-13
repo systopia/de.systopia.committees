@@ -228,7 +228,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             if ($person) {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Email', 'create', $email_data);
-                $this->log("Added email '{$email_data['email']} to contact [{$email_data['contact_id']}]");
+                $shortened_email_data = $this->obfuscate($email_data['email']);
+                $this->log("Added email '{$shortened_email_data}' to contact [{$email_data['contact_id']}]");
             }
         }
         if (!$new_emails) {
@@ -258,7 +259,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             if ($person) {
                 $phone_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Phone', 'create', $phone_data);
-                $this->log("Added phone '{$phone_data['phone']} to contact [{$phone_data['contact_id']}]");
+                $shortened_phone_data = $this->obfuscate($phone_data['phone']);
+                $this->log("Added phone '{$shortened_phone_data} to contact [{$phone_data['contact_id']}]");
             }
         }
         if (!$new_phones) {
@@ -298,7 +300,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
                 $last_relationship_id = (int) CRM_Core_DAO::singleValueQuery("SELECT MAX(id) FROM civicrm_relationship;");
                 $this->callApi3('Address', 'create', $address_data);
-                $this->log("Added address '{$address_data['street_address']}/{$address_data['postal_code']} {$address_data['city']}' to contact [{$address_data['contact_id']}]");
+                $shortened_address_data = $this->obfuscate($address_data['street_address']) . '/' . $address_data['postal_code'];
+                $this->log("Added address '{$shortened_address_data}' to contact [{$address_data['contact_id']}]");
 
                 // check if the shared address (master_id) has created a relationship, and delete it (not wanted)
                 $new_relationship_id = (int) CRM_Core_DAO::singleValueQuery("SELECT MAX(id) FROM civicrm_relationship;");
