@@ -881,6 +881,10 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $this->log("Created new organisation '{$parliament_name}' as it wasn't found.");
                 $this->setIDTContactID($parliament_identifier, $parliament_id, self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_PARLIAMENT);
             }
+
+            // add to lobby group
+            $lobby_contact_group_id = $this->getOrCreateContactGroup(['title' => E::ts('Lobby-Kontakte')]);
+            $this->addContactToGroup($parliament_id, $lobby_contact_group_id);
         }
         return $parliament_id;
     }
