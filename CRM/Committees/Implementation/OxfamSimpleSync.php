@@ -354,11 +354,23 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             /** @var CRM_Committees_Model_Membership $membership */
             // this membership needs to be ended/deactivated
             $relationship_id = $membership->getAttribute('relationship_id');
-            $this->callApi3('Relationship', 'create', [
-                'id' => $relationship_id,
-                'is_active' => 0,
-            ]);
-            $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+
+            // check if already disabled
+            try {
+                $is_enabled = $this->callApi3('Relationship', 'getvalue', [
+                    'id' => $relationship_id,
+                    'return' => 'is_active',
+                ]);
+                if ($is_enabled) {
+                    $this->callApi3('Relationship', 'create', [
+                        'id' => $relationship_id,
+                        'is_active' => 0,
+                    ]);
+                    $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+                }
+            } catch (Exception $ex) {
+                $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+            }
         }
 
         // CREATE the new ones
