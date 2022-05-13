@@ -6,4 +6,10 @@
     <title>Import / Sync Committees</title>
     <access_arguments>import contacts</access_arguments>
   </item>
+  <item>
+    <path>civicrm/committees/logfile</path>
+    <page_callback>CRM_Committees_Page_DownloadLog</page_callback>
+    <title>Committee Import Log</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>

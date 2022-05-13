@@ -152,11 +152,27 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
             $model = $importer->getModel();
             $syncer->log("Starting syncer " . get_class($syncer));
             $syncer->syncModel($model);
-            CRM_Core_Session::setStatus(
-                E::ts("You can find a log of the process here: <code>%1</code>.", [1 => $importer->getCurrentLogFile()]),
-                E::ts("Import/Sychronisation Completed."),
-                'info'
-            );
+
+            // done.
+            $download_link = $syncer->getDownloadLink();
+            if ($download_link) {
+                CRM_Core_Session::setStatus(
+                    E::ts("You can download a log of the process here: <a href=\"%1\"><code>%2</code></a>.", [
+                        1 => $download_link,
+                        2 => CRM_Committees_Plugin_Base::getCurrentLogFileName()
+                    ]),
+                    E::ts("Import/Sychronisation Completed."),
+                    'info',
+                    ['timeout' => 0]
+                );
+            } else {
+                CRM_Core_Session::setStatus(
+                    E::ts("You can find a log of the process here: <code>%1</code>.", [1 => $importer->getCurrentLogFile()]),
+                    E::ts("Import/Sychronisation Completed."),
+                    'info',
+                    ['timeout' => 0]
+                );
+            }
         }
     }
 

@@ -36,9 +36,17 @@ abstract class CRM_Committees_Plugin_Base
     /** @var resource the current logger, see getLogResource()  */
     static private $progress_logger = null;
 
+    /** @var string the current logger key  */
+    static private $progress_logger_key = null;
+
+    /** @var string the current logger timestamp */
+    static private $progress_logger_timestamp = null;
+
     /** @var string $current_log_file (full path) */
     protected $current_log_file = null;
 
+    /** @var string $current_log_file (full path) */
+    protected $current_log_datestring = null;
 
     /**
      * Create a new instance of this module with the given config
@@ -230,11 +238,89 @@ abstract class CRM_Committees_Plugin_Base
     {
         if (self::$progress_logger === null) {
             $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
-            $this->current_log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees.' . date('YmdHis') . '.log';
+            self::$progress_logger_key = bin2hex(openssl_random_pseudo_bytes(8));
+            self::$progress_logger_timestamp = date('YmdHis');
+            $this->current_log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees-' . self::$progress_logger_key . '.' . self::$progress_logger_timestamp . '.log';
             self::$progress_logger = fopen($this->current_log_file, 'w');
             Civi::log()->debug("Committee importer started, log file is '{$this->current_log_file}");
         }
         return self::$progress_logger;
+    }
+
+    /**
+     * Get the download link for this logfile
+     *
+     * @return string
+     *   a file download URL
+     */
+    public function getDownloadLink()
+    {
+        if (self::$progress_logger != null && self::$progress_logger_key != null) {
+            $key = self::$progress_logger_key;
+            $date = self::$progress_logger_timestamp;
+            return CRM_Utils_System::url('civicrm/committees/logfile', "key={$key}&date={$date}");
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Get the name for the given log file parameters
+     *
+     * @param string $datestring
+     *   14 digits defining the log date
+     *
+     * @param string $key
+     *   8 hex characters acting as a protection
+     *
+     * @return string
+     *  log file name
+     *
+     * @throws Exception
+     */
+    public static function getLogFileName($datestring, $key)
+    {
+        if (!preg_match('/^[0-9]{14}$/', $datestring)) {
+            throw new Exception(E::ts("Illegal date string"));
+        }
+        if (!preg_match('/^[0-9a-z]{16}$/', $key)) {
+            throw new Exception(E::ts("Illegal key"));
+        }
+        return 'Committees-' . $key . '.' . $datestring . '.log';
+    }
+
+    /**
+     * Get the content of a logfile based on the date string
+     *  AND a key (so you can't efficiently guess the file names)
+     *
+     * @param string $datestring
+     *   14 digits defining the log date
+     *
+     * @param string $key
+     *   8 hex characters acting as a protection
+     *
+     * @return string
+     *  file content
+     *
+     * @throws Exception
+     */
+    public static function getLogFileContent($datestring, $key)
+    {
+        if (!preg_match('/^[0-9]{14}$/', $datestring)) {
+            throw new Exception(E::ts("Illegal date string"));
+        }
+        if (!preg_match('/^[0-9a-z]{16}$/', $key)) {
+            throw new Exception(E::ts("Illegal key"));
+        }
+        $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
+        $filepath = $log_folder . DIRECTORY_SEPARATOR . self::getLogFileName($datestring, $key);
+        if (!file_exists($filepath)) {
+            throw new Exception("Log file doesn't exist (any more).");
+        }
+        if (!is_readable($filepath)) {
+            throw new Exception("Can't access log file.");
+        }
+        return (string) file_get_contents($filepath);
     }
 
     /**
@@ -245,6 +331,22 @@ abstract class CRM_Committees_Plugin_Base
     public function getCurrentLogFile()
     {
         return $this->current_log_file;
+    }
+
+    /**
+     * Return the current log file, full path
+     *
+     * @param string $datestring
+     *   14 digits defining the log date
+     *
+     * @return string|null
+     */
+    public static function getCurrentLogFileName($datestring = null)
+    {
+        if (!$datestring) {
+            $datestring = self::$progress_logger_timestamp;
+        }
+        return 'Committee-' . $datestring . '.log';
     }
 
     /**
