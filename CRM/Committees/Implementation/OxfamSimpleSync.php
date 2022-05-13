@@ -1090,6 +1090,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 ""
             );
 
+            $consulting_member_relationship = $this->createRelationshipTypeIfNotExists(
+                'is_committee_consulting_member_of',
+                'has_committee_consulting_member',
+                "beratendes Mitglied von",
+                "beratendes Mitglied ist",
+                'Individual',
+                'Organization',
+                null,
+                $this->getCommitteeSubType(),
+                ""
+            );
+
             // compile role mapping:
             $role2relationship_type['stellv. Mitglied'] = $deputy_member_relationship['id'];
             $role2relationship_type['Mitglied'] = $member_relationship['id'];
@@ -1100,6 +1112,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $role2relationship_type['Vorsitzende'] = $chairperson_relationship['id'];
             $role2relationship_type['stellv. Vorsitzender'] = $deputy_chairperson_relationship['id'];
             $role2relationship_type['stellv. Vorsitzende'] = $deputy_chairperson_relationship['id'];
+            $role2relationship_type['beratendes Mitglied'] = $consulting_member_relationship['id'];
         }
         return $role2relationship_type;
     }
