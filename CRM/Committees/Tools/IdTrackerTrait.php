@@ -49,7 +49,10 @@ trait CRM_Committees_Tools_IdTrackerTrait
                   entity_id   AS contact_id,
                   identifier  AS tracker_id
                 FROM civicrm_value_contact_id_history
+                LEFT JOIN civicrm_contact contact
+                       ON contact.id = entity_id
                 WHERE identifier_type = %1
+                  AND contact.is_deleted = 0
                   AND identifier LIKE CONCAT(%2, '%')
                 ",
                 [
