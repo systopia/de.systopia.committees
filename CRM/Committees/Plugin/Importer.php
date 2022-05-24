@@ -38,7 +38,7 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      *
      * @return string[]
      */
-    public static function getAvailableImporters() : array
+    public static function getAvailableImporters(): array
     {
         // todo: cache?
         $importer_survey = new CommitteeModuleSurvey();
@@ -55,7 +55,6 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      */
     public static function registerBuiltInImporters($importer_survey)
     {
-
         $importer_survey->registerImporterModule(
             'de.oxfam.kuerschner',
             'CRM_Committees_Implementation_KuerschnerCsvImporter',
@@ -71,11 +70,18 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
             E::ts("Imports a 'Personal Office's XLS export.")
         );
         $importer_survey->registerImporterModule(
-            'de.ekir.session.syncer',
+            'de.ekir.session.importer',
             'CRM_Committees_Implementation_SessionImporter',
             E::ts("Session Importer (XLS)"),
             null,
             E::ts("Imports a 'Session' XLS export.")
+        );
+        $importer_survey->registerImporterModule(
+            'de.abgeordnetenwatch.importer.api2',
+            'CRM_Committees_Implementation_AbgeordnetenwatchImporter',
+            E::ts("Abgeordnetenwatch.de API Importer"),
+            null,
+            E::ts("Abgeordnetenwatch.de API Importer")
         );
     }
 
@@ -88,7 +94,10 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      * @return boolean
      *   true iff the file can be processed
      */
-    public abstract function probeFile($file_path) : bool;
+    public function probeFile($file_path): bool
+    {
+        return true;
+    }
 
     /**
      * Import the file
@@ -100,6 +109,17 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      *   true iff the file was successfully importer
      */
     public abstract function importModel($file_path) : bool;
+
+    /**
+     * Does this importer require a file?
+     *
+     * @return boolean
+     *   true iff the importer requires a file
+     */
+    public function requiresFile() : bool
+    {
+        return true; // by default, this is about files.
+    }
 
     /**
      * get the (imported) model
