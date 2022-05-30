@@ -6,7 +6,7 @@ The focus of this extension is to facilitate the initial import and continuous u
 * Committee memberships
 
 For that will find the importer in Contact menu with the "Import/Synchronise Committees" item. There you'll have to select:
-1. an importer module suitable for your data source, e.g. the German Küschner list.
+1. an importer module suitable for your data source, e.g. the German Kürschner list.
 2. a syncer module that defines the way the data is represented in your CiviCRM instance.
 
 If the existing modules don't really work for you, you can contact us for new/adjusted modules at [info@systopia.de](mailto:info@systopia.de)
