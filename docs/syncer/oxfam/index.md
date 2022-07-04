@@ -9,4 +9,5 @@ This syncer will try to import the model in the following way:
 class and overriding and adjusting some functions. This way, you can quickly generate 
 your own flavour of this approach. 
 * Developed and tested with  [Oxfam's Kürschner Importer](../../importer/kuerschner/index.md)
+
 Remark: The development of this importer has been funded by Oxfam Germany
