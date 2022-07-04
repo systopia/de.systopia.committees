@@ -35,4 +35,8 @@ the requirements aren't met.
 3. All specialised modules that don't make sense for another user should be
 provided by a separate extension using a Symfony hook.
 
-The extension is licensed under [AGPL-3.0](LICENSE.txt).
+4. For more details consult the [documentation](docs/index.md).
+
+### This extension 
+* is licensed under [AGPL-3.0](LICENSE.txt).
+* uses the [phpspreadsheet](https://phpspreadsheet.readthedocs.io/en/latest) packet for the import of XLS spreadsheets.
