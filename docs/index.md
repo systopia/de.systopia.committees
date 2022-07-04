@@ -50,11 +50,11 @@ Every entity has some basic attributes (usually based on the CiviCRM fields), bu
 
 1. *Yes*, in theory this framework could also be used to import/sync only contacts
    without any further structures, but there might be better tools around for this.
-   On the other hand, updating memberships based on a complete and up-to-date list of members might be a better fit.
+   On the other hand, updating memberships based on a complete and up-to-date list of members might be a good job for this framework.
 
 2. The individual modules might have additional requirements or dependencies. Those should be listed
    in the documentation, but the module will also give you a warning if you want to run it and
    the requirements aren't met.
 
 3. All specialised modules that don't make sense for another user should be
-   provided by a separate extension using a Symfony hook.
+   provided by a separate extension using a Symfony hook - and should *not* be part of this extension.
