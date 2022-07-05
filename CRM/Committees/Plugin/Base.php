@@ -228,6 +228,30 @@ abstract class CRM_Committees_Plugin_Base
         return $error_list;
     }
 
+
+    /**
+     * Get a list of error messages, filtered by the given level
+     *
+     * @param boolean $unique don't repeat the same messages
+     *
+     * @param string $level error level
+     *
+     * @return array list of strings
+     */
+    public function getErrorMessages($unique = false, $level = 'error')
+    {
+        $error_msg_list = [];
+        $error_list = $this->getErrors($level);
+        foreach ($error_list as $error) {
+            $error_msg_list[] = $error['description'];
+        }
+
+        if ($unique) {
+            $error_msg_list = array_unique($error_msg_list);
+        }
+        return $error_msg_list;
+    }
+
     /**
      * Get the current process log file
      *

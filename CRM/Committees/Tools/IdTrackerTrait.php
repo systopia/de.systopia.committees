@@ -216,4 +216,11 @@ trait CRM_Committees_Tools_IdTrackerTrait
         }
     }
 
+    /**
+     * Clears internal caches. Careful...this is implemented to facilitate unit-tesst, and should not be used in regular workflows
+     */
+    public static function clearCaches()
+    {
+        CRM_Committees_Tools_IdTrackerTrait::$idt_trackerID2contactIDbyPrefix = null;
+    }
 }
