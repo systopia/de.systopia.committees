@@ -8,7 +8,7 @@ We recommend to download the [latest release](https://github.com/systopia/de.sys
 
 Status of the automated tests of this version is:
 
-[![CircleCI](https://circleci.com/gh/systopia/de.committees.contract.svg?style=svg)](https://circleci.com/gh/systopia/de.systopia.committees)
+[![CircleCI](https://circleci.com/gh/systopia/de.systopia.committees.svg?style=svg)](https://circleci.com/gh/systopia/de.systopia.committees)
 
 
 ### Objective
