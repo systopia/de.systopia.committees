@@ -25,7 +25,7 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @group headless
  */
-class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements HeadlessInterface, HookInterface, TransactionalInterface
+class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements HeadlessInterface, HookInterface
 {
     use Api3TestTrait {
         callAPISuccess as protected traitCallAPISuccess;

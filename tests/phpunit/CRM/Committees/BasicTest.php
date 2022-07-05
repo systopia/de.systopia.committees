@@ -15,6 +15,7 @@
 
 
 use Civi\Test\Api3TestTrait;
+use Civi\Test\TransactionalInterface;
 use CRM_Committees_ExtensionUtil as E;
 
 /**
@@ -22,7 +23,7 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @group headless
  */
-class CRM_Committees_BasicTest extends CRM_Committees_TestBase
+class CRM_Committees_BasicTest extends CRM_Committees_TestBase implements TransactionalInterface
 {
     use Api3TestTrait {
         callAPISuccess as protected traitCallAPISuccess;
@@ -112,30 +113,5 @@ class CRM_Committees_BasicTest extends CRM_Committees_TestBase
             ],
             $contact3
         );
-    }
-
-    /**
-     * Just load a minimal import file and check if the data is present
-     */
-    public function testUpdateFileImport()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
-
-        // run the importer
-        list($importer, $syncer) =
-            $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path('tests/resources/kuerschner/bundestag-01.csv')
-            );
-
-        // run the update
-        list($importer, $syncer) =
-            $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path('tests/resources/kuerschner/bundestag-02.csv')
-            );
     }
 }
