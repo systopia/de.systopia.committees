@@ -52,6 +52,7 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
 
     public function tearDown()
     {
+        $this->deleteAllContacts();
         parent::tearDown();
     }
 
@@ -99,8 +100,8 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
 
         // check for errors
         if ($fail_on_errors) {
-            $this->assertEmpty($importer->getErrors(), "Importer 'de.oxfam.kuerschner' reports errors");
-            $this->assertEmpty($syncer->getErrors(), "Syncer 'de.oxfam.kuerschner.syncer.bund' reports errors");
+            $this->assertEmpty($importer->getErrors(), "Importer 'de.oxfam.kuerschner' reports errors: " . implode(', ', $importer->getErrorMessages(true)));
+            $this->assertEmpty($syncer->getErrors(), "Syncer 'de.oxfam.kuerschner.syncer.bund' reports errors: " . implode(', ', $syncer->getErrorMessages(true)));
         }
 
         return [$importer, $syncer];
@@ -120,6 +121,24 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
         foreach ($expected as $property => $value) {
             $this->assertArrayHasKey($property, $actual, "Expected property '{$property}' not found.");
             $this->assertEquals($value, $actual[$property]);
+        }
+    }
+
+    /**
+     * Simply delete all contacts with a contact ID > 1
+     * @return void
+     */
+    public function deleteAllContacts()
+    {
+        $all_contacts = $this->traitCallAPISuccess(
+            'Contact',
+            'get',
+            ['option.limit' => 0, 'return' => 'id']
+        );
+        foreach ($all_contacts['values'] as $contact) {
+            if ($contact['id'] > 2) {
+                $this->traitCallAPISuccess('Contact', 'delete', ['id' => $contact['id']]);
+            }
         }
     }
 }
