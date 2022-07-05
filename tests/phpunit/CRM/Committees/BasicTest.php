@@ -39,14 +39,38 @@ class CRM_Committees_BasicTest extends CRM_Committees_TestBase
     }
 
     /**
-     * Just create a contact, add an activity, recalculate,
+     * Just load a minimal import file and check if the data is present
      */
     public function testImportFile()
     {
-        $this->sync(
+        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+        list($importer, $syncer) =
+            $this->sync(
             'de.oxfam.kuerschner.syncer.bund',
             'de.oxfam.kuerschner',
-            'resources/kuerschner/bundestag-01.csv'
+            E::path('tests/resources/kuerschner/bundestag-01.csv')
+        );
+
+        // load the contact
+        $contact_id = $syncer->getIDTContactID(9680,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
+        $contact = $this->traitCallAPISuccess(
+            'Contact',
+            'getsingle',
+            ['id' => $contact_id]
+        );
+
+        // verify if the values match the ones from the file
+        $this->assertProperties(
+            [
+                'last_name' => 'Sotte',
+                'first_name' => 'Petra',
+                'phone' => '+49 30 227-1231241',
+                'email' => 'petra.sotte@bundestag.de',
+                'postal_code' => '11011',
+                'street_address' => 'Platz der Republik 1',
+            ],
+            $contact
         );
     }
 }

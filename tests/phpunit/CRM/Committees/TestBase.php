@@ -67,9 +67,12 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
      * @param string|null $import_file
      *   file path to be passed to the importer (if required)
      *
+     * @param bool $fail_on_errors
+     *   should this fail if errors expected?
+     *
      * @return array
      */
-    public function sync(string $syncer_id, string $importer_id, string $import_file = null)
+    public function sync(string $syncer_id, string $importer_id, string $import_file = null, $fail_on_errors = true)
     {
         // check importer
         $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
@@ -86,6 +89,28 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
         $model = $importer->getModel();
         $syncer->syncModel($model);
 
+        // check for errors
+        if ($fail_on_errors) {
+            $this->assertEmpty($importer->getErrors(), "Importer 'de.oxfam.kuerschner' reports errors");
+            $this->assertEmpty($syncer->getErrors(), "Syncer 'de.oxfam.kuerschner.syncer.bund' reports errors");
+        }
         return [$importer, $syncer];
+    }
+
+    /**
+     * Assert a set of properties in the given array
+     *
+     * @var array $expected
+     *   list of name => value pairs to be expected in the $actual array
+     *
+     * @var array $actual
+     *   data to be tested for the $expected params
+     */
+    public function assertProperties(array $expected, array $actual)
+    {
+        foreach ($expected as $property => $value) {
+            $this->assertArrayHasKey($property, $actual, "Expected property '{$property}' not found.");
+            $this->assertEquals($value, $actual[$property]);
+        }
     }
 }
