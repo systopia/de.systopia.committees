@@ -308,7 +308,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 if ($new_relationship_id > $last_relationship_id) {
                     // delete it (those?)
                     $unwanted_relationships = CRM_Core_DAO::executeQuery("
-                        SELECT relationship.id AS relationship_id  
+                        SELECT relationship.id AS relationship_id
                         FROM civicrm_relationship relationship
                         WHERE relationship.id > %1
                           AND relationship.contact_id_a = %2", [

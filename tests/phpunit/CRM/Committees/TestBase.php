@@ -70,10 +70,18 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
      * @param bool $fail_on_errors
      *   should this fail if errors expected?
      *
+     * @param bool $clear_caches
+     *   should the caches be cleared? highly recommended...
+     *
      * @return array
      */
-    public function sync(string $syncer_id, string $importer_id, string $import_file = null, $fail_on_errors = true)
+    public function sync(string $syncer_id, string $importer_id, string $import_file = null, $fail_on_errors = true, $clear_caches = true)
     {
+        // clear caches
+        if ($clear_caches) {
+            CRM_Committees_Tools_IdTrackerTrait::clearCaches();
+        }
+
         // check importer
         $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
         $this->assertArrayHasKey($importer_id, $importers, "Importer {$importer_id} not available.");
@@ -94,6 +102,7 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
             $this->assertEmpty($importer->getErrors(), "Importer 'de.oxfam.kuerschner' reports errors");
             $this->assertEmpty($syncer->getErrors(), "Syncer 'de.oxfam.kuerschner.syncer.bund' reports errors");
         }
+
         return [$importer, $syncer];
     }
 

@@ -41,7 +41,7 @@ class CRM_Committees_BasicTest extends CRM_Committees_TestBase
     /**
      * Just load a minimal import file and check if the data is present
      */
-    public function testImportFile()
+    public function testBasicFileImport()
     {
         /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
         /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
@@ -52,25 +52,90 @@ class CRM_Committees_BasicTest extends CRM_Committees_TestBase
             E::path('tests/resources/kuerschner/bundestag-01.csv')
         );
 
-        // load the contact
-        $contact_id = $syncer->getIDTContactID(9680,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
-        $contact = $this->traitCallAPISuccess(
+        // load and compare contact1
+        $contact1_id = $syncer->getIDTContactID(25948,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
+        $contact1 = $this->traitCallAPISuccess(
             'Contact',
             'getsingle',
-            ['id' => $contact_id]
+            ['id' => $contact1_id]
         );
-
         // verify if the values match the ones from the file
         $this->assertProperties(
             [
-                'last_name' => 'Sotte',
-                'first_name' => 'Petra',
-                'phone' => '+49 30 227-1231241',
-                'email' => 'petra.sotte@bundestag.de',
+                'last_name' => 'UNBEKANNT',
+                'first_name' => 'Stephanie',
+                'phone' => '+49 30 227-11111',
+                'email' => 'stephanie.unbekannt@bundestag.de',
                 'postal_code' => '11011',
                 'street_address' => 'Platz der Republik 1',
             ],
-            $contact
+            $contact1
         );
+
+
+        // load and compare contact2
+        $contact2_id = $syncer->getIDTContactID(18361,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
+        $contact2 = $this->traitCallAPISuccess(
+            'Contact',
+            'getsingle',
+            ['id' => $contact2_id]
+        );
+        // verify if the values match the ones from the file
+        $this->assertProperties(
+            [
+                'last_name' => 'UNKNOWN',
+                'first_name' => 'Luise',
+                'phone' => '+49 30 227-22222',
+                'email' => 'luise.unknown@bundestag.de',
+                'postal_code' => '11011',
+                'street_address' => 'Platz der Republik 1',
+            ],
+            $contact2
+        );
+
+        // load and compare contact3
+        $contact3_id = $syncer->getIDTContactID(34580,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
+        $contact3 = $this->traitCallAPISuccess(
+            'Contact',
+            'getsingle',
+            ['id' => $contact3_id]
+        );
+        // verify if the values match the ones from the file
+        $this->assertProperties(
+            [
+                'last_name' => 'ICOGNITO',
+                'first_name' => 'Andreas',
+                'phone' => '+49 30 227-3333',
+                'email' => 'andreas.incognito@bundestag.de',
+                'postal_code' => '11011',
+                'street_address' => 'Platz der Republik 1',
+            ],
+            $contact3
+        );
+    }
+
+    /**
+     * Just load a minimal import file and check if the data is present
+     */
+    public function testUpdateFileImport()
+    {
+        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+        // run the importer
+        list($importer, $syncer) =
+            $this->sync(
+                'de.oxfam.kuerschner.syncer.bund',
+                'de.oxfam.kuerschner',
+                E::path('tests/resources/kuerschner/bundestag-01.csv')
+            );
+
+        // run the update
+        list($importer, $syncer) =
+            $this->sync(
+                'de.oxfam.kuerschner.syncer.bund',
+                'de.oxfam.kuerschner',
+                E::path('tests/resources/kuerschner/bundestag-02.csv')
+            );
     }
 }
