@@ -66,6 +66,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'EUMITGLIEDSLANDWK' => 'NOT USED',
         'TELEFONVORWAHLWK' => 'constituency_phone_prefix',
         'TELEFONNUMMERWK' => 'constituency_phone',
+        'GEWAEHLT' => 'elected_via',
     ];
 
     // todo: import bundestag
@@ -76,7 +77,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     const LOCATION_TYPE_WAHLKREIS = 'Wahlkreis'; // constituency
 
     // attribute mapping
-    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id'];
+    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via'];
     const ADDRESS_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_name' => 'organization_name', 'parliament_street_address' => 'street_address', 'parliament_postal_code' => 'postal_code', 'parliament_city' => 'city', 'parliament_address_1' => 'supplemental_address_1'];
     const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
     const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];

@@ -98,6 +98,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     'committee_name' => $parliament_name,
                     'type' => self::COMMITTEE_TYPE_PARLIAMENT,
                     'role' => 'Mitglied',
+                    'description' => $person->getAttribute('elected_via')
                 ]
             );
         }
@@ -401,25 +402,26 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'contact_id_b' => $committee_id,
                 'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                 'is_active' => 1,
-                //'description' => $new_membership->getAttribute('role'),
+                'description' => substr($new_membership->getAttribute('description'), 0, 255)
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
 
+
         // UPDATE the existing ones (if necessary)
         foreach ($changed_memberships as $changed_membership) {
             /** @var CRM_Committees_Model_Membership $changed_membership */
-            // Are there any changes that we can apply on this level? Since we dropped the 'description' attribute
-            // (see https://projekte.systopia.de/issues/17336#note-23 item 5), everything is a different relationship.
-            $this->log("Skipped minor change for committee membership [{$changed_membership->getID()}].");
-
-            /* $this->callApi3('Relationship', 'create', [
-                'id' => $changed_membership['id'],
-                //'description' => $changed_membership->getAttribute('role'),
+            // extract update data
+            $requested_membership = $model->getCommitteeMembership(
+                $changed_membership->getAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY));
+            $new_description = $requested_membership->getAttribute('description');
+            $this->callApi3('Relationship', 'create', [
+                'id' => $changed_membership->getAttribute('relationship_id'),
+                'description' => substr($new_description, 0, 255)
             ]);
-            $this->log("Updated committee membership [{$changed_membership['id']}]."); */
+            $this->log("Adjusted minor change for committee membership [{$changed_membership->getID()}].");
         }
 
         // THAT'S IT, WE'RE DONE
@@ -506,6 +508,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                        'role'                 => $committee_relationship['description'] ?? '',
                        'relationship_type_id' => $committee_relationship['relationship_type_id'],
                        'relationship_id'      => $committee_relationship['id'],
+                       'description'          => $committee_relationship['description'] ?? '',
                    ]);
             }
         }

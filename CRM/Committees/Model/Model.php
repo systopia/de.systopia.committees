@@ -21,6 +21,9 @@ class CRM_Committees_Model_Model
     /** @var string default separated to be used for compound keys */
     const DEFAULT_KEY_SEPARATOR = '::';
 
+    /** @var string default separated to be used for compound keys */
+    const CORRESPONDING_ENTITY_ID_KEY = '_corresponding_entity_id';
+
     /** @var array model properties */
     protected $model_properties = [];
 
@@ -681,9 +684,14 @@ class CRM_Committees_Model_Model
             /** @var CRM_Committees_Model_Entity $our_entity */
             if (isset($other_entities[$our_entity_key])) {
                 // there is another entity with the same id
-                $diff = $our_entity->diff($other_entities[$our_entity_key], $ignore_attributes);
+                /** @var CRM_Committees_Model_Entity $other_entity */
+                $other_entity = $other_entities[$our_entity_key];
+                $other_entity_id = $other_entity->getID();
+                $diff = $our_entity->diff($other_entity, $ignore_attributes);
                 if (!empty($diff)) {
                     $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
+                    $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
+                    $our_entity->setAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY, $other_entity->getID());
                     $changed_entities[] = $our_entity;
                 }
                 unset($other_entities[$our_entity_key]);
