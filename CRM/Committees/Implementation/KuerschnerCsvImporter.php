@@ -67,6 +67,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'TELEFONVORWAHLWK' => 'constituency_phone_prefix',
         'TELEFONNUMMERWK' => 'constituency_phone',
         'GEWAEHLT' => 'elected_via',
+        'FUNKTION_AMT' => 'functions',
     ];
 
     // todo: import bundestag
@@ -338,6 +339,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                         'committee_name' => $parliamentary_group_name,
                         'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
                         'role' => 'Mitglied',
+                        'functions' => $this->extractCommitteeFunctions($record['functions'], 'Fraktion'),
                     ]
                 );
             }
@@ -403,5 +405,29 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             }
         }
         return $committee2function;
+    }
+
+    /**
+     * Extract the committee functions for the given row
+     *
+     * @param string $packed_function_string
+     *   the (packed) string of functions
+     *
+     * @param string $requested_committee_type
+     *   if given, only functions for this committee type are returned
+     *
+     * @return array
+     *   list of functions.
+     */
+    protected function extractCommitteeFunctions($packed_function_string, $requested_committee_type = null)
+    {
+        $committee_functions = [];
+        $all_functions = $this->unpackCommittees($packed_function_string);
+        foreach ($all_functions as [$committee, $function]) {
+            if ($requested_committee_type && $committee != $requested_committee_type) continue;
+            $committee_functions[] = trim($function);
+        }
+
+        return $committee_functions;
     }
 }
