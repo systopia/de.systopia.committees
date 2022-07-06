@@ -18,6 +18,7 @@ use CRM_Committees_ExtensionUtil as E;
 /**
  * Importer to crawl the abgeordnetenwatch.de API
  *
+ * remark: currently requires some changes to the main structure as included in this branch
  * @see https://www.abgeordnetenwatch.de/api
  */
 class CRM_Committees_Implementation_AbgeordnetenwatchImporter extends CRM_Committees_Plugin_Importer
