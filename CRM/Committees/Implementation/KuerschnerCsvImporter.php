@@ -68,6 +68,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'TELEFONNUMMERWK' => 'constituency_phone',
         'GEWAEHLT' => 'elected_via',
         'FUNKTION_AMT' => 'functions',
+        'INTERNET' => 'websites',
+        'NETZWERKE' => 'social_media',
     ];
 
     // todo: import bundestag
@@ -251,10 +253,48 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 $phone['location_type'] = self::LOCATION_TYPE_WAHLKREIS;
                 $this->model->addPhone($phone);
             }
+
+            /**************************************
+             **       PERSONAL CONTACT DATA      **
+             **************************************/
+
+            // extract websites
+            if (!empty($record['websites'])) {
+                $websites = preg_split('/[\n ,]+/', $record['websites']);
+                foreach ($websites as $website) {
+                    $this->model->addUrl([
+                         'url' => $website,
+                         'contact_id' => $record['id'],
+                         'website_type' => CRM_Committees_Model_Url::URL_TYPE_WEBSITE
+                     ]);
+                }
+            }
+            // extract social media
+            if (!empty($record['social_media'])) {
+                $social_media = preg_split('/[\n ,]+/', $record['social_media']);
+                foreach ($social_media as $social_media_url) {
+                    // detect type
+                    $social_media_type = CRM_Committees_Model_Url::URL_TYPE_WEBSITE;
+                    if (preg_match('/twitter/', $social_media_url)) {
+                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER;
+                    } elseif (preg_match('/facebook/', $social_media_url)) {
+                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK;
+                    } elseif (preg_match('/instagram/', $social_media_url)) {
+                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM;
+                    }
+                    // add to model
+                    $this->model->addUrl([
+                         'url' => $social_media_url,
+                         'contact_id' => $record['id'],
+                         'website_type' => $social_media_type
+                     ]);
+                }
+            }
         }
         $this->log(count($this->model->getAllPersons()) . " individuals extracted.");
         $this->log(count($this->model->getAllAddresses()) . " addresses extracted.");
         $this->log(count($this->model->getAllPhones()) . " phone numbers extracted.");
+        $this->log(count($this->model->getAllUrls()) . " websites/urls extracted.");
 
 
         /**************************************

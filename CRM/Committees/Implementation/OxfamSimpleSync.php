@@ -246,6 +246,37 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
 
         /**********************************************
+         **           SYNC CONTACT URLS              **
+         **********************************************/
+        $this->extractCurrentDetails($model, $present_model, 'website');
+        [$new_urls, $changed_urls, $obsolete_urls] = $present_model->diffUrls($model, ['website_type_id']);
+        foreach ($new_urls as $url) {
+            /** @var CRM_Committees_Model_Url $url */
+            $url_data = $url->getData();
+            $person = $url->getContact($present_model);
+            if ($person) {
+                $url_data['contact_id'] = $person->getAttribute('contact_id');
+                $url_data['website_type_id'] = $this->getWebsiteTypeIdForUrl($url);
+                $this->callApi3('Website', 'create', $url_data);
+                $shortened_url_data = $this->obfuscate($url_data['url'], 7);
+                $this->log("Added url '{$shortened_url_data}' to contact [{$url_data['contact_id']}]");
+            }
+        }
+        if (!$new_urls) {
+            $this->log("No new urls detected in import data.");
+        }
+        if ($changed_urls) {
+            $changed_urls_count = count($changed_urls);
+            $this->log("Some attributes have changed for {$changed_urls_count}, be we won't adjust that.");
+        }
+        if ($obsolete_urls) {
+            foreach ($obsolete_urls as $obsolete_url) {
+                $shortened_url_data = $this->obfuscate($obsolete_url->getAttribute('url'), 7, 5);
+                $this->log("Won't remove obsolete url '{$shortened_url_data}' from contact [{$obsolete_url->getAttribute('contact_id')}]");
+            }
+        }
+
+        /**********************************************
          **           SYNC CONTACT PHONES            **
          **********************************************/
         $this->extractCurrentDetails($model, $present_model, 'phone');
@@ -633,11 +664,13 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             'email' => ['contact_id', 'email', 'location_type_id'],
             'phone' => ['contact_id', 'phone', 'location_type_id', 'phone_type_id', 'phone_numeric'],
             'address' => ['contact_id', 'street_address', 'postal_code', 'city', 'location_type_id'],
+            'website' => ['contact_id', 'url', 'website_type_id'],
         ];
         $copy_attributes = [
             'email' => ['email'],
             'phone' => ['phone', 'phone_numeric'],
             'address' => ['street_address', 'postal_code', 'city', 'supplemental_address_1', 'supplemental_address_2', 'supplemental_address_3'],
+            'website' => ['url', 'website_type_id'],
         ];
 
         // check with all known CiviCRM contacts
@@ -685,6 +718,11 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     break;
                 case 'address':
                     $present_model->addAddress($data);
+                    break;
+                case 'website':
+                    $data['website_type'] = $this->getUrlTypeForEntityData($data);
+                    unset($data['website_type_id']);
+                    $present_model->addUrl($data);
                     break;
                 default:
                     throw new Exception("Unknown type {$type} for extractCurrentDetails function.");
@@ -979,6 +1017,65 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 return null;
         }
     }
+
+    /**
+     * Get the CiviCRM website_type option value for the given URL
+     *
+     * @param CRM_Committees_Model_Url $url
+     *   url object from model
+     *
+     * @return string|null
+     *   return website type ID
+     */
+    protected function getWebsiteTypeIdForUrl($url)
+    {
+        switch ($url->getAttribute('website_type')) {
+            case CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM:
+                $option_value = $this->getOrCreateOptionValue(['name' => 'Instagram'], 'website_type', 'name');
+                break;
+            case CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER:
+                $option_value = $this->getOrCreateOptionValue(['name' => 'Twitter'], 'website_type', 'name');
+                break;
+            case CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK:
+                $option_value = $this->getOrCreateOptionValue(['name' => 'Facebook'], 'website_type', 'name');
+                break;
+            default:
+                $option_value = $this->getOrCreateOptionValue(['name' => 'Work'], 'website_type', 'name');
+        }
+
+        return $option_value['value'];
+    }
+
+    /**
+     * Get the civicrm  type ID for the given URL
+     *
+     * @param array $entity_data
+     *
+     * @return string
+     *   internal ID
+     */
+    protected function getUrlTypeForEntityData($entity_data)
+    {
+        $instagram = $this->getOrCreateOptionValue(['name' => 'Instagram'], 'website_type', 'name');
+        $instagram = $this->getOrCreateOptionValue(['name' => 'Instagram'], 'website_type', 'name');
+        $twitter   = $this->getOrCreateOptionValue(['name' => 'Twitter'],   'website_type', 'name');
+        $facebook  = $this->getOrCreateOptionValue(['name' => 'Facebook'],  'website_type', 'name');
+        switch ($entity_data['website_type_id']) {
+            case $instagram['value']:
+                return CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM;
+
+            case $twitter['value']:
+                return CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER;
+
+            case $facebook['value']:
+                return CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK;
+
+            default:
+                return CRM_Committees_Model_Url::URL_TYPE_WEBSITE;
+        }
+    }
+
+
 
     /**
      * Get the organization subtype for committees
