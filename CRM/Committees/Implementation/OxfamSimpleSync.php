@@ -378,6 +378,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $membership->setAttribute('relationship_type_id', $this->getRelationshipTypeIdForMembership($membership));
         }
 
+        // get custom fields
+        $political_functions_field = $this->getPoliticalFunctionCustomFieldKey();
+
         // extract current memberships
         $this->addCurrentMemberships($model, $present_model);
         //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
@@ -415,25 +418,28 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             switch ($new_membership->getCommittee()->getAttribute('type')) {
                 case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE:
                     $tracker_prefix = self::ID_TRACKER_PREFIX_COMMITTEE;
+                    $political_functions = [];
                     break;
 
                 case self::COMMITTEE_TYPE_PARLIAMENT:
                     $tracker_prefix = self::ID_TRACKER_PREFIX_PARLIAMENT;
+                    $political_functions = [];
                     break;
 
                 default:
                 case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP:
                     $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
+                    $political_functions = $this->extractPoliticalFunctions($new_membership);
                     break;
             }
             $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
-            //$committee_id_to_contact_id[$new_membership->getCommittee()->getID()];
             $this->callApi3('Relationship', 'create', [
                 'contact_id_a' => $person_civicrm_id,
                 'contact_id_b' => $committee_id,
                 'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                 'is_active' => 1,
-                'description' => substr($new_membership->getAttribute('description'), 0, 255)
+                'description' => substr($new_membership->getAttribute('description'), 0, 255),
+                $political_functions_field => $political_functions
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
         }
@@ -445,12 +451,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($changed_memberships as $changed_membership) {
             /** @var CRM_Committees_Model_Membership $changed_membership */
             // extract update data
+            $political_functions = [];
+            $membership_type = $changed_membership->getCommittee()->getAttribute('type');
+            if ($membership_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
+                $political_functions = $this->extractPoliticalFunctions($changed_membership);
+            }
             $requested_membership = $model->getCommitteeMembership(
                 $changed_membership->getAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY));
             $new_description = $requested_membership->getAttribute('description');
             $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership->getAttribute('relationship_id'),
-                'description' => substr($new_description, 0, 255)
+                'description' => substr($new_description, 0, 255),
+                $political_functions_field => $political_functions
             ]);
             $this->log("Adjusted minor change for committee membership [{$changed_membership->getID()}].");
         }
@@ -1242,5 +1254,88 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     public function getFraktionName($party_name)
     {
         return E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $party_name]);
+    }
+
+    /**
+     * Get the (APIv3) field key for the function. Conditions
+     *   - custom field with the relationship
+     *   - based on the committee_functions option group
+     *   - allows multi-value entries
+     *
+     * @return string|null
+     *   field key or null to disable
+     */
+    public function getPoliticalFunctionCustomFieldKey()
+    {
+        static $field_key = null;
+        if (!$field_key) {
+            // look up / create
+            $custom_group_key = 'political_membership_additional';
+            $custom_field_key = 'committee_function';
+            $group_exists = CRM_Committees_CustomData::getGroupTable($custom_group_key);
+            if (!$group_exists) {
+                // create new custom group
+                $this->log("Creating new custom data structures for political memberships...");
+                $custom_data = new CRM_Committees_CustomData('de.systopia.committees');
+                $custom_data->syncOptionGroup(E::path('resources/OxfamSimpleSync/option_group_committee_function.json'));
+                $custom_data->syncCustomGroup(E::path('resources/OxfamSimpleSync/custom_group_political_membership_additional.json'));
+
+                // now, restrict custom field to the membership relationship (API doesn't do that)
+                $all_relationship_types = $this->getRoleToRelationshipTypeIdMapping();
+                // DOESN'T WORK: CRM_Core_DAO::setFieldValue('CRM_Core_BAO_CustomGroup', 'political_membership_additional', 'extends_entity_column_value', CRM_Utils_Array::implodePadded($all_relationship_types['Mitglied']), 'name');
+                CRM_Core_DAO::executeQuery(
+                    "UPDATE civicrm_custom_group SET extends_entity_column_value = %1 WHERE name = %2",
+                    [
+                        1 => [CRM_Utils_Array::implodePadded($all_relationship_types['Mitglied']), 'String'],
+                        2 => ['political_membership_additional', 'String'],
+                    ]
+                );
+            }
+            $field_key = CRM_Committees_CustomData::getCustomFieldKey($custom_group_key, $custom_field_key);
+            if (empty($field_key)) {
+                $this->logError(E::ts("Couldn't generate the custom data structures for political memberships"));
+            }
+        }
+        return $field_key;
+    }
+
+    /**
+     * Extract the political functions for the given membership
+     *
+     * @param CRM_Committees_Model_Membership $membership
+     *
+     * @return array
+     *   option group values
+     *
+     */
+    public function extractPoliticalFunctions($membership)
+    {
+        $functions = $membership->getAttribute('functions');
+        if (empty($functions) || !is_array($functions)) {
+            return [];
+        } else {
+            $values = [];
+            foreach ($functions as $function) {
+                $function = $this->normalisePoliticalFunction($function);
+                $option_value = $this->getOrCreateOptionValue(['label' => $function], 'committee_function');
+                $values[] = $option_value['value'];
+            }
+            return array_unique($values);
+        }
+    }
+
+    /**
+     * Normalise a political function name
+     *
+     * @param string $function
+     *   function name
+     *
+     * @return string
+     *   normalised (e.g. gendered) function name
+     */
+    public function normalisePoliticalFunction($function)
+    {
+        // todo:
+        return $function;
     }
 }
