@@ -1,6 +1,8 @@
 {
   "_lookup": ["name"],
   "name": "committee_function",
-  "label": "Committee Function",
+  "title": "Committee Function",
+  "is_reserved": "1",
+  "is_active": "1",
   "_values": []
 }

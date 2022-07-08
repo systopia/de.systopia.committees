@@ -1316,6 +1316,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         } else {
             $values = [];
             foreach ($functions as $function) {
+                if ($function == 'Mitglied') continue; // skip the basic membership relationship
                 $function = $this->normalisePoliticalFunction($function);
                 $option_value = $this->getOrCreateOptionValue(['label' => $function], 'committee_function');
                 $values[] = $option_value['value'];
@@ -1335,7 +1336,13 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      */
     public function normalisePoliticalFunction($function)
     {
-        // todo:
-        return $function;
+        // change the known patterns to gender-neutral titles
+        $function = preg_replace('/^(.+)(er|e) Sprecher(in)?$/', ' ${1}e*r Sprecher*in', $function);
+        $function = preg_replace('/Sprecher(in)? für/', 'Sprecher*in für', $function);
+        $function = preg_replace('/orsitzende(r)?/', 'sitzende*r', $function);
+        $function = preg_replace('/führer(in)?/', 'führer*in', $function);
+        $function = preg_replace('/sprecher(in)?/', 'sprecher*in', $function);
+
+        return trim($function);
     }
 }

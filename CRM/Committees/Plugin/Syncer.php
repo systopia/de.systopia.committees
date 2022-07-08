@@ -256,6 +256,7 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
         // make sure the option group is cached
         if (!isset($cached_option_groups[$option_group_id])) {
             // load the option group
+            $cached_option_groups[$option_group_id] = [];
             $query = civicrm_api3('OptionValue', 'get', [
                 'option.limit' => 0,
                 'option_group_id' => $option_group_id,
