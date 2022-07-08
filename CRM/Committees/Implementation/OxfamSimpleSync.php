@@ -172,7 +172,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
         // then compare to current model and apply changes
         $this->extractCurrentContacts($model, $present_model);
-        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title']);
+        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'elected_via']);
 
         // create missing contacts
         foreach ($new_persons as $new_person) {
