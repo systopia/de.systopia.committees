@@ -22,17 +22,28 @@ class CRM_Committees_CustomData {
   const CUSTOM_DATA_HELPER_LOG_ERROR = 5;
 
   /** caches custom field data, indexed by group name */
-  protected static $custom_group2name       = NULL;
-  protected static $custom_group2table_name = NULL;
-  protected static $custom_group_cache      = array();
-  protected static $custom_group_spec_cache = array();
-  protected static $custom_field_cache      = array();
+  protected static $custom_group2name       = null;
+  protected static $custom_group2table_name = null;
+  protected static $custom_group_cache      = [];
+  protected static $custom_group_spec_cache = [];
+  protected static $custom_field_cache      = [];
 
   protected $ts_domain = NULL;
   protected $version   = self::CUSTOM_DATA_HELPER_VERSION;
 
   public function __construct($ts_domain) {
     $this->ts_domain = $ts_domain;
+  }
+
+  /**
+   * Flush all internal caches
+   */
+  public static function flushCashes() {
+    self::$custom_group2name = null;
+    self::$custom_group2table_name = null;
+    self::$custom_group_cache = [];
+    self::$custom_group_spec_cache = [];
+    self::$custom_field_cache = [];
   }
 
   /**

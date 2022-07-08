@@ -70,9 +70,11 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'FUNKTION_AMT' => 'functions',
         'INTERNET' => 'websites',
         'NETZWERKE' => 'social_media',
+        'MITARBEITERPARL' => 'mop_staff',
+        'POSANREDE' => 'mop_salutation',
     ];
 
-    // todo: import bundestag
+    // todo: extract parliament from sources, instead of leaving this to the importer? is that possible?
 
     // location types
     const LOCATION_TYPE_BUNDESTAG = 'Bundestag'; // parliament
@@ -80,7 +82,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     const LOCATION_TYPE_WAHLKREIS = 'Wahlkreis'; // constituency
 
     // attribute mapping
-    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via'];
+    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via', 'mop_staff', 'mop_salutation'];
     const ADDRESS_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_name' => 'organization_name', 'parliament_street_address' => 'street_address', 'parliament_postal_code' => 'postal_code', 'parliament_city' => 'city', 'parliament_address_1' => 'supplemental_address_1'];
     const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
     const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];

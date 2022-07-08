@@ -98,7 +98,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     'committee_name' => $parliament_name,
                     'type' => self::COMMITTEE_TYPE_PARLIAMENT,
                     'role' => 'Mitglied',
-                    'description' => $person->getAttribute('elected_via')
+                    'description' => $person->getAttribute('elected_via'),
                 ]
             );
         }
@@ -139,7 +139,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $result = $this->callApi3('Contact', 'create', [
                     'organization_name' => $committee_name,
                     'contact_sub_type' => $this->getCommitteeSubType(),
-                    'contact_type' => 'Organization'
+                    'contact_type' => 'Organization',
                 ]);
                 $this->setIDTContactID($new_committee->getID(), $result['id'], self::ID_TRACKER_TYPE, $tracker_prefix);
                 $this->addContactToGroup($result['id'], $lobby_contact_group_id, true);
@@ -175,12 +175,16 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'elected_via']);
 
         // create missing contacts
+        $person_custom_field_mapping = $this->getPersonCustomFieldMapping($model);
         foreach ($new_persons as $new_person) {
             /** @var CRM_Committees_Model_Person $new_person */
             $person_data = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = $this->getContactType($person_data);
             $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
             $person_data['source'] = self::CONTACT_SOURCE . date('Y');
+            foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
+                $person_data[$contact_custom_field] = $new_person->getAttribute($person_property);
+            }
             $result = $this->callApi3('Contact', 'create', $person_data);
 
             // contact post-processing
@@ -198,12 +202,16 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($changed_persons as $current_person) {
             /** @var CRM_Committees_Model_Person $current_person */
             $person_update = [
-                'id' => $this->getIDTContactID($current_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX)
+                'id' => $this->getIDTContactID($current_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX),
             ];
             $differing_attributes = explode(',', $current_person->getAttribute('differing_attributes'));
             $changed_person = $model->getPerson($current_person->getID());
             foreach ($differing_attributes as $differing_attribute) {
                 $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
+            }
+            // all the custom data here can be blindly overridden
+            foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
+                $person_data[$contact_custom_field] = $changed_person->getAttribute($person_property);
             }
             $result = $this->callApi3('Contact', 'create', $person_update);
             $this->log("Kürschner Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
@@ -439,7 +447,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                 'is_active' => 1,
                 'description' => substr($new_membership->getAttribute('description'), 0, 255),
-                $political_functions_field => $political_functions
+                $political_functions_field => $political_functions,
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
         }
@@ -462,7 +470,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership->getAttribute('relationship_id'),
                 'description' => substr($new_description, 0, 255),
-                $political_functions_field => $political_functions
+                $political_functions_field => $political_functions,
             ]);
             $this->log("Adjusted minor change for committee membership [{$changed_membership->getID()}].");
         }
@@ -509,7 +517,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             'option.limit' => 0,
             'relationship_type_id' => ['IN' => $relationship_type_ids],
             //'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
-            'contact_id_b' => ['IN' => $all_committee_ids]
+            'contact_id_b' => ['IN' => $all_committee_ids],
         ]);
 
         // extract existing committee memberships
@@ -617,7 +625,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
              'name'       => $parliament_name,
              'type'       => self::COMMITTEE_TYPE_PARLIAMENT,
              'id'         => $parliament_identifier,
-             'contact_id' => $this->getParliamentContactID($requested_model)
+             'contact_id' => $this->getParliamentContactID($requested_model),
          ]);
     }
 
@@ -635,24 +643,30 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     {
         // add existing contacts
         $existing_contacts = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        $person_custom_field_mapping = $this->getPersonCustomFieldMapping($requested_model);
         if ($existing_contacts) {
             $contacts_found = $this->callApi3('Contact', 'get', [
                 'contact_type' => 'Individual',
                 'id' => ['IN' => array_keys($existing_contacts)],
-                'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id,suffix_id',
+                'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id,suffix_id,'
+                    . implode(',', $person_custom_field_mapping),
                 'option.limit' => 0,
             ]);
             foreach ($contacts_found['values'] as $contact_found) {
                 $present_contact_id = $existing_contacts[$contact_found['id']][0];
-                $present_model->addPerson([
-                      'id'           => substr($present_contact_id, strlen(self::ID_TRACKER_PREFIX)),
-                      'contact_id'   => $contact_found['id'],
-                      'first_name'   => $contact_found['first_name'],
-                      'last_name'    => $contact_found['last_name'],
-                      'gender_id'    => $contact_found['gender_id'],
-                      'prefix_id'    => $contact_found['prefix_id'],
-                      'suffix_id'    => $contact_found['suffix_id'],
-                  ]);
+                $existing_person = [
+                    'id'           => substr($present_contact_id, strlen(self::ID_TRACKER_PREFIX)),
+                    'contact_id'   => $contact_found['id'],
+                    'first_name'   => $contact_found['first_name'],
+                    'last_name'    => $contact_found['last_name'],
+                    'gender_id'    => $contact_found['gender_id'],
+                    'prefix_id'    => $contact_found['prefix_id'],
+                    'suffix_id'    => $contact_found['suffix_id'],
+                ];
+                foreach ($person_custom_field_mapping as $person_property => $custom_field) {
+                    $existing_person[$person_property] = $contact_found[$custom_field];
+                }
+                $present_model->addPerson($existing_person);
             }
         }
     }
@@ -765,7 +779,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // map
         $mapping = [
             'Frau' => 'Frau',
-            'Herrn' => 'Herr'
+            'Herrn' => 'Herr',
         ];
         if (isset($mapping[$prefix_id])) {
             $prefix_id = $mapping[$prefix_id];
@@ -792,7 +806,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // map
         $mapping = [
             'Frau' => 'Frau',
-            'Herrn' => 'Herr'
+            'Herrn' => 'Herr',
         ];
         if (isset($mapping[$prefix_id])) {
             $prefix_id = $mapping[$prefix_id];
@@ -819,7 +833,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // map
         $mapping = [
             'm' => 'männlich',
-            'w' => 'weiblich'
+            'w' => 'weiblich',
         ];
         if (isset($mapping[$gender_id])) {
             $gender_id = $mapping[$gender_id];
@@ -1257,6 +1271,49 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     }
 
     /**
+     * Get the custom field mapping for persons (individuals)
+     *
+     * @param CRM_Committees_Model_Model
+     *   model to be imported
+     *
+     * @return array
+     *  [person property => custom field key]
+     */
+    public function getPersonCustomFieldMapping($model)
+    {
+        static $mapping = null;
+
+        // check if they are present anywhere
+        $known_properties = ['mop_staff', 'mop_salutation'];
+        $known_properties_present = false;
+        /** @var CRM_Committees_Model_Model $model*/
+        foreach ($known_properties as $known_property) {
+            foreach ($model->getAllPersons() as $person) {
+                /** @var CRM_Committees_Model_Person $person*/
+                if ($person->getAttribute($known_property)) {
+                    $known_properties_present = true;
+                    break 2;
+                }
+            }
+        }
+
+        // if the properties for those custom fields are present
+        if ($known_properties_present) {
+            $custom_data = new CRM_Committees_CustomData('de.systopia.committees');
+            $custom_data->syncCustomGroup(E::path('resources/OxfamSimpleSync/custom_group_lobby_infos.json'));
+            $mapping = [
+                'lobby_infos.mop_salutation' => 'mop_salutation',
+                'lobby_infos.mop_staff' => 'mop_staff',
+            ];
+            CRM_Committees_CustomData::resolveCustomFields($mapping);
+            CRM_Committees_CustomData::flushCashes();;
+            $mapping = array_flip($mapping);
+        }
+
+        return $mapping;
+    }
+
+    /**
      * Get the (APIv3) field key for the function. Conditions
      *   - custom field with the relationship
      *   - based on the committee_functions option group
@@ -1290,6 +1347,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                         2 => ['political_membership_additional', 'String'],
                     ]
                 );
+                CRM_Committees_CustomData::flushCashes();
             }
             $field_key = CRM_Committees_CustomData::getCustomFieldKey($custom_group_key, $custom_field_key);
             if (empty($field_key)) {
