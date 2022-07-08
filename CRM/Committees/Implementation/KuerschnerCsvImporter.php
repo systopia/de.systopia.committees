@@ -458,16 +458,22 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      * @param string $requested_committee_type
      *   if given, only functions for this committee type are returned
      *
+     * @param array $function_ignore_list
+     *   list of functions to be ignored/stripped
+     *
      * @return array
      *   list of functions.
      */
-    protected function extractCommitteeFunctions($packed_function_string, $requested_committee_type = null)
+    protected function extractCommitteeFunctions($packed_function_string, $requested_committee_type = null, $function_ignore_list = [])
     {
         $committee_functions = [];
         $all_functions = $this->unpackCommittees($packed_function_string);
         foreach ($all_functions as [$committee, $function]) {
+            $committee = trim($committee);
             if ($requested_committee_type && $committee != $requested_committee_type) continue;
-            $committee_functions[] = trim($function);
+            $function = trim($function);
+            if (in_array($function, $function_ignore_list)) continue;
+            $committee_functions[] = $function;
         }
 
         return $committee_functions;

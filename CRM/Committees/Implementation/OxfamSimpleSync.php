@@ -393,7 +393,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $this->addCurrentMemberships($model, $present_model);
         //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
-        $ignore_attributes = ['committee_name', 'role', 'relationship_id']; // todo: fine-tune
+        $ignore_attributes = ['committee_name', 'role', 'relationship_id', 'relationship_type_id']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
@@ -526,7 +526,10 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $committee_fraktion_ID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_FRAKTION);
         $parliament_id = self::getParliamentContactID($requested_model);
         $parliament_identifier = reset($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_PARLIAMENT)[$parliament_id]);
+        $function_mapping = $this->getCurrentFunctions();
         foreach ($committee_query['values'] as $committee_relationship) {
+            CRM_Committees_CustomData::labelCustomFields($committee_relationship);
+
             // identify the committee type
             if ($committee_relationship['contact_id_b'] == $parliament_id) {
                 // this is the membership with the parliament itself
@@ -538,6 +541,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE;
                 // this must be a parliamentary group (fraktion)
             } else {
+                $committee_id = substr(reset($committee_fraktion_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_FRAKTION));
                 $committee_id = substr(reset($committee_fraktion_ID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::ID_TRACKER_PREFIX_FRAKTION));
                 $committee_type = CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP;
             }
@@ -551,7 +555,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $contact_id = $committee_relationship['contact_id_a'];
             $person_ids = $contactID_2_trackerIDs[$contact_id] ?? [];
             foreach ($person_ids as $person_id) {
-                $present_model->addCommitteeMembership([
+                $membership = $present_model->addCommitteeMembership([
                        'contact_id'           => substr($person_id, strlen(self::ID_TRACKER_PREFIX)),
                        'committee_id'         => $committee_id,
                        'committee_name'       => $committee->getAttribute('name'),
@@ -561,6 +565,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                        'relationship_id'      => $committee_relationship['id'],
                        'description'          => $committee_relationship['description'] ?? '',
                    ]);
+
+                // add the function for the parliamentary groups
+                if ($committee_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
+                    $functions = [];
+                    if (!empty($committee_relationship['political_membership_additional.committee_function'])) {
+                        foreach ($committee_relationship['political_membership_additional.committee_function'] as $function_key) {
+                            $functions[] = $function_mapping[$function_key];
+                        }
+                    }
+                    $membership->setAttribute('functions', $functions);
+                }
             }
         }
 
@@ -1355,6 +1370,22 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             }
         }
         return $field_key;
+    }
+
+    /**
+     * get the current list of entries in the committee_function list
+     *
+     * @return array|null
+     *   value => label
+     */
+    public function getCurrentFunctions()
+    {
+        $current_functions = [];
+        $query = CRM_Core_OptionValue::getValues(['name' => 'committee_function']);
+        foreach ($query as $value) {
+            $current_functions[$value['value']] = $value['label'];
+        }
+        return $current_functions;
     }
 
     /**

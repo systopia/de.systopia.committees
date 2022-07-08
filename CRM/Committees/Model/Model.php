@@ -752,7 +752,7 @@ class CRM_Committees_Model_Model
                 $diff = $our_entity->diff($other_entity, $ignore_attributes);
                 if (!empty($diff)) {
                     $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
-                    $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
+                    $our_entity->setAttribute('differing_values', $diff);
                     $our_entity->setAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY, $other_entity->getID());
                     $changed_entities[] = $our_entity;
                 }
