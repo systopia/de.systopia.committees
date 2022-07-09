@@ -380,14 +380,24 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         /**********************************************
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **********************************************/
-        // set the relationship types
+        // make sure the fields ar there
+        $political_functions_field = $this->getPoliticalFunctionCustomFieldKey();
+
+        // adjust memberships
         foreach ($model->getAllMemberships() as $membership) {
             /** @var $membership CRM_Committees_Model_Membership */
-            $membership->setAttribute('relationship_type_id', $this->getRelationshipTypeIdForMembership($membership));
-        }
 
-        // get custom fields
-        $political_functions_field = $this->getPoliticalFunctionCustomFieldKey();
+            // 1) set the relationship types
+            $membership->setAttribute('relationship_type_id', $this->getRelationshipTypeIdForMembership($membership));
+
+            // 2) adjust functions
+            if ($membership->getAttribute('functions')) {
+                // make sure the fields are there
+                $political_functions = $this->extractPoliticalFunctions($membership, false);
+
+                $membership->setAttribute('functions', $political_functions);
+            }
+        }
 
         // extract current memberships
         $this->addCurrentMemberships($model, $present_model);
@@ -437,7 +447,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 default:
                 case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP:
                     $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
-                    $political_functions = $this->extractPoliticalFunctions($new_membership);
+                    $political_functions = $new_membership->getAttribute('functions');
                     break;
             }
             $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
@@ -461,12 +471,16 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             // extract update data
             $political_functions = [];
             $membership_type = $changed_membership->getCommittee()->getAttribute('type');
-            if ($membership_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
-                $political_functions = $this->extractPoliticalFunctions($changed_membership);
-            }
+
+            // update description
             $requested_membership = $model->getCommitteeMembership(
                 $changed_membership->getAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY));
             $new_description = $requested_membership->getAttribute('description');
+
+            // update functions
+            if ($membership_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
+                $political_functions = $this->extractPoliticalFunctions($requested_membership);
+            }
             $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership->getAttribute('relationship_id'),
                 'description' => substr($new_description, 0, 255),
@@ -1397,20 +1411,27 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      *   option group values
      *
      */
-    public function extractPoliticalFunctions($membership)
+    public function extractPoliticalFunctions($membership, $return_values = true)
     {
         $functions = $membership->getAttribute('functions');
         if (empty($functions) || !is_array($functions)) {
             return [];
         } else {
             $values = [];
+            $function_list = [];
             foreach ($functions as $function) {
-                if ($function == 'Mitglied') continue; // skip the basic membership relationship
                 $function = $this->normalisePoliticalFunction($function);
+                // strip 'Mitglied' from the functions
+                if ($function == 'Mitglied') continue;
                 $option_value = $this->getOrCreateOptionValue(['label' => $function], 'committee_function');
                 $values[] = $option_value['value'];
+                $function_list[] = $function;
             }
-            return array_unique($values);
+            if ($return_values) {
+                return array_unique($values);
+            } else {
+                return $function_list;
+            }
         }
     }
 
