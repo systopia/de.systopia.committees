@@ -182,8 +182,10 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $person_data['contact_type'] = $this->getContactType($person_data);
             $person_data['contact_sub_type'] = $this->getContactSubType($person_data);
             $person_data['source'] = self::CONTACT_SOURCE . date('Y');
-            foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
-                $person_data[$contact_custom_field] = $new_person->getAttribute($person_property);
+            if ($person_custom_field_mapping) {
+                foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
+                    $person_data[$contact_custom_field] = $new_person->getAttribute($person_property);
+                }
             }
             $result = $this->callApi3('Contact', 'create', $person_data);
 
@@ -1310,7 +1312,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      */
     public function getPersonCustomFieldMapping($model)
     {
-        static $mapping = null;
+        static $mapping = [];
 
         // check if they are present anywhere
         $known_properties = ['mop_staff', 'mop_salutation'];
@@ -1395,8 +1397,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     public function getCurrentFunctions()
     {
         $current_functions = [];
-        $query = CRM_Core_OptionValue::getValues(['name' => 'committee_function']);
-        foreach ($query as $value) {
+        $values = [];
+        CRM_Core_OptionValue::getValues(['name' => 'committee_function'], $values);
+        foreach ($values as $value) {
             $current_functions[$value['value']] = $value['label'];
         }
         return $current_functions;
