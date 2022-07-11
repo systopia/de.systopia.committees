@@ -43,6 +43,42 @@ class CRM_Committees_MultirunTest extends CRM_Committees_TestBase
     }
 
     /**
+     * Test the basic file format described in the docs
+     */
+    public function testFileFormat01()
+    {
+        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+        // run the importer
+        list($importer, $syncer) =
+            $this->sync(
+                'de.oxfam.kuerschner.syncer.bund',
+                'de.oxfam.kuerschner',
+                E::path('tests/resources/kuerschner/bundestag-02.csv')
+            );
+    }
+
+    /**
+     * Test the file format with the functions and staff fields
+     *
+     * @see https://projekte.systopia.de/issues/18225
+     */
+    public function testFileFormat02()
+    {
+        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+        // run the importer
+        list($importer, $syncer) =
+            $this->sync(
+                'de.oxfam.kuerschner.syncer.bund',
+                'de.oxfam.kuerschner',
+                E::path('tests/resources/kuerschner/bundestag-03_extd.csv')
+            );
+    }
+
+    /**
      * Just load a minimal import file and check if the data is present
      */
     public function testUpdateFileImport()
