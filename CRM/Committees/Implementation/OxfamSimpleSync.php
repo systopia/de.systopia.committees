@@ -1333,8 +1333,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $custom_data = new CRM_Committees_CustomData('de.systopia.committees');
             $custom_data->syncCustomGroup(E::path('resources/OxfamSimpleSync/custom_group_lobby_infos.json'));
             $mapping = [
-                'lobby_infos.mop_salutation' => 'mop_salutation',
-                'lobby_infos.mop_staff' => 'mop_staff',
+                'Lobby_Infos.mop_salutation' => 'mop_salutation',
+                'Lobby_Infos.mop_staff' => 'mop_staff',
             ];
             CRM_Committees_CustomData::resolveCustomFields($mapping);
             CRM_Committees_CustomData::flushCashes();;

@@ -1,7 +1,7 @@
 {
   "_lookup": ["name"],
   "_translate": ["title"],
-  "name": "lobby_infos",
+  "name": "Lobby_Infos",
   "title": "Lobby-Infos",
   "extends": "Contact",
   "collapse_display": "0",
