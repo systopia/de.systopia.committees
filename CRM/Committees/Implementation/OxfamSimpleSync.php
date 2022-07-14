@@ -528,11 +528,15 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         $committee_ids = array_keys($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_COMMITTEE));
         $all_committee_ids = array_merge($parliament_ids, $fraction_ids, $committee_ids);
 
+        // get the current mop contacts
+        $all_mop_ids = array_keys($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX));
+
         // get the current memberships of these committees
         $committee_query = civicrm_api3('Relationship', 'get', [
             'option.limit' => 0,
             'relationship_type_id' => ['IN' => $relationship_type_ids],
             //'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
+            'contact_id_a' => ['IN' => $all_mop_ids],
             'contact_id_b' => ['IN' => $all_committee_ids],
         ]);
 
@@ -1246,7 +1250,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'Individual',
                 'Organization',
                 null,
-                $this->getCommitteeSubType(),
+                null,  // Oxfam uses this type outside this context, see #18741
                 ""
             );
 
