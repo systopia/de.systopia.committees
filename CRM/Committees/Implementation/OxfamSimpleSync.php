@@ -1449,12 +1449,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      */
     public function normalisePoliticalFunction($function)
     {
-        // change the known patterns to gender-neutral titles
-        $function = preg_replace('/^(.+)(er|e) Sprecher(in)?$/', ' ${1}e*r Sprecher*in', $function);
-        $function = preg_replace('/Sprecher(in)? für/', 'Sprecher*in für', $function);
-        $function = preg_replace('/orsitzende(r)?/', 'sitzende*r', $function);
-        $function = preg_replace('/führer(in)?/', 'führer*in', $function);
-        $function = preg_replace('/sprecher(in)?/', 'sprecher*in', $function);
+        if (preg_match('/\*(in|r)/', $function)) {
+            // in order to not make it too complicated, we'll assume it's already been normalised when
+            //  '*r' '*in' are already contained. nothing to do here
+        }  else {
+            // change the known patterns to gender-neutral titles
+            $function = preg_replace('/^(.+)(er|e) Sprecher(in)?$/', ' ${1}e*r Sprecher*in', $function);
+            $function = preg_replace('/Sprecher(in)? für/', 'Sprecher*in für', $function);
+            $function = preg_replace('/orsitzende(r)?/', 'sitzende*r', $function);
+            $function = preg_replace('/führer(in)?/', 'führer*in', $function);
+            $function = preg_replace('/sprecher(in)?/', 'sprecher*in', $function);
+        }
 
         return trim($function);
     }
