@@ -213,7 +213,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             }
             // all the custom data here can be blindly overridden
             foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
-                $person_data[$contact_custom_field] = $changed_person->getAttribute($person_property);
+                $person_update[$contact_custom_field] = $changed_person->getAttribute($person_property);
             }
             $result = $this->callApi3('Contact', 'create', $person_update);
             $this->log("Kürschner Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
