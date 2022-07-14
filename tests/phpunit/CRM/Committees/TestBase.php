@@ -52,7 +52,11 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
 
     public function tearDown()
     {
+        CRM_Committees_CustomData::flushCashes();
         $this->deleteAllContacts();
+        $this->clearIdTracker();
+        CRM_Committees_Tools_IdTrackerTrait::clearCaches();
+        Civi::cache()->clear();
         parent::tearDown();
     }
 
@@ -136,9 +140,17 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
             ['option.limit' => 0, 'return' => 'id']
         );
         foreach ($all_contacts['values'] as $contact) {
-            if ($contact['id'] > 2) {
-                $this->traitCallAPISuccess('Contact', 'delete', ['id' => $contact['id']]);
-            }
+            $this->traitCallAPISuccess('Contact', 'delete', ['id' => $contact['id']]);
         }
+    }
+
+    /**
+     * Delete all entries in the ID tracker table
+     *
+     * @return void
+     */
+    public function clearIdTracker()
+    {
+        CRM_Core_DAO::executeQuery("DELETE FROM " . CRM_Identitytracker_Configuration::GROUP_TABLE);
     }
 }
