@@ -1207,44 +1207,44 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
 
             // create relationship types
             $chairperson_relationship = $this->createRelationshipTypeIfNotExists(
-                'is_committee_chairperson_of',
-                'has_committee_chairperson',
+                'is_chairperson_of',
+                'has_chairperson',
                 "Vorsitzende*r von",
                 "Vorsitzende*r ist",
                 'Individual',
                 'Organization',
                 null,
-                $this->getCommitteeSubType(),
+                null,
                 ""
             );
 
             $deputy_chairperson_relationship = $this->createRelationshipTypeIfNotExists(
-                'is_committee_deputy_chairperson_of',
-                'has_committee_deputy_chairperson',
+                'is_deputy_chairperson_of',
+                'has_deputy_chairperson',
                 "stellv. Vorsitzende*r von",
                 "stellv. Vorsitzende*r ist",
                 'Individual',
                 'Organization',
                 null,
-                $this->getCommitteeSubType(),
+                null,
                 ""
             );
 
             $obperson_relationship = $this->createRelationshipTypeIfNotExists(
-                'is_committee_obperson_of',
-                'has_committee_obperson',
+                'is_obperson_of',
+                'has_obperson',
                 "Obperson von",
                 "Obperson ist",
                 'Individual',
                 'Organization',
                 null,
-                $this->getCommitteeSubType(),
+                null,
                 ""
             );
 
             $member_relationship = $this->createRelationshipTypeIfNotExists(
-                'is_committee_member_of',
-                'has_committee_member',
+                'is_member_of',
+                'has_member',
                 "Mitglied von",
                 "Mitglied ist",
                 'Individual',
@@ -1255,26 +1255,26 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             );
 
             $deputy_member_relationship = $this->createRelationshipTypeIfNotExists(
-                'is_committee_deputy_member_of',
-                'has_committee_deputy_member',
+                'is_deputy_member_of',
+                'has_deputy_member',
                 "stellv. Mitglied von",
                 "stellv. Mitglied ist",
                 'Individual',
                 'Organization',
                 null,
-                $this->getCommitteeSubType(),
+                null,
                 ""
             );
 
             $consulting_member_relationship = $this->createRelationshipTypeIfNotExists(
-                'is_committee_consulting_member_of',
-                'has_committee_consulting_member',
+                'is_consulting_member_of',
+                'has_consulting_member',
                 "beratendes Mitglied von",
                 "beratendes Mitglied ist",
                 'Individual',
                 'Organization',
                 null,
-                $this->getCommitteeSubType(),
+                null,
                 ""
             );
 
