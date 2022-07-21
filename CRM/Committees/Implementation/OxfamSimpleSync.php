@@ -491,7 +491,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 'description' => substr($new_description, 0, 255),
                 $political_functions_field => $political_functions,
             ]);
-            $this->log("Adjusted minor change for committee membership [{$changed_membership->getID()}].");
+            $this->log("Adjusted minor change for committee membership [#{$changed_membership->getAttribute('relationship_id')}].");
         }
 
         // THAT'S IT, WE'RE DONE
