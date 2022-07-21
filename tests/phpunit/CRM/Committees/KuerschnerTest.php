@@ -100,7 +100,7 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
                 E::path(FILE_WITHOUT_TITLE_AND_STAFF)
             );
 
-        // get the filed names
+        // get the field names
         CRM_Committees_CustomData::flushCashes();
         $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
         $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
@@ -116,9 +116,9 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
         );
 
         $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation field');
-        $this->assertEmpty($mop[$mop_salutation_field], 'This contact should not have the salutation set');
+        $this->assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
         $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff field');
-        $this->assertEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
+        $this->assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
     }
 
     /**
