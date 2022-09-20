@@ -396,6 +396,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             if ($membership->getAttribute('functions')) {
                 // make sure the fields are there
                 $political_functions = $this->extractPoliticalFunctions($membership, false);
+                sort($political_functions);
 
                 $membership->setAttribute('functions', $political_functions);
             }
@@ -450,6 +451,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP:
                     $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
                     $political_functions = $new_membership->getAttribute('functions');
+                    sort($political_functions);
                     break;
             }
             $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
@@ -482,13 +484,14 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             // update functions
             if ($membership_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
                 $political_functions = $this->extractPoliticalFunctions($requested_membership);
+                sort($political_functions);
             }
             $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership->getAttribute('relationship_id'),
                 'description' => substr($new_description, 0, 255),
                 $political_functions_field => $political_functions,
             ]);
-            $this->log("Adjusted minor change for committee membership [{$changed_membership->getID()}].");
+            $this->log("Adjusted minor change for committee membership [#{$changed_membership->getAttribute('relationship_id')}].");
         }
 
         // THAT'S IT, WE'RE DONE
@@ -594,6 +597,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                             $functions[] = $function_mapping[$function_key];
                         }
                     }
+                    sort($functions);
                     $membership->setAttribute('functions', $functions);
                 }
             }
