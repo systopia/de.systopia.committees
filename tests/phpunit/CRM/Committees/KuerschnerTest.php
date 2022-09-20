@@ -20,6 +20,8 @@ use CRM_Committees_ExtensionUtil as E;
 
 const FILE_WITH_TITLE_AND_STAFF =  'tests/resources/kuerschner/bundestag-04-01.csv';
 const FILE_WITHOUT_TITLE_AND_STAFF =  'tests/resources/kuerschner/bundestag-04-02.csv';
+const FILE_WITH_MOP_WITH_STAFF =  'tests/resources/kuerschner/bundestag-05-01.csv';
+const FILE_WITHOUT_MOP =  'tests/resources/kuerschner/bundestag-05-02.csv';
 
 /**
  * First simple tests about the committee extension
@@ -191,6 +193,79 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
         $this->assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
         $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff key');
         $this->assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
+
+    }
+
+    /**
+     * Make sure that the contact's
+     */
+    public function testDataWipedWhenMemberLeftParliament()
+    {
+        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+        // IMPORT THE FIRST FILE (with staff)
+        [$importer, $syncer] =
+            $this->sync(
+                'de.oxfam.kuerschner.syncer.bund',
+                'de.oxfam.kuerschner',
+                E::path(FILE_WITH_MOP_WITH_STAFF)
+            );
+
+        // make sure staff is there
+        CRM_Committees_CustomData::flushCashes();
+        $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
+        $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
+
+        // load the contact
+        $mop_id = $syncer->getIDTContactID(
+            12995,
+            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
+            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+        );
+        $mop = $this->traitCallAPISuccess(
+            'Contact',
+            'getsingle',
+            [
+                'id' => $mop_id,
+                'return' => [$mop_salutation_field, $mop_staff_field]
+            ]
+        );
+
+        $current_salutation_value = $mop[$mop_salutation_field] ?? '';
+        $this->assertNotEmpty($current_salutation_value, "This MOP should have a title.");
+        $current_staff_value = $mop[$mop_staff_field] ?? '';
+        $this->assertNotEmpty($current_staff_value, "This MOP should have staff.");
+
+
+        // IMPORT THE SECOND FILE, DISABLE THEM (not there)
+        [$importer, $syncer] =
+            $this->sync(
+                'de.oxfam.kuerschner.syncer.bund',
+                'de.oxfam.kuerschner',
+                E::path(FILE_WITHOUT_MOP)
+            );
+        CRM_Committees_CustomData::flushCashes();
+
+        // load the contact
+        $mop_id = $syncer->getIDTContactID(
+            12995,
+            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
+            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+        );
+        $mop = $this->traitCallAPISuccess(
+            'Contact',
+            'getsingle',
+            [
+                'id' => $mop_id,
+                'return' => [$mop_salutation_field, $mop_staff_field]
+            ]
+        );
+
+        $current_salutation_value = $mop[$mop_salutation_field] ?? '';
+        $this->assertEmpty($current_salutation_value, "This the salutation should've been cleared after the member left the parliament.");
+        $current_staff_value = $mop[$mop_staff_field] ?? '';
+        $this->assertEmpty($current_staff_value, "This the staff should've been cleared after the member left the parliament.");
 
     }
 }

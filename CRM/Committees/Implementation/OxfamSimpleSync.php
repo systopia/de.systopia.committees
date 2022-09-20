@@ -223,6 +223,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
             $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted.");
+            // clear lobby data from obsolete persons
+            foreach ($obsolete_persons as $obsolete_person) {
+                /** @var CRM_Committees_Model_Person $obsolete_person */
+                $person_wipe = [
+                    'id' => $this->getIDTContactID($obsolete_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX),
+                    'Lobby_Infos.mop_salutation' => '',
+                    'Lobby_Infos.mop_staff' => '',
+                ];
+                CRM_Committees_CustomData::resolveCustomFields($person_wipe);
+                $this->callApi3('Contact', 'create', $person_wipe);
+            }
         }
 
         /**********************************************
