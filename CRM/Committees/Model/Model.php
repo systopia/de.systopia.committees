@@ -21,6 +21,9 @@ class CRM_Committees_Model_Model
     /** @var string default separated to be used for compound keys */
     const DEFAULT_KEY_SEPARATOR = '::';
 
+    /** @var string default separated to be used for compound keys */
+    const CORRESPONDING_ENTITY_ID_KEY = '_corresponding_entity_id';
+
     /** @var array model properties */
     protected $model_properties = [];
 
@@ -41,6 +44,9 @@ class CRM_Committees_Model_Model
 
     /** @var array list of emails, indexed by its ID */
     protected $emails = [];
+
+    /** @var array list of urls, indexed by its ID */
+    protected $urls = [];
 
     /**
      * Get a property from the given model
@@ -155,6 +161,26 @@ class CRM_Committees_Model_Model
         }
         // todo: validation?
         $this->emails[$data->getID()] = $data;
+        return $data;
+    }
+
+    /**
+     * Add a new url to the model
+     *
+     * Possible attributes:
+     *  'id'              => url ID
+     *  'contact_id'      => person or organisation ID
+     *  'url'             => the url
+     *  'type'            => url type
+     *
+     * @param array|CRM_Committees_Model_Url $data
+     */
+    public function addUrl($data)
+    {
+        if (is_array($data)) {
+            $data = new CRM_Committees_Model_Url($this, $data);
+        }
+        $this->urls[$data->getID()] = $data;
         return $data;
     }
 
@@ -350,6 +376,35 @@ class CRM_Committees_Model_Model
     }
 
     /**
+     * Diff the urls of this model against another i.e. identify the ones:
+     *   that are new, that have been changed, that ore obsolete
+     *
+     * @param $model CRM_Committees_Model_Model
+     *   the model to compare with
+     *
+     * @param array $ignore_attributes
+     *   list of entity attributes to ignore
+     *
+     * @param array $id_properties
+     *   list of entity attributes used to define equality
+     *   default is ['url', 'contact_id']
+     *
+     * @return array of arrays:
+     *  [
+     *      new entities (only in other model),
+     *      entities changed (with additional attribute 'differing_attributes'),
+     *      entities missing (only in this model)
+     *  ]
+     */
+    public function diffUrls(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
+    {
+        if (!$id_properties) {
+            $id_properties = ['url', 'contact_id'];
+        }
+        return $this->diffEntities($model, 'urls', $id_properties, $ignore_attributes);
+    }
+
+    /**
      * Diff the phones of this model against another i.e. identify the ones:
      *   that are new, that have been changed, that ore obsolete
      *
@@ -486,6 +541,16 @@ class CRM_Committees_Model_Model
     public function getAllEmails()
     {
         return $this->emails;
+    }
+
+    /**
+     * Get a list of all urls
+     *
+     * @return array
+     */
+    public function getAllUrls()
+    {
+        return $this->urls;
     }
 
     /**
@@ -681,9 +746,14 @@ class CRM_Committees_Model_Model
             /** @var CRM_Committees_Model_Entity $our_entity */
             if (isset($other_entities[$our_entity_key])) {
                 // there is another entity with the same id
-                $diff = $our_entity->diff($other_entities[$our_entity_key], $ignore_attributes);
+                /** @var CRM_Committees_Model_Entity $other_entity */
+                $other_entity = $other_entities[$our_entity_key];
+                $other_entity_id = $other_entity->getID();
+                $diff = $our_entity->diff($other_entity, $ignore_attributes);
                 if (!empty($diff)) {
                     $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
+                    $our_entity->setAttribute('differing_values', $diff);
+                    $our_entity->setAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY, $other_entity->getID());
                     $changed_entities[] = $our_entity;
                 }
                 unset($other_entities[$our_entity_key]);

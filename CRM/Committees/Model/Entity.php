@@ -112,9 +112,9 @@ abstract class CRM_Committees_Model_Entity
      *
      * @param string $attribute_name
      *
-     * @param string $value
+     * @param string|array $value
      */
-    public function setAttribute(string $attribute_name, string $value)
+    public function setAttribute(string $attribute_name, $value)
     {
         $this->attributes[$attribute_name] = $value;
     }

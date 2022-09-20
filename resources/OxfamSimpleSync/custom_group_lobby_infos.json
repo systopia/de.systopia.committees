@@ -1,0 +1,50 @@
+{
+  "_lookup": ["name"],
+  "_translate": ["title"],
+  "name": "Lobby_Infos",
+  "title": "Lobby-Infos",
+  "extends": "Contact",
+  "collapse_display": "0",
+  "is_active": "1",
+  "is_multiple": "0",
+  "style": "Inline",
+  "table_name": "civicrm_value_lobby_infos",
+  "collapse_adv_display": "1",
+  "is_reserved": "0",
+  "_fields": [
+    {
+      "_lookup": ["column_name"],
+      "_translate": ["label"],
+      "name": "mop_salutation",
+      "column_name": "mop_salutation",
+      "label": "Positionsanrede",
+      "data_type": "Memo",
+      "html_type": "TextArea",
+      "is_required": "0",
+      "is_searchable": "1",
+      "is_search_range": "0",
+      "is_active": "1",
+      "note_columns": "60",
+      "note_rows": "6",
+      "is_view": "1",
+      "in_selector": "1"
+    },
+    {
+      "_lookup": ["column_name"],
+      "_translate": ["label"],
+      "name": "mop_staff",
+      "column_name": "mop_staff",
+      "label": "Mitarbeiter*innen Parlament",
+      "data_type": "Memo",
+      "html_type": "TextArea",
+      "is_required": "0",
+      "is_searchable": "1",
+      "is_search_range": "0",
+      "is_active": "1",
+      "note_columns": "60",
+      "note_rows": "6",
+      "is_view": "1",
+      "in_selector": "1"
+    }
+  ]
+}

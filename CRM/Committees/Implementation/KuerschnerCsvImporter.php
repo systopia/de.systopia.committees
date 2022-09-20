@@ -66,9 +66,15 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'EUMITGLIEDSLANDWK' => 'NOT USED',
         'TELEFONVORWAHLWK' => 'constituency_phone_prefix',
         'TELEFONNUMMERWK' => 'constituency_phone',
+        'GEWAEHLT' => 'elected_via',
+        'FUNKTION_AMT' => 'functions',
+        'INTERNET' => 'websites',
+        'NETZWERKE' => 'social_media',
+        'MITARBEITERPARL' => 'mop_staff',
+        'POSANREDE' => 'mop_salutation',
     ];
 
-    // todo: import bundestag
+    // todo: extract parliament from sources, instead of leaving this to the importer? is that possible?
 
     // location types
     const LOCATION_TYPE_BUNDESTAG = 'Bundestag'; // parliament
@@ -76,7 +82,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     const LOCATION_TYPE_WAHLKREIS = 'Wahlkreis'; // constituency
 
     // attribute mapping
-    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id'];
+    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via', 'mop_staff', 'mop_salutation'];
     const ADDRESS_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_name' => 'organization_name', 'parliament_street_address' => 'street_address', 'parliament_postal_code' => 'postal_code', 'parliament_city' => 'city', 'parliament_address_1' => 'supplemental_address_1'];
     const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
     const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];
@@ -249,10 +255,48 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 $phone['location_type'] = self::LOCATION_TYPE_WAHLKREIS;
                 $this->model->addPhone($phone);
             }
+
+            /**************************************
+             **       PERSONAL CONTACT DATA      **
+             **************************************/
+
+            // extract websites
+            if (!empty($record['websites'])) {
+                $websites = preg_split('/[\n ,]+/', $record['websites']);
+                foreach ($websites as $website) {
+                    $this->model->addUrl([
+                         'url' => $website,
+                         'contact_id' => $record['id'],
+                         'website_type' => CRM_Committees_Model_Url::URL_TYPE_WEBSITE
+                     ]);
+                }
+            }
+            // extract social media
+            if (!empty($record['social_media'])) {
+                $social_media = preg_split('/[\n ,]+/', $record['social_media']);
+                foreach ($social_media as $social_media_url) {
+                    // detect type
+                    $social_media_type = CRM_Committees_Model_Url::URL_TYPE_WEBSITE;
+                    if (preg_match('/twitter/', $social_media_url)) {
+                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER;
+                    } elseif (preg_match('/facebook/', $social_media_url)) {
+                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK;
+                    } elseif (preg_match('/instagram/', $social_media_url)) {
+                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM;
+                    }
+                    // add to model
+                    $this->model->addUrl([
+                         'url' => $social_media_url,
+                         'contact_id' => $record['id'],
+                         'website_type' => $social_media_type
+                     ]);
+                }
+            }
         }
         $this->log(count($this->model->getAllPersons()) . " individuals extracted.");
         $this->log(count($this->model->getAllAddresses()) . " addresses extracted.");
         $this->log(count($this->model->getAllPhones()) . " phone numbers extracted.");
+        $this->log(count($this->model->getAllUrls()) . " websites/urls extracted.");
 
 
         /**************************************
@@ -337,6 +381,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                         'committee_name' => $parliamentary_group_name,
                         'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
                         'role' => 'Mitglied',
+                        'functions' => $this->extractCommitteeFunctions($record['functions'], 'Fraktion'),
                     ]
                 );
             }
@@ -402,5 +447,35 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             }
         }
         return $committee2function;
+    }
+
+    /**
+     * Extract the committee functions for the given row
+     *
+     * @param string $packed_function_string
+     *   the (packed) string of functions
+     *
+     * @param string $requested_committee_type
+     *   if given, only functions for this committee type are returned
+     *
+     * @param array $function_ignore_list
+     *   list of functions to be ignored/stripped
+     *
+     * @return array
+     *   list of functions.
+     */
+    protected function extractCommitteeFunctions($packed_function_string, $requested_committee_type = null, $function_ignore_list = [])
+    {
+        $committee_functions = [];
+        $all_functions = $this->unpackCommittees($packed_function_string);
+        foreach ($all_functions as [$committee, $function]) {
+            $committee = trim($committee);
+            if ($requested_committee_type && $committee != $requested_committee_type) continue;
+            $function = trim($function);
+            if (in_array($function, $function_ignore_list)) continue;
+            $committee_functions[] = $function;
+        }
+
+        return $committee_functions;
     }
 }

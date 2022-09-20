@@ -1,0 +1,32 @@
+{
+  "_lookup": ["name"],
+  "_translate": ["title"],
+  "name": "political_membership_additional",
+  "title": "Political Membership Additional Data",
+  "extends": "Relationship",
+  "collapse_display": "0",
+  "is_active": "1",
+  "is_multiple": "0",
+  "style": "Inline",
+  "table_name": "civicrm_value_political_membership_additions",
+  "collapse_adv_display": "1",
+  "is_reserved": "0",
+  "_fields": [
+    {
+      "_lookup": ["column_name"],
+      "_translate": ["label"],
+      "name": "committee_function",
+      "column_name": "committee_function",
+      "label": "Committee Function",
+      "data_type": "String",
+      "html_type": "Multi-Select",
+      "option_group_id": "committee_function",
+      "is_required": "0",
+      "is_searchable": "1",
+      "is_search_range": "0",
+      "is_active": "1",
+      "is_view": "0",
+      "in_selector": "1"
+    }
+  ]
+}
