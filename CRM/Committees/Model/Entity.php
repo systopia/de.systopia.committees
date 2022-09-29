@@ -171,7 +171,14 @@ abstract class CRM_Committees_Model_Entity
             $this_value = $this_entity_data[$attribute] ?? '';
             $other_value = $other_entity_data[$attribute] ?? '';
             if ($this_value !== $other_value) {
-                $diff[$attribute] = [$this_value, $other_value];
+                // make sure numeric values are compared by value
+                if (is_numeric($this_value) && is_numeric($other_value)) {
+                    if ($this_value != $other_value) {
+                        $diff[$attribute] = [$this_value, $other_value];
+                    }
+                } else {
+                    $diff[$attribute] = [$this_value, $other_value];
+                }
             }
         }
 
