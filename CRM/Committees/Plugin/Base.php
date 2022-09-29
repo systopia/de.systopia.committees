@@ -183,6 +183,22 @@ abstract class CRM_Committees_Plugin_Base
     }
 
     /**
+     * Check if this system is currently run by unit tests
+     *
+     * @note CAREFUL this should *not* be used for any functional differences
+     *
+     * @return bool
+     */
+    public function isUnitTest()
+    {
+        static $is_unit_test = null;
+        if ($is_unit_test === null) {
+            $is_unit_test = (strpos($_SERVER['argv'][0], 'phpunit') !== FALSE);
+        }
+        return $is_unit_test;
+    }
+
+    /**
      * Log a general message to the process log file
      *
      * @param string $message
@@ -201,11 +217,19 @@ abstract class CRM_Committees_Plugin_Base
             case 'info':
             case 'warning':
                 $this->log2file($message, $level);
+                if ($this->isUnitTest()) {
+                    // also log to console during unit tests
+                    print_r($message . "\n");
+                }
                 break;
 
             case 'error':
                 $this->log2file($message, $level);
                 Civi::log()->error($message);
+                if ($this->isUnitTest()) {
+                    // also log to console during unit tests
+                    print_r("ERROR: " . $message . "\n");
+                }
                 break;
         }
     }
