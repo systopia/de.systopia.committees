@@ -19,6 +19,25 @@
 class CRM_Committees_Model_Membership extends CRM_Committees_Model_Entity
 {
     /**
+     * Create a new object with the data
+     *
+     * @param CRM_Committees_Model_Model $model
+     *    the model this entity belongs to
+     *
+     * @param array $data
+     *  data as a named array of attributes
+     */
+    public function __construct($model, $data)
+    {
+        if (!isset($data['is_active'])) {
+            // set is_active as default, if omitted
+            $data['is_active'] = "1";
+        }
+        parent::__construct($model, $data);
+    }
+
+
+    /**
      * Validate the given values
      *
      * @throws Exception

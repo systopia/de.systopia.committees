@@ -197,7 +197,7 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
     }
 
     /**
-     * Make sure that the contact's MOP additional data is wiped when leaving the parliament
+     * Make sure that the contact's MOP aditional data is wiped when leaving the parliament
      *
      * @see https://projekte.systopia.de/issues/18225#Zu-Punkt-56
      */
