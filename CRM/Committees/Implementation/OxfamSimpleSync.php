@@ -223,6 +223,17 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
             $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted.");
+            // clear lobby data from obsolete persons
+            foreach ($obsolete_persons as $obsolete_person) {
+                /** @var CRM_Committees_Model_Person $obsolete_person */
+                $person_wipe = [
+                    'id' => $this->getIDTContactID($obsolete_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX),
+                    'Lobby_Infos.mop_salutation' => '',
+                    'Lobby_Infos.mop_staff' => '',
+                ];
+                CRM_Committees_CustomData::resolveCustomFields($person_wipe);
+                $this->callApi3('Contact', 'create', $person_wipe);
+            }
         }
 
         /**********************************************
@@ -389,8 +400,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($model->getAllMemberships() as $membership) {
             /** @var $membership CRM_Committees_Model_Membership */
 
-            // 1) set the relationship types
+            // 1) set the relationship types (and consider active)
             $membership->setAttribute('relationship_type_id', $this->getRelationshipTypeIdForMembership($membership));
+            $membership->setAttribute('is_active', 1);
 
             // 2) adjust functions
             if ($membership->getAttribute('functions')) {
@@ -489,6 +501,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $this->callApi3('Relationship', 'create', [
                 'id' => $changed_membership->getAttribute('relationship_id'),
                 'description' => substr($new_description, 0, 255),
+                'is_active' => $requested_membership->getAttribute('is_active'),
                 $political_functions_field => $political_functions,
             ]);
             $this->log("Adjusted minor change for committee membership [#{$changed_membership->getAttribute('relationship_id')}].");
@@ -584,6 +597,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                        'committee_name'       => $committee->getAttribute('name'),
                        'type'                 => $committee_type,
                        'role'                 => $committee_relationship['description'] ?? '',
+                       'is_active'            => $committee_relationship['is_active'] ?? 0,
                        'relationship_type_id' => $committee_relationship['relationship_type_id'],
                        'relationship_id'      => $committee_relationship['id'],
                        'description'          => $committee_relationship['description'] ?? '',
@@ -985,7 +999,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      *
      * @return int
      */
-    protected function getParliamentContactID($model = null)
+    public function getParliamentContactID($model = null)
     {
         static $parliament_id = null;
         if (!$parliament_id) {
@@ -1203,7 +1217,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      * @return array
      *   role name to relationship type ID
      */
-    protected function getRoleToRelationshipTypeIdMapping() : array
+    public function getRoleToRelationshipTypeIdMapping() : array
     {
         static $role2relationship_type = null;
         if ($role2relationship_type === null) {
