@@ -193,7 +193,7 @@ abstract class CRM_Committees_Plugin_Base
     {
         static $is_unit_test = null;
         if ($is_unit_test === null) {
-            $is_unit_test = (strpos($_SERVER['argv'][0], 'phpunit') !== FALSE);
+            $is_unit_test = (strpos($_SERVER['argv'][0] ?? '', 'phpunit') !== FALSE);
         }
         return $is_unit_test;
     }
