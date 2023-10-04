@@ -16,14 +16,14 @@
 
 namespace Civi;
 
-use Symfony\Component\EventDispatcher\Event;
+use \Civi\Core\Event\GenericHookEvent;
 
 /**
  * Class CommitteeModuleSurvey
  *
  * Abstract event class to provide some basic functions
  */
-class CommitteeModuleSurvey extends Event
+class CommitteeModuleSurvey extends GenericHookEvent
 {
     /** Symfony event name for the module registration */
     const EVENT_NAME = 'civi.committees.register_modules';
