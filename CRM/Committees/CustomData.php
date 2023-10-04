@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA CUSTOM DATA HELPER                            |
-| Copyright (C) 2018-2021 SYSTOPIA                       |
+| Copyright (C) 2018-2023 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | Source: https://github.com/systopia/Custom-Data-Helper |
 +--------------------------------------------------------+
@@ -15,18 +15,18 @@
 +--------------------------------------------------------*/
 
 class CRM_Committees_CustomData {
-  const CUSTOM_DATA_HELPER_VERSION   = 0.7;
-  const CUSTOM_DATA_HELPER_LOG_LEVEL = 3;
+  const CUSTOM_DATA_HELPER_VERSION   = '0.10';
+  const CUSTOM_DATA_HELPER_LOG_LEVEL = 0;
   const CUSTOM_DATA_HELPER_LOG_DEBUG = 1;
   const CUSTOM_DATA_HELPER_LOG_INFO  = 3;
   const CUSTOM_DATA_HELPER_LOG_ERROR = 5;
 
   /** caches custom field data, indexed by group name */
-  protected static $custom_group2name       = null;
-  protected static $custom_group2table_name = null;
-  protected static $custom_group_cache      = [];
-  protected static $custom_group_spec_cache = [];
-  protected static $custom_field_cache      = [];
+  protected static $custom_group2name       = NULL;
+  protected static $custom_group2table_name = NULL;
+  protected static $custom_group_cache      = array();
+  protected static $custom_group_spec_cache = array();
+  protected static $custom_field_cache      = array();
 
   protected $ts_domain = NULL;
   protected $version   = self::CUSTOM_DATA_HELPER_VERSION;
@@ -36,22 +36,11 @@ class CRM_Committees_CustomData {
   }
 
   /**
-   * Flush all internal caches
-   */
-  public static function flushCashes() {
-    self::$custom_group2name = null;
-    self::$custom_group2table_name = null;
-    self::$custom_group_cache = [];
-    self::$custom_group_spec_cache = [];
-    self::$custom_field_cache = [];
-  }
-
-  /**
    * Log a message if the log level is high enough
    */
   protected function log($level, $message) {
     if ($level >= self::CUSTOM_DATA_HELPER_LOG_LEVEL) {
-      CRM_Core_Error::debug_log_message("CustomDataHelper {$this->version} ({$this->ts_domain}): {$message}");
+      Civi::log()->debug("CustomDataHelper {$this->version} ({$this->ts_domain}): {$message}");
     }
   }
 
@@ -148,7 +137,7 @@ class CRM_Committees_CustomData {
         $extends_list = array();
         foreach ($data['extends_entity_column_value'] as $activity_type) {
           if (!is_numeric($activity_type)) {
-            $activity_type = CRM_Core_OptionGroup::getValue('activity_type', $activity_type, 'name');
+            $activity_type = self::getOptionValue('activity_type', $activity_type, 'name');
           }
           if ($activity_type) {
             $extends_list[] = $activity_type;
@@ -273,7 +262,7 @@ class CRM_Committees_CustomData {
     }
 
     // then run query
-    CRM_Core_Error::debug_log_message("CustomDataHelper ({$this->ts_domain}): CREATE {$entity_type}: " . json_encode($data));
+    Civi::log()->debug("CustomDataHelper ({$this->ts_domain}): CREATE {$entity_type}: " . json_encode($data));
     return civicrm_api3($entity_type, 'create', $data);
   }
 
@@ -343,11 +332,13 @@ class CRM_Committees_CustomData {
    * function to replace custom_XX notation with the more
    * stable "<custom_group_name>.<custom_field_name>" format
    *
-   * @param $data   array  key=>value data, keys will be changed
-   * @param $depth  int    recursively follow arrays
+   * @param $data       array   key=>value data, keys will be changed
+   * @param $depth      int     recursively follow arrays
+   * @param $separator  string  separator to be used.
+   *                            examples are '.' (default) or '__' to avoid drupal form field id issues
    */
-  public static function labelCustomFields(&$data, $depth=1) {
-    if ($depth == 0) return;
+  public static function labelCustomFields(&$data, $depth=1, $separator = '.') {
+    if ($depth <= 0) return;
 
     $custom_fields_used = array();
     foreach ($data as $key => $value) {
@@ -362,19 +353,31 @@ class CRM_Committees_CustomData {
     // replace names
     foreach ($data as $key => &$value) {
       if (preg_match('#^custom_(?P<field_id>\d+)$#', $key, $match)) {
-        $new_key = self::getFieldIdentifier($match['field_id']);
+        $new_key = self::getFieldIdentifier($match['field_id'], $separator);
         $data[$new_key] = $value;
         unset($data[$key]);
       }
 
       // recursively look into that array
       if (is_array($value) && $depth > 0) {
-        self::labelCustomFields($value, $depth-1);
+        self::labelCustomFields($value, $depth-1, $separator);
       }
     }
   }
 
-  public static function getFieldIdentifier($field_id) {
+  /**
+   * Function to render a unified field identifier of the compatible
+   *  "<custom_group_name>.<custom_field_name>"
+   * format
+   *
+   * @note This is intended for use with APIv3, since APIv4 already has a similar thing built in
+   *
+   * @param $field_id   string the field ID
+   * @param $separator  string the separator to used, by default '.'
+   *
+   * @see getFieldIdentifier
+   */
+  public static function getFieldIdentifier($field_id, $separator = '.') {
     // just to be on the safe side
     self::cacheCustomFields(array($field_id));
 
@@ -382,7 +385,7 @@ class CRM_Committees_CustomData {
     $custom_field = self::$custom_field_cache[$field_id];
     if ($custom_field) {
       $group_name = self::getGroupName($custom_field['custom_group_id']);
-      return "{$group_name}.{$custom_field['name']}";
+      return "{$group_name}{$separator}{$custom_field['name']}";
     } else {
       return 'FIELD_NOT_FOUND_' . $field_id;
     }
@@ -569,6 +572,9 @@ class CRM_Committees_CustomData {
 
   /**
    * Get a mapping: custom_group_id => custom_group_name
+   *
+   * @return array
+   *   mapping custom_group_id => custom_group_name
    */
   public static function getGroup2Name() {
     if (self::$custom_group2name === NULL) {
@@ -628,8 +634,11 @@ class CRM_Committees_CustomData {
    *
    * @todo make it more efficient?
    *
-   * @param array $params      the parameter array as used by the API
-   * @param array $group_names list of group names to process. Default is: all
+   * @param array $params
+   *   the parameter array as used by the API
+   *
+   * @param array $group_names
+   *   list of group names to process. Default is: all
    */
   public static function unREST(&$params, $group_names = NULL) {
     if ($group_names == NULL || !is_array($group_names)) {
@@ -710,9 +719,14 @@ class CRM_Committees_CustomData {
   /**
    * Get the current field value from CiviCRM's pre-hook structure
    *
-   * @param $params pre-hook data
-   * @param $field_id custom field ID
-   * @return mixed the current value
+   * @param $params array
+   *   pre-hook data
+   *
+   * @param $field_id string
+   *   custom field ID
+   *
+   * @return mixed
+   *   the current value
    */
   public static function getPreHookCustomDataValue($params, $field_id) {
     if ($field_id) {
@@ -731,9 +745,14 @@ class CRM_Committees_CustomData {
   /**
    * Set a field value in CiviCRM's pre-hook structure right in the pre hook data
    *
-   * @param $params pre-hook data
-   * @param $field_id custom field ID
-   * @param $value the new value
+   * @param $params array
+   *    pre-hook data
+   *
+   * @param $field_id string
+   *    custom field ID
+   *
+   * @param $value mixed
+   *    the new value
    */
   public static function setPreHookCustomDataValue(&$params, $field_id, $value) {
     if ($field_id) {
@@ -774,5 +793,64 @@ class CRM_Committees_CustomData {
     } else {
       return NULL;
     }
+  }
+
+  /**
+   * Get CustomField entity (cached)
+   */
+  public static function getCustomFieldsForGroups($custom_group_names) {
+    self::cacheCustomGroups($custom_group_names);
+    $fields = [];
+    foreach ($custom_group_names as $custom_group_name) {
+      foreach (self::$custom_group_cache[$custom_group_name] as $field_id => $field) {
+        if (is_numeric($field_id)) {
+          $fields[] = $field;
+        }
+      }
+    }
+    return $fields;
+  }
+
+  /**
+   * Get an option value from an option group
+   *
+   * This function was specifically introduced as 1:1 replacement
+   *  for the deprecated CRM_Core_OptionGroup::getValue function
+   *
+   * @param string $groupName
+   *   name of the group
+   *
+   * @param $label
+   *   label/name of the requested option value
+   *
+   * @param string $label_field
+   *   field to look in for the label, e.g. 'label' or 'name'
+   *
+   * @param string $label_type
+   *   *ignored*
+   *
+   * @param string $value_field
+   *   *ignored*
+   *
+   * @return string
+   *   value of the OptionValue entity if found
+   *
+   * @throws Exception
+   */
+  public static function getOptionValue($group_name, $label, $label_field = 'label', $label_type = 'String', $value_field = 'value')
+  {
+    if (empty($label) || empty($group_name)) {
+      return NULL;
+    }
+
+    // build/run API query
+    $value = civicrm_api3('OptionValue', 'getvalue', [
+      'option_group_id' => $group_name,
+      $label_field => $label,
+      'return' => $value_field
+    ]);
+
+    // anything else to do here?
+    return (string) $value;
   }
 }
