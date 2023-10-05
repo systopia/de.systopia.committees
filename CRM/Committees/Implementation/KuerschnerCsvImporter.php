@@ -101,10 +101,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      *  register those with the registerMissingRequirement function.
      *
      */
-    public function checkRequirements()
+    public function checkRequirements(): bool
     {
-        // todo: nothing to check?
-        return true;
+        return parent::checkRequirements();
     }
 
     /**

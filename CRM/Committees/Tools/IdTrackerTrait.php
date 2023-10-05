@@ -180,7 +180,7 @@ trait CRM_Committees_Tools_IdTrackerTrait
     public function registerIDTrackerType($key, $label, $description = 'de.systopia.committee')
     {
         // also: add the 'Remote Contact' type to the identity tracker
-        $exists_count = civicrm_api3(
+        $exists_count = (int) civicrm_api3(
             'OptionValue',
             'getcount',
             [
