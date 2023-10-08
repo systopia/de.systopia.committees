@@ -75,8 +75,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     ];
 
     const ROW_MAPPING_MEMBERS = [
-        1 => 'contact_id',
-        2 => 'committee_id',
+        1 => 'committee_id',
+        2 => 'contact_id',
         3 => 'title',
         4 => 'represents',
         5 => 'start_date',
