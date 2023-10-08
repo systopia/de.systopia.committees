@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA Committee Framework                           |
-| Copyright (C) 2021 SYSTOPIA                            |
+| Copyright (C) 2021-23 SYSTOPIA                         |
 | Author: B. Endres (endres@systopia.de)                 |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
@@ -205,6 +205,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
                 date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
+            unset($record['handle'], $record['name_short']);
             $this->model->addCommittee($record);
         }
         $this->log(count($this->model->getAllCommittees()) . " committees read.");
@@ -235,6 +236,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_EMAIL);
             if (!empty($record['email'])) {
+                $record['email'] = strtolower($record['email']);
                 try {
                     $this->model->addEmail($record);
                 } catch (CRM_Committees_Model_ValidationException $ex) {
@@ -248,6 +250,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_PHONE);
             if (!empty($record['phone'])) {
+                $record['phone_numeric'] = preg_replace('[\D]', '', $record['phone']);
                 $this->model->addPhone($record);
             }
         }
