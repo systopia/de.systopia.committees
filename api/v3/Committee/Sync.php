@@ -32,7 +32,9 @@ function civicrm_api3_committee_sync($params) {
 
     // check for errors
     if ($importer->getErrors() || $syncer->getErrors()) {
-        return civicrm_api3_create_error("Errors: " . implode(', ', $importer->getErrors() + $syncer->getErrors()));
+        return civicrm_api3_create_error("Errors: " . implode(', ', $importer->getErrors() + $syncer->getErrors()), [
+            'log' => $importer->getCurrentLogFile(),
+        ]);
     } else {
         return civicrm_api3_create_success(1, $params, 'Committee', 'sync', $null, [
             'log' => $importer->getCurrentLogFile(),
