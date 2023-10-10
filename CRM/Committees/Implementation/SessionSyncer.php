@@ -95,7 +95,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // now extract current committees and run the diff
         $this->extractCurrentCommittees($model, $present_model);
-        [$new_committees, $changed_committees, $obsolete_committees] = $present_model->diffCommittees($model, ['contact_id', 'handle', 'name_short', 'start_date']);
+        [$new_committees, $changed_committees, $obsolete_committees] = $present_model->diffCommittees($model, ['contact_id', 'end_date', 'start_date', 'id']);
         if ($new_committees) {
             throw new Exception("Dealing with new or discontinued committees not implemented.");
         }
@@ -104,8 +104,19 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             /* @var CRM_Committees_Model_Committee $changed_committee */
             $differing_attributes = explode(',', $changed_committee->getAttribute('differing_attributes'));
             $differing_values = $changed_committee->getAttribute('differing_values');
+            $changed_committee_contact_id = $changed_committee->getAttribute('contact_id');
+            $changed_committee_name = $changed_committee->getAttribute('name');
             foreach ($differing_attributes as $differing_attribute) {
-                $this->log("Committee [{$changed_committee->getID()}] has changed '{$differing_attribute}' from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}. Please adjust manually");
+                if ($differing_attribute == 'name' && $changed_committee_contact_id) {
+                    // update committee name
+                    $this->callApi3('Contact', 'create', [
+                       'contact_id' => $changed_committee_contact_id,
+                       'organization_name' => $changed_committee_name
+                    ]);
+                    $this->log("Name of committee [{$changed_committee->getID()}] was changed from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}.");
+                } else {
+                    $this->log("Committee [{$changed_committee->getID()}] has changed '{$differing_attribute}' from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}. Please adjust manually");
+                }
             }
         }
         if ($obsolete_committees) {
@@ -152,6 +163,8 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             // contact post-processing
             $this->setIDTContactID($new_person->getID(), $result['id'], self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             $new_person->setAttribute('contact_id', $result['id']);
+
+            // add to the present model
             $present_model->addPerson($new_person->getData());
 
             $this->log("Session Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
@@ -178,12 +191,17 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         // note obsolete contacts
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
-            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted.");
+            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted:");
             // clear lobby data from obsolete persons
             foreach ($obsolete_persons as $obsolete_person) {
                 /** @var CRM_Committees_Model_Person $obsolete_person */
                 $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-                $this->log("TODO: What to do with obsolete contact [{$contact_id}]?");
+                if ($contact_id) {
+                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
+                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: {$contact['display_name']}");
+                } else {
+                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
+                }
             }
         }
 
@@ -210,7 +228,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_emails) {
             $changed_emails_count = count($changed_emails);
-            $this->log("Some attributes have changed for {$changed_emails_count}, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_emails_count} emails, be we won't adjust that.");
         }
         if ($obsolete_emails) {
             $obsolete_emails_count = count($obsolete_emails);
@@ -305,21 +323,14 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **********************************************/
         // adjust memberships
+        $relationship_type_id = $this->getRelationshipTypeID('is_committee_member_of');
+
         foreach ($model->getAllMemberships() as $membership) {
             /** @var $membership CRM_Committees_Model_Membership */
 
             // 1) set the relationship types (and consider active)
-            $membership->setAttribute('relationship_type_id', $this->getRelationshipTypeIdForMembership($membership));
+            $membership->setAttribute('relationship_type_id', $relationship_type_id);
             $membership->setAttribute('is_active', 1);
-
-            // 2) adjust functions
-            if ($membership->getAttribute('functions')) {
-                // make sure the fields are there
-                $political_functions = $this->extractPoliticalFunctions($membership, false);
-                sort($political_functions);
-
-                $membership->setAttribute('functions', $political_functions);
-            }
         }
 
         // extract current memberships
@@ -327,7 +338,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
         $ignore_attributes = ['committee_name', 'role', 'relationship_id', 'relationship_type_id']; // todo: fine-tune
-        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes);
+        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['contact_id', 'committee_id']);
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
@@ -344,6 +355,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                     $this->callApi3('Relationship', 'create', [
                             'id' => $relationship_id,
                             'is_active' => 0,
+                            'end_date' => date('Y-m-d'),
                     ]);
                     $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
                 }
@@ -355,71 +367,98 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         // CREATE the new ones
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
-            $person_civicrm_id = $this->getIDTContactID($new_membership->getPerson()->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
-            switch ($new_membership->getCommittee()->getAttribute('type')) {
-                case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE:
-                    $tracker_prefix = self::ID_TRACKER_PREFIX_COMMITTEE;
-                    $political_functions = [];
-                    break;
-
-                case self::COMMITTEE_TYPE_PARLIAMENT:
-                    $tracker_prefix = self::ID_TRACKER_PREFIX_PARLIAMENT;
-                    $political_functions = [];
-                    break;
-
-                default:
-                case CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP:
-                    $tracker_prefix = self::ID_TRACKER_PREFIX_FRAKTION;
-                    $political_functions = $new_membership->getAttribute('functions');
-                    sort($political_functions);
-                    break;
+//            $person = $new_membership->getPerson();
+            $person_id = $new_membership->getAttribute('contact_id');
+            $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
+            if (!$person) {
+                $this->logError("Person of membership [{$new_membership->getID()}] not found.");
+                continue;
             }
-            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
+            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+            if (!$committee_id) {
+                $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
+                continue;
+            }
             $this->callApi3('Relationship', 'create', [
                     'contact_id_a' => $person_civicrm_id,
                     'contact_id_b' => $committee_id,
                     'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                     'is_active' => 1,
-                    'description' => substr($new_membership->getAttribute('description'), 0, 255),
-                    $political_functions_field => $political_functions,
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
 
-
-        // UPDATE the existing ones (if necessary)
-        foreach ($changed_memberships as $changed_membership) {
-            /** @var CRM_Committees_Model_Membership $changed_membership */
-            // extract update data
-            $political_functions = [];
-            $membership_type = $changed_membership->getCommittee()->getAttribute('type');
-
-            // update description
-            $requested_membership = $model->getCommitteeMembership(
-                    $changed_membership->getAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY));
-            $new_description = $requested_membership->getAttribute('description');
-
-            // update functions
-            if ($membership_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
-                $political_functions = $this->extractPoliticalFunctions($requested_membership);
-                sort($political_functions);
-            }
-            $this->callApi3('Relationship', 'create', [
-                    'id' => $changed_membership->getAttribute('relationship_id'),
-                    'description' => substr($new_description, 0, 255),
-                    'is_active' => $requested_membership->getAttribute('is_active'),
-                    $political_functions_field => $political_functions,
-            ]);
-            $this->log("Adjusted minor change for committee membership [#{$changed_membership->getAttribute('relationship_id')}].");
-        }
-
-        // THAT'S IT, WE'RE DONE
-        $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
         // THAT'S IT, WE'RE DONE
     }
 
+
+    /**
+     * Extract the current committee memberships and add to the present_model
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current memberships to, as extracted from the DB
+     */
+    protected function addCurrentMemberships($requested_model, $present_model)
+    {
+        // get some basic data
+        $relationship_type_id = $this->getRelationshipTypeID('is_committee_member_of');
+
+        // get the current committees
+        $committee_ids = array_keys($this->getContactIDtoTids(self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX));
+
+        // get the current mop contacts
+        $all_committee_members = array_keys($this->getContactIDtoTids(self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX));
+
+        // get the current memberships of these committees
+        $committee_query = civicrm_api3('Relationship', 'get', [
+                'option.limit' => 0,
+                'relationship_type_id' => $relationship_type_id,
+                'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
+                'contact_id_a' => ['IN' => $all_committee_members],
+                'contact_id_b' => ['IN' => $committee_ids],
+        ]);
+
+        // extract existing committee memberships
+        $contactID_2_trackerIDs = $this->getContactIDtoTids(self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+        $committeeID_2_trackerIDs = $this->getContactIDtoTids(self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+
+        foreach ($committee_query['values'] as $committee_relationship) {
+            CRM_Committees_CustomData::labelCustomFields($committee_relationship);
+
+            $committee_id = substr(reset($committeeID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::COMMITTEE_TRACKER_PREFIX));
+            $committee = $present_model->getCommittee($committee_id);
+            if (!$committee) {
+                $this->logError("Committee [{$committee_id}] was referenced but not found in the model.");
+                continue;
+            }
+
+            // identify the contact
+            $contact_id = $committee_relationship['contact_id_a'];
+            $person_ids = $contactID_2_trackerIDs[$contact_id] ?? [];
+            foreach ($person_ids as $person_id) {
+                $membership = $present_model->addCommitteeMembership([
+                         'contact_id'           => substr($person_id, strlen(self::CONTACT_TRACKER_PREFIX)),
+                         'committee_id'         => $committee_id,
+                         'committee_name'       => $committee->getAttribute('name'),
+                         'role'                 => $committee_relationship['description'] ?? '',
+                         'is_active'            => $committee_relationship['is_active'] ?? 0,
+                         'relationship_type_id' => $committee_relationship['relationship_type_id'],
+                         'id'                   => "{$person_id}-{$committee_id}",
+                         'relationship_id'      => $committee_relationship['id'],
+                         'description'          => $committee_relationship['description'] ?? '',
+                 ]);
+
+            }
+        }
+
+        return $present_model;
+    }
 
 
     /**
@@ -440,7 +479,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $contacts_found = $this->callApi3('Contact', 'get', [
                     'contact_type' => 'Individual',
                     'id' => ['IN' => array_keys($existing_contacts)],
-                    'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id',
+                    'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id,prefix_id',
                     'option.limit' => 0,
             ]);
             foreach ($contacts_found['values'] as $contact_found) {
@@ -451,7 +490,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                         'first_name'   => $contact_found['first_name'],
                         'last_name'    => $contact_found['last_name'],
                         'gender_id'    => $contact_found['gender_id'],
-                        'prefix'       => $contact_found['prefix'],
+                        'prefix_id'    => $contact_found['prefix_id'],
                 ];
 //                foreach ($person_custom_field_mapping as $person_property => $custom_field) {
 //                    $existing_person[$person_property] = $contact_found[$custom_field];
