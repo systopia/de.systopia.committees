@@ -198,7 +198,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                 $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                 if ($contact_id) {
                     $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
-                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: {$contact['display_name']}");
+                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
                 } else {
                     $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
                 }
@@ -284,24 +284,6 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                 $this->callApi3('Address', 'create', $address_data);
                 $shortened_address_data = $this->obfuscate($address_data['street_address']) . '/' . $address_data['postal_code'];
                 $this->log("Added address '{$shortened_address_data}' to contact [{$address_data['contact_id']}]");
-//
-//                // check if the shared address (master_id) has created a relationship, and delete it (not wanted)
-//                $new_relationship_id = (int) CRM_Core_DAO::singleValueQuery("SELECT MAX(id) FROM civicrm_relationship;");
-//                if ($new_relationship_id > $last_relationship_id) {
-//                    // delete it (those?)
-//                    $unwanted_relationships = CRM_Core_DAO::executeQuery("
-//                        SELECT relationship.id AS relationship_id
-//                        FROM civicrm_relationship relationship
-//                        WHERE relationship.id > %1
-//                          AND relationship.contact_id_a = %2", [
-//                            1 => [$last_relationship_id, 'Integer'],
-//                            2 => [$person->getAttribute('contact_id'), 'Integer'],
-//                    ]);
-//                    while ($unwanted_relationships->fetch()) {
-//                        $this->callApi3('Relationship', 'delete', ['id' => $unwanted_relationships->relationship_id]);
-//                        $unwanted_relationship_counter++;
-//                    }
-//                }
             }
         }
 //        if ($unwanted_relationship_counter) {
@@ -337,8 +319,8 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         $this->addCurrentMemberships($model, $present_model);
         //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
 
-        $ignore_attributes = ['committee_name', 'role', 'relationship_id', 'relationship_type_id']; // todo: fine-tune
-        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['contact_id', 'committee_id']);
+        $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
+        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
@@ -431,6 +413,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         foreach ($committee_query['values'] as $committee_relationship) {
             CRM_Committees_CustomData::labelCustomFields($committee_relationship);
 
+            // identify the committee
             $committee_id = substr(reset($committeeID_2_trackerIDs[$committee_relationship['contact_id_b']]), strlen(self::COMMITTEE_TRACKER_PREFIX));
             $committee = $present_model->getCommittee($committee_id);
             if (!$committee) {
@@ -442,16 +425,16 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $contact_id = $committee_relationship['contact_id_a'];
             $person_ids = $contactID_2_trackerIDs[$contact_id] ?? [];
             foreach ($person_ids as $person_id) {
-                $membership = $present_model->addCommitteeMembership([
+                $contact_id = substr($person_id, strlen(self::CONTACT_TRACKER_PREFIX));
+                $present_model->addCommitteeMembership([
                          'contact_id'           => substr($person_id, strlen(self::CONTACT_TRACKER_PREFIX)),
                          'committee_id'         => $committee_id,
                          'committee_name'       => $committee->getAttribute('name'),
-                         'role'                 => $committee_relationship['description'] ?? '',
+                         'title'                => $committee_relationship['description'] ?? '',
                          'is_active'            => $committee_relationship['is_active'] ?? 0,
                          'relationship_type_id' => $committee_relationship['relationship_type_id'],
-                         'id'                   => "{$person_id}-{$committee_id}",
+                         'id'                   => "{$contact_id}-{$committee_id}",
                          'relationship_id'      => $committee_relationship['id'],
-                         'description'          => $committee_relationship['description'] ?? '',
                  ]);
 
             }
