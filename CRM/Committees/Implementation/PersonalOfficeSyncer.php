@@ -75,8 +75,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     1 => self::ORGANISATION_EKIR_ID_FIELD
                 ])
             );
-            return false;
         }
+
+        return parent::checkRequirements();
     }
 
     /**

@@ -64,10 +64,13 @@ abstract class CRM_Committees_Plugin_Base
      * If your implementation has any external dependencies, you should
      *  register those with the registerMissingRequirement function.
      *
+     * @return boolean
+     *   true if there are no missing requirements
      */
     public function checkRequirements()
     {
-        // no requirements for the base class
+        // check if there are any missing requirements
+        return empty($this->missing_requirements);
     }
 
     /**
@@ -80,7 +83,7 @@ abstract class CRM_Committees_Plugin_Base
     {
         static $extensions = null;
         if ($extensions === null) {
-            $extensions = civicrm_api3('Extension', 'get', ['option.limit' => 0])['values'];
+            $extensions = civicrm_api3('Extension', 'get', ['status' => 'installed', 'option.limit' => 0])['values'];
         }
         foreach ($extensions as $extension) {
             if ($extension['key'] == $extension_key) {

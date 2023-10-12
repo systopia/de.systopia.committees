@@ -52,6 +52,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     {
         // we need the identity tracker
         $this->checkIdTrackerRequirements($this);
+
+        return parent::checkRequirements();
     }
 
     /**

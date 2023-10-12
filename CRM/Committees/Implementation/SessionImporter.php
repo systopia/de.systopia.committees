@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA Committee Framework                           |
-| Copyright (C) 2021 SYSTOPIA                            |
+| Copyright (C) 2021-23 SYSTOPIA                         |
 | Author: B. Endres (endres@systopia.de)                 |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
@@ -75,8 +75,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     ];
 
     const ROW_MAPPING_MEMBERS = [
-        1 => 'contact_id',
-        2 => 'committee_id',
+        1 => 'committee_id',
+        2 => 'contact_id',
         3 => 'title',
         4 => 'represents',
         5 => 'start_date',
@@ -110,9 +110,16 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                 E::ts("PhpSpreadsheet library missing."),
                 E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
             );
-            return false;
         }
-        return true;
+        if (!$this->extensionAvailable('de.systopia.identitytracker')) {
+          $this->registerMissingRequirement(
+                  'identitytracker',
+                  E::ts("IdentityTracker missing or not enabled."),
+                  E::ts("Please install the Identity-Tracker extension from https://github.com/systopia/de.systopia.identitytracker/releases.")
+          );
+        }
+
+        return parent::checkRequirements();
     }
 
     /**
@@ -195,9 +202,10 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $row_count = $gremien_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($gremien_sheet, $row_nr, self::ROW_MAPPING_GREMIUM);
-            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
+            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
-                date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
+                date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
+            unset($record['handle'], $record['name_short']);
             $this->model->addCommittee($record);
         }
         $this->log(count($this->model->getAllCommittees()) . " committees read.");
@@ -228,6 +236,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_EMAIL);
             if (!empty($record['email'])) {
+                $record['email'] = strtolower($record['email']);
                 try {
                     $this->model->addEmail($record);
                 } catch (CRM_Committees_Model_ValidationException $ex) {
@@ -241,6 +250,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_PHONE);
             if (!empty($record['phone'])) {
+                $record['phone_numeric'] = preg_replace('[\D]', '', $record['phone']);
                 $this->model->addPhone($record);
             }
         }
@@ -251,9 +261,9 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $row_count = $member_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($member_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
-            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian($record['start_date'])));
+            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
-                date("Y-m-d", strtotime(jdtogregorian($record['end_date'])));
+                date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
             $record['id'] = "{$record['contact_id']}-{$record['committee_id']}";
             $this->model->addCommitteeMembership($record);
         }
