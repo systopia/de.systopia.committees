@@ -71,7 +71,7 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
             E::ts("Imports a 'Personal Office's XLS export.")
         );
         $importer_survey->registerImporterModule(
-            'de.ekir.session.syncer',
+            'de.ekir.session.importer',
             'CRM_Committees_Implementation_SessionImporter',
             E::ts("Session Importer (XLS)"),
             null,

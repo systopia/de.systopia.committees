@@ -45,6 +45,8 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // we need the extended contact matcher (XCM)
         $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE, self::XCM_COMMITTEE_PROFILE]);
+
+        return parent::checkRequirements();
     }
 
     /**
@@ -110,7 +112,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $data['contact_type'] = 'Organization';
             $data['contact_sub_type'] = 'Gremium';
             $data['organization_name'] = $data['name'];
-            $gremium_id = $this->runXCM($data, 'session_organisation');
+            $gremium_id = $this->runXCM($data, self::XCM_COMMITTEE_PROFILE);
             $this->log("Gremium '{$data['name']}' ([{$gremium_id}]) imported/updated.");
             $this->setIDTContactID($committee->getID(), $gremium_id, self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
         }

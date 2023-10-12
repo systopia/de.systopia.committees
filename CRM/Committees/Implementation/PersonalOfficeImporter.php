@@ -71,10 +71,9 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                 E::ts("PhpSpreadsheet library missing."),
                 E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
             );
-            return false;
         }
 
-        return true;
+        return parent::checkRequirements();
     }
 
     /**

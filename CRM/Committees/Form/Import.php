@@ -131,19 +131,28 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
         $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
         /** @var CRM_Committees_Plugin_Importer $importer */
         $importer = new $importers[$values['importer']]['class']();
+        $importer->checkRequirements();
 
+        // get syncer
         $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
         /** @var \CRM_Committees_Plugin_Syncer $syncer */
         $syncer = new $syncers[$values['syncer']]['class']();
+        $syncer->checkRequirements();
 
+        // report missing requirements
+        $missing_requirements = $importer->getMissingRequirements() + $syncer->getMissingRequirements();
+        if (!empty($missing_requirements)) {
+            $this->reportErrors($missing_requirements);
+            return;
+        }
         // todo: move all of this to another place?
         // todo: verify type as well
 
         // probe file
         $file = $this->_submitFiles['import_file'];
-        if (!$importer->probeFile($file['tmp_name'])) {
+        if (!$importer->probeFile($file['tmp_name']) || $syncer->getErrors()) {
             // this is not our file!
-            $this->reportErrors($importer->getErrors());
+            $this->reportErrors($importer->getErrors() + $syncer->getErrors());
 
         } else {
             // let's import & sync
@@ -185,7 +194,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
             CRM_Core_Session::setStatus(
                 $error['description'],
                 E::ts("Import Error"),
-                $error['level']
+                $error['level'] ?? 'error'
             );
         }
     }

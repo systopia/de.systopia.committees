@@ -16,7 +16,7 @@
 
 namespace Civi;
 
-use Symfony\Component\EventDispatcher\Event;
+use Civi\Core\Event\GenericHookEvent as Event;
 
 /**
  * Class CommitteeModuleSurvey
