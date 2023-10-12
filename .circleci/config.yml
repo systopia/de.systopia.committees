@@ -156,5 +156,5 @@ workflows:
   version: 2
   build:
     jobs:
-      - build_mysql_5_7
+#      - build_mysql_5_7
       - build_mariadb_10_4
