@@ -74,9 +74,11 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         8 => 'phone',
     ];
 
+    // remark: swapped column 1 and 2 compared to the original import,
+    //   since they all new files have the revers order
     const ROW_MAPPING_MEMBERS = [
-        1 => 'committee_id',
-        2 => 'contact_id',
+        1 => 'contact_id',
+        2 => 'committee_id',
         3 => 'title',
         4 => 'represents',
         5 => 'start_date',
