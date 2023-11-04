@@ -153,11 +153,6 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $person_data = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = 'Individual';
             $person_data['source'] = 'SESSION-' . date('Y');
-//            if ($person_custom_field_mapping) {
-//                foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
-//                    $person_data[$contact_custom_field] = $new_person->getAttribute($person_property);
-//                }
-//            }
             $result = $this->callApi3('Contact', 'create', $person_data);
 
             // contact post-processing
@@ -339,7 +334,9 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                             'is_active' => 0,
                             'end_date' => date('Y-m-d'),
                     ]);
-                    $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+                    $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+                    $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+                    $this->log("Disabled obsolete committee membership [{$person_civicrm_id}]<->[{$committee_id}] (ID:[{$membership->getAttribute('relationship_id')}]).");
                 }
             } catch (Exception $ex) {
                 $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
