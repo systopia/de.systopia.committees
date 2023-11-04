@@ -346,11 +346,10 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         // CREATE the new ones
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
-//            $person = $new_membership->getPerson();
             $person_id = $new_membership->getAttribute('contact_id');
             $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
             if (!$person) {
-                $this->logError("Person of membership [{$new_membership->getID()}] not found.");
+                $this->logError("Person [{$person_id}] of membership [{$new_membership->getID()}] not found.");
                 continue;
             }
             $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);

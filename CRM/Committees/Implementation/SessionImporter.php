@@ -263,6 +263,10 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $row_count = $member_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($member_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
+            if (empty($record['contact_id']) || empty($record['committee_id'])) {
+                $this->log("Skipped bad line: {$row_nr}.");
+                continue;
+            }
             $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
                 date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
