@@ -316,6 +316,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
+        $membership_end_dates = $model->getContextData('committee_membership_end_dates', []);
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
@@ -329,10 +330,20 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                         'return' => 'is_active',
                 ]);
                 if ($is_enabled) {
+                    // relationship is obsolete and should be disabled
+                    $membership_id = $membership->getID();
+                    if (isset($membership_end_dates[$membership_id])) {
+                        $membership_end_date = $membership_end_dates[$membership_id];
+                    } else {
+                        $membership_end_date = date('Y-m-d');
+                        $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+                        $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+                        $this->log("Couldn't find end date for membership [{$person_civicrm_id}]<->[{$committee_id}], using today.");
+                    }
                     $this->callApi3('Relationship', 'create', [
                             'id' => $relationship_id,
                             'is_active' => 0,
-                            'end_date' => date('Y-m-d'),
+                            'end_date' => $membership_end_date,
                     ]);
                     $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                     $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
