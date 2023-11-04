@@ -270,7 +270,7 @@ abstract class CRM_Committees_Plugin_Base
         $error_msg_list = [];
         $error_list = $this->getErrors($level);
         foreach ($error_list as $error) {
-            $error_msg_list[] = $error['description'];
+            $error_msg_list[] = $error['label'];
         }
 
         if ($unique) {
