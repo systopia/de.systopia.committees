@@ -67,15 +67,52 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // we need the extended contact matcher (XCM)
         $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
 
-        // check if a certain custom field exists
+        // make sure a certain custom field exists
         if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
-            $this->registerMissingRequirement(
-                self::ORGANISATION_EKIR_ID_FIELD,
-                E::ts("EKIR Organisation ID field not found."),
-                E::ts("Please add the '%1' custom field or update the configuration/requirements.", [
-                    1 => self::ORGANISATION_EKIR_ID_FIELD
-                ])
-            );
+            // check if the group is missing:
+            [$group_name, $field_name] = explode('.', self::ORGANISATION_EKIR_ID_FIELD);
+            $custom_groups = (array) CRM_Committees_CustomData::getGroup2Name();
+            if (!in_array($group_name, $custom_groups)) {
+                // create group
+                civicrm_api3('CustomGroup', 'create', [
+                    "name" => "gmv_data",
+                    "title" => "EKIR Strukturdaten",
+                    "extends" => "Organization",
+                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle"],
+                    "style" => "Tab",
+                    "weight" => "12",
+                    "is_active" => "1",
+                    "table_name" => "civicrm_value_gmv_data",
+                    "is_multiple" => "0",
+                    "collapse_adv_display" => "0",
+                    "is_reserved" => "0",
+                    "is_public" => "1",
+                    "icon" => "fa-info"
+                ]);
+                $this->log("Custom Group {$group_name} created.");
+            }
+
+            // check if the field is missing:
+            $custom_field = CRM_Committees_CustomData::getCustomField($group_name, $field_name);
+            if (empty($custom_field)) {
+                // create field
+                civicrm_api3('CustomField', 'create', [
+                    "custom_group_id" => "gmv_data",
+                    "name" => "gmv_data_identifier",
+                    "label" => "EKIR ID",
+                    "data_type" => "String",
+                    "html_type" => "Text",
+                    "is_required" => "0",
+                    "is_searchable" => "1",
+                    "is_search_range" => "1",
+                    "weight" => "217",
+                    "is_active" => "1",
+                    "is_view" => "0",
+                    "column_name" => "identifier",
+                    "serialize" => "0",
+                    "in_selector" => "1"
+                ]);
+            }
         }
 
         return parent::checkRequirements();
@@ -100,7 +137,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
-        $customData = new CRM_Gmv_CustomData(E::LONG_NAME);
+        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
         $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
         $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
 
