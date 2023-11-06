@@ -233,7 +233,12 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
             $this->logError("Field name '{$field_name}' is not in the <custom_group_name>.<custom_field_name> format.");
             return false;
         }
-        $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
+        try {
+            $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
+        } catch (Exception $ex) {
+            $this->log("Custom Group '{$specs[0]}' doesn't exist.");
+            return false;
+        }
         return !empty($custom_field);
     }
 
