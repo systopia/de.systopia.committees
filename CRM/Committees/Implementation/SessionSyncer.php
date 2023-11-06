@@ -144,7 +144,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // then compare to current model and apply changes
         $this->extractCurrentContacts($model, $present_model);
-        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'phone']);
+        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'phone', 'gender_id', 'prefix_id', 'suffix_id']);
 
         // create missing contacts
         //$person_custom_field_mapping = $this->getPersonCustomFieldMapping($model);
@@ -153,11 +153,6 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $person_data = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = 'Individual';
             $person_data['source'] = 'SESSION-' . date('Y');
-//            if ($person_custom_field_mapping) {
-//                foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
-//                    $person_data[$contact_custom_field] = $new_person->getAttribute($person_property);
-//                }
-//            }
             $result = $this->callApi3('Contact', 'create', $person_data);
 
             // contact post-processing
@@ -228,7 +223,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_emails) {
             $changed_emails_count = count($changed_emails);
-            $this->log("Some attributes have changed for {$changed_emails_count} emails, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_emails_count} emails, but won't adjust that.");
         }
         if ($obsolete_emails) {
             $obsolete_emails_count = count($obsolete_emails);
@@ -259,7 +254,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_phones) {
             $changed_phones_count = count($changed_phones);
-            $this->log("Some attributes have changed for {$changed_phones_count}, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_phones_count} phones, but won't adjust that.");
         }
         if ($obsolete_phones) {
             $obsolete_phones_count = count($obsolete_phones);
@@ -294,7 +289,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_addresses) {
             $changed_addresses_count = count($changed_addresses);
-            $this->log("Some attributes have changed for {$changed_addresses_count}, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_addresses_count} addresses, but won't adjust that.");
         }
         if ($obsolete_addresses) {
             $obsolete_addresses_count = count($obsolete_addresses);
@@ -321,6 +316,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
+        $membership_end_dates = $model->getContextData('committee_membership_end_dates', []);
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
@@ -334,12 +330,24 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                         'return' => 'is_active',
                 ]);
                 if ($is_enabled) {
+                    // relationship is obsolete and should be disabled
+                    $membership_id = $membership->getID();
+                    if (isset($membership_end_dates[$membership_id])) {
+                        $membership_end_date = $membership_end_dates[$membership_id];
+                    } else {
+                        $membership_end_date = date('Y-m-d');
+                        $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+                        $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+                        $this->log("Couldn't find end date for membership [{$person_civicrm_id}]<->[{$committee_id}], using today.");
+                    }
                     $this->callApi3('Relationship', 'create', [
                             'id' => $relationship_id,
                             'is_active' => 0,
-                            'end_date' => date('Y-m-d'),
+                            'end_date' => $membership_end_date,
                     ]);
-                    $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+                    $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+                    $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+                    $this->log("Disabled obsolete committee membership [{$person_civicrm_id}]<->[{$committee_id}] (ID:[{$membership->getAttribute('relationship_id')}]).");
                 }
             } catch (Exception $ex) {
                 $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
@@ -349,11 +357,10 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         // CREATE the new ones
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
-//            $person = $new_membership->getPerson();
             $person_id = $new_membership->getAttribute('contact_id');
             $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
             if (!$person) {
-                $this->logError("Person of membership [{$new_membership->getID()}] not found.");
+                $this->logError("Person [{$person_id}] of membership [{$new_membership->getID()}] not found.");
                 continue;
             }
             $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);

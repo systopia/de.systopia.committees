@@ -27,12 +27,14 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
     const SHEET_PERSONEN = 'Session_Personen';
     const SHEET_DETAILS  = 'Session_PersAdressen';
     const SHEET_MEMBERS  = 'Session_GrMitgl';
+    const SHEET_MEMBERSHIP_ENDED  = 'GrMitgl-beendet';
 
     const REQUIRED_SHEETS = [
         self::SHEET_PERSONEN,
         self::SHEET_GREMIEN,
         self::SHEET_DETAILS,
         self::SHEET_MEMBERS,
+        self::SHEET_MEMBERSHIP_ENDED,
     ];
 
     const ROW_MAPPING_PERSON = [
@@ -74,13 +76,25 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         8 => 'phone',
     ];
 
+    // remark: swapped column 1 and 2 compared to the original import,
+    //   since they all new files have the revers order
     const ROW_MAPPING_MEMBERS = [
-        1 => 'committee_id',
-        2 => 'contact_id',
+        1 => 'contact_id',
+        2 => 'committee_id',
         3 => 'title',
         4 => 'represents',
         5 => 'start_date',
         6 => 'end_date',
+    ];
+
+    const ROW_MAPPING_MEMBERS_ENDED = [
+            1 => 'contact_id',
+            2 => 'committee_id',
+            3 => 'funktion',
+            4 => 'mgadat',
+            5 => 'mgedat',
+            6 => 'erstdat',
+            7 => 'laenddat',
     ];
 
     /** @var array our sheets extracted from the file */
@@ -261,6 +275,10 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $row_count = $member_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($member_sheet, $row_nr, self::ROW_MAPPING_MEMBERS);
+            if (empty($record['contact_id']) || empty($record['committee_id'])) {
+                $this->log("Skipped bad line: {$row_nr}.");
+                continue;
+            }
             $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
                 date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
@@ -285,6 +303,19 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             }
         }
         $this->log("{$adjustments_made} address in-house adjustments made");
+
+        // read membership end dates
+        $membership_ended_sheet = $sheets[self::SHEET_MEMBERSHIP_ENDED];
+        $row_count = $membership_ended_sheet->getHighestRow();
+        $membership_end_dates = [];
+        for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
+            $record = $this->readRow($membership_ended_sheet, $row_nr, self::ROW_MAPPING_MEMBERS_ENDED);
+            if (!empty($record['contact_id']) && !empty($record['committee_id'])) {
+                $membership_end_dates["{$record['contact_id']}-{$record['committee_id']}"] = date("Y-m-d", strtotime(jdtogregorian((int) $record['mgedat'])));
+            }
+        }
+        $this->model->setContextData('committee_membership_end_dates', $membership_end_dates);
+        $this->log(count($membership_end_dates) . " committees membership end dates read.");
 
         return true;
     }

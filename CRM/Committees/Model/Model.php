@@ -48,6 +48,9 @@ class CRM_Committees_Model_Model
     /** @var array list of urls, indexed by its ID */
     protected $urls = [];
 
+    /** @var array additional context data, not processed */
+    protected $context_data = [];
+
     /**
      * Get a property from the given model
      *
@@ -799,5 +802,43 @@ class CRM_Committees_Model_Model
             unset($this->persons[$entity->getID()]);
             throw new Exception("removeEntity:Person incomplete, needs to affect depending entities as well");
         }
+    }
+
+    /**
+     * Get the model's context data.
+     *
+     * @param string|null $key
+     *   get the context data with the given key,
+     *   or all, if key is not given
+     *
+     * @param string|null $fallback_value
+     *   the value to be returned if not present
+     *
+     * @return mixed
+     */
+    public function getContextData($key = null, $fallback_value = null) {
+        if (is_null($key)) {
+            return $this->context_data;
+        } else {
+            return $this->context_data[$key] ?? $fallback_value;
+        }
+    }
+
+    /**
+     * Get the model's context data.
+     *
+     * @param string $key
+     *   key to store the value with
+     *
+     * @param mixed $value
+     *   value to store under the key
+     *
+     * @return mixed
+     *   previous value
+     */
+    public function setContextData($key, $value) {
+        $previous_value = $this->context_data[$key] ?? null;
+        $this->context_data[$key] = $value;
+        return $previous_value;
     }
 }
