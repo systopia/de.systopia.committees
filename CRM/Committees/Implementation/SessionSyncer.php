@@ -144,7 +144,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // then compare to current model and apply changes
         $this->extractCurrentContacts($model, $present_model);
-        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'phone']);
+        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'phone', 'gender_id', 'prefix_id', 'suffix_id']);
 
         // create missing contacts
         //$person_custom_field_mapping = $this->getPersonCustomFieldMapping($model);
@@ -223,7 +223,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_emails) {
             $changed_emails_count = count($changed_emails);
-            $this->log("Some attributes have changed for {$changed_emails_count} emails, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_emails_count} emails, but won't adjust that.");
         }
         if ($obsolete_emails) {
             $obsolete_emails_count = count($obsolete_emails);
@@ -254,7 +254,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_phones) {
             $changed_phones_count = count($changed_phones);
-            $this->log("Some attributes have changed for {$changed_phones_count}, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_phones_count} phones, but won't adjust that.");
         }
         if ($obsolete_phones) {
             $obsolete_phones_count = count($obsolete_phones);
@@ -289,7 +289,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         }
         if ($changed_addresses) {
             $changed_addresses_count = count($changed_addresses);
-            $this->log("Some attributes have changed for {$changed_addresses_count}, be we won't adjust that.");
+            $this->log("Some attributes have changed for {$changed_addresses_count} addresses, but won't adjust that.");
         }
         if ($obsolete_addresses) {
             $obsolete_addresses_count = count($obsolete_addresses);
