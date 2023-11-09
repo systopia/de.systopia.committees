@@ -105,12 +105,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "is_required" => "0",
                     "is_searchable" => "1",
                     "is_search_range" => "1",
-                    "weight" => "217",
                     "is_active" => "1",
-                    "is_view" => "0",
                     "column_name" => "identifier",
                     "serialize" => "0",
-                    "in_selector" => "1"
                 ]);
             }
         }
@@ -544,4 +541,37 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->log("{$employments_imported} of {$employment_count} employments imported.");
         $this->log("Simple import complete.");
     }
+
+
+    /**
+     * Get the current committees (here: departments)
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current committees to, as extracted from the DB
+     */
+    protected function extractCurrentCommittees($requested_model, $present_model)
+    {
+        // add existing committees
+        $existing_committees = $this->getContactIDtoTids(self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+        if ($existing_committees) {
+            $committees_found = $this->callApi3('Contact', 'get', [
+                    'contact_type' => 'Organization',
+                    'id' => ['IN' => array_keys($existing_committees)],
+                    'return' => 'id,organization_name',
+                    'option.limit' => 0,
+            ]);
+            foreach ($committees_found['values'] as $committee_found) {
+                $present_committee_id = $existing_committees[$committee_found['id']][0];
+                $present_model->addCommittee([
+                         'name'       => $committee_found['organization_name'],
+                         'id'         => substr($present_committee_id, strlen(self::COMMITTEE_TRACKER_PREFIX)),
+                         'contact_id' => $committee_found['id'],
+                 ]);
+            }
+        }
+    }
+
 }
