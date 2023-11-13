@@ -73,6 +73,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             [$group_name, $field_name] = explode('.', self::ORGANISATION_EKIR_ID_FIELD);
             $custom_groups = (array) CRM_Committees_CustomData::getGroup2Name();
             if (!in_array($group_name, $custom_groups)) {
+                // make sure remanence of the table is gone
+                CRM_Core_DAO::executeQuery("DROP TABLE IF EXISTS civicrm_value_gmv_data;");
+
                 // create group
                 civicrm_api3('CustomGroup', 'create', [
                     "name" => "gmv_data",
