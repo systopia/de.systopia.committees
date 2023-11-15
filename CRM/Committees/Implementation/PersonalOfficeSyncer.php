@@ -160,32 +160,35 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // now extract current committees and run the diff
         $this->extractCurrentCommittees($model, $present_model);
-        [$new_committees, $changed_committees, $obsolete_committees] = $present_model->diffCommittees($model, ['contact_id', 'end_date', 'start_date', 'id']);
-        if ($new_committees) {
-            throw new Exception("Dealing with new or discontinued committees not implemented.");
-        }
-        // add warnings:
-        foreach ($changed_committees as $changed_committee) {
-            /* @var CRM_Committees_Model_Committee $changed_committee */
-            $differing_attributes = explode(',', $changed_committee->getAttribute('differing_attributes'));
-            $differing_values = $changed_committee->getAttribute('differing_values');
-            $changed_committee_contact_id = $changed_committee->getAttribute('contact_id');
-            $changed_committee_name = $changed_committee->getAttribute('name');
-            foreach ($differing_attributes as $differing_attribute) {
-                if ($differing_attribute == 'name' && $changed_committee_contact_id) {
-                    // update committee name
-                    $this->callApi3('Contact', 'create', [
-                            'contact_id' => $changed_committee_contact_id,
-                            'organization_name' => $changed_committee_name
-                    ]);
-                    $this->log("Name of committee [{$changed_committee->getID()}] was changed from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}.");
-                } else {
-                    $this->log("Committee [{$changed_committee->getID()}] has changed '{$differing_attribute}' from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}. Please adjust manually");
-                }
+        [$new_divisions, $changed_divisions, $obsolete_divisions] = $present_model->diffCommittees($model, ['contact_id', 'end_date', 'start_date', 'id']);
+        if ($new_divisions) {
+            $new_division_count = count($new_divisions);
+            $this->log("Will NOT create {$new_division_count} new divisions (KK/KG/..)!", 'warning');
+
+            // this is only for testing, please DISABLE
+            foreach ($new_divisions as $new_division) {
+                /** @var CRM_Committees_Model_Committee $new_division */
+                // create new division
+                civicrm_api4('Contact', 'create', [
+                        'values' => [
+                                'contact_type' => 'Organization',
+                                'organization_name' => $new_division->getAttribute('name'),
+                                'gmv_data.gmv_data_identifier' => $new_division->getID(),
+                        ], 'checkPermissions' => false,
+                ]);
+                $this->log("Created division '{$new_division->getAttribute('name')}' [{$new_division->getID()}]", 'warning');
             }
         }
-        if ($obsolete_committees) {
-            $this->log("There are obsolete committees, but they will not be removed.");
+
+        // report changed committees
+        if ($changed_divisions) {
+            $changed_division_count = count($changed_divisions);
+            $this->log("Will NOT update {$changed_division_count} divisions!", 'warning');
+        }
+
+        if ($obsolete_divisions) {
+            $obsolete_division_count = count($obsolete_divisions);
+            $this->log("There are {$obsolete_division_count} obsolete divisions, but they will NOT be removed.");
         }
 
         /**********************************************
@@ -547,7 +550,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
 
     /**
-     * Get the current committees (here: departments)
+     * Get the current committees (here: structural divisions)
      *
      * @param CRM_Committees_Model_Model $requested_model
      *   the model to be synced to this CiviCRM
@@ -557,24 +560,29 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
      */
     protected function extractCurrentCommittees($requested_model, $present_model)
     {
-        // add existing committees
-        $existing_committees = $this->getContactIDtoTids(self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-        if ($existing_committees) {
-            $committees_found = $this->callApi3('Contact', 'get', [
-                    'contact_type' => 'Organization',
-                    'id' => ['IN' => array_keys($existing_committees)],
-                    'return' => 'id,organization_name',
-                    'option.limit' => 0,
+        // Extract the committees (divisions) via EKIR ID.
+        // In this case that means, we just want to match the ones required by the new input
+        // therefore, we'll just collect the committee IDs
+
+        // first: gather all existing divisions from the input
+        $requested_division_ids = [];
+        foreach ($requested_model->getAllCommittees() as $committee) {
+            /** @var CRM_Committees_Model_Committee $committee */
+            $requested_division_ids[] = $committee->getID();
+        }
+
+        // then: look up those divisions
+        $existing_divisions = \Civi\Api4\Contact::get()
+                ->addSelect('gmv_data.gmv_data_identifier', 'id', 'display_name')
+                ->addWhere('gmv_data.gmv_data_identifier', 'IN', array_unique($requested_division_ids))
+                ->addWhere('is_deleted', '=', FALSE)
+                ->execute();
+        foreach ($existing_divisions->getArrayCopy() as $division) {
+            $present_model->addCommittee([
+                    'id' => $division['gmv_data.gmv_data_identifier'] ?? '',
+                    'name' => $division['display_name'] ?? 'NO NAME',
+                    'contact_id' => $division['id'],
             ]);
-            foreach ($committees_found['values'] as $committee_found) {
-                $present_committee_id = $existing_committees[$committee_found['id']][0];
-                $present_model->addCommittee([
-                         'name'       => $committee_found['organization_name'],
-                         'id'         => substr($present_committee_id, strlen(self::COMMITTEE_TRACKER_PREFIX)),
-                         'contact_id' => $committee_found['id'],
-                 ]);
-            }
         }
     }
-
 }
