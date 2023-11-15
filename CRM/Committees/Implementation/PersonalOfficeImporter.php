@@ -36,9 +36,9 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         11 => 'postal_code',
         12 => 'city',
         //13 => 'kk/kb-. kg-. gkg-schlüssel',
-        //14 => 'kk/kb-. kg-. gkg-schlüssel',
-        15 => 'committee_id', // externe org. nr
-        16 => 'committee_name',
+        14 => 'committee_id', // 'externe org. nr',
+        //15 => 'committee_id', // externe org. nr
+        15 => 'committee_name',
         //17 => 'versand-nr.',
         //18 => 'dienststnr._2',
         //19 => 'dienststnr.',
