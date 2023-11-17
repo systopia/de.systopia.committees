@@ -235,7 +235,7 @@ trait CRM_Committees_Tools_IdTrackerTrait
             $contacts_found = $this->callApi3('Contact', 'get', [
                     'contact_type' => 'Individual',
                     'id' => ['IN' => array_keys($existing_contacts)],
-                    'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id,prefix_id',
+                    'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id',
                     'option.limit' => 0,
             ]);
             foreach ($contacts_found['values'] as $contact_found) {

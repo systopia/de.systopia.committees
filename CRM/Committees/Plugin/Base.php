@@ -468,4 +468,52 @@ abstract class CRM_Committees_Plugin_Base
             return $string;
         }
     }
+
+    /**
+     * Get an option group value based on the given label
+     *
+     * @param string $label
+     *   the label
+     *
+     * @param string $option_group_name
+     *   the name of the option group
+     *
+     * @param float $minimum_similarity
+     *   value <= 1.0 to indicate how well the match should be
+     *
+     * @return string
+     *   option value, most likely a number
+     */
+    public function getOptionGroupValue($option_group_name, $label, $minimum_similarity = 1.0)
+    {
+        // cache results
+        static $similarity_cache = [];
+
+        $label2value = CRM_Core_OptionGroup::values($option_group_name, true);
+
+        // if found literally, return:
+        if (isset($label2value[$label])) return $label2value[$label];
+
+        $best_value = '';
+        $best_score = 0.0;
+        foreach ($label2value as $cmp_label => $cmp_value) {
+            if (!isset($similarity_cache[$option_group_name][$cmp_label][$label])) {
+                similar_text($label, $cmp_label, $percent);
+                $similarity_cache[$option_group_name][$cmp_label][$label] = $percent / 100.0;
+            }
+            $similarity = $similarity_cache[$option_group_name][$cmp_label][$label];
+            if ($similarity > $best_score) {
+                $best_score = $similarity;
+                $best_value = $cmp_value;
+            }
+        }
+
+        $this->log("Best match for '{$label}' is {$best_value} with {$best_score}");
+        if ($best_score >= $minimum_similarity) {
+            return $best_value;
+        } else {
+            return '';
+        }
+    }
+
 }

@@ -68,6 +68,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
 
         // make sure a certain custom field exists
+        $db_schema_changed = false;
         if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
             // check if the group is missing:
             [$group_name, $field_name] = explode('.', self::ORGANISATION_EKIR_ID_FIELD);
@@ -93,6 +94,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "icon" => "fa-info"
                 ]);
                 $this->log("Custom Group {$group_name} created.");
+                CRM_Committees_CustomData::flushCashes();
+                $db_schema_changed = true;
             }
 
             // check if the field is missing:
@@ -113,8 +116,14 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "serialize" => "0",
                 ]);
             }
+            $this->log("Custom Field {$field_name} created.");
+            CRM_Committees_CustomData::flushCashes();
+            $db_schema_changed = true;
         }
 
+        if ($db_schema_changed) {
+            throw new Exception("New custom fields created, please run the import process again.");
+        }
         return parent::checkRequirements();
     }
 
@@ -170,9 +179,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 /** @var CRM_Committees_Model_Committee $new_division */
                 // create new division
                 civicrm_api4('Contact', 'create', [
-                        'values' => [
-                                'contact_type' => 'Organization',
-                                'organization_name' => $new_division->getAttribute('name'),
+                        'values'           => [
+                                'contact_type'                 => 'Organization',
+                                'organization_name'            => $new_division->getAttribute('name'),
                                 'gmv_data.gmv_data_identifier' => $new_division->getID(),
                         ], 'checkPermissions' => false,
                 ]);
@@ -201,45 +210,79 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $model->joinEmailsToPersons();
         $model->joinPhonesToPersons();
 
-        // SKIP : apply custom adjustments to the persons
-//        foreach ($model->getAllPersons() as $person) {
-//            /** @var CRM_Committees_Model_Person $person */
-//            $person_data = $person->getData();
-//            $person->setAttribute('gender_id', $this->getGenderId($person_data));
-//            $person->setAttribute('suffix_id', $this->getSuffixId($person_data));
-//            $person->setAttribute('prefix_id', $this->getPrefixId($person_data));
-//        }
-
         // then compare to current model and apply changes
-        $this->extractCurrentContacts($model, $present_model);
-        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'phone', 'gender_id', 'prefix_id', 'suffix_id']);
+        $this->extractCurrentContacts(
+                $model,
+                $present_model,
+                self::CONTACT_TRACKER_TYPE,
+                self::CONTACT_TRACKER_PREFIX
+        );
+        [
+                $new_persons,
+                $changed_persons,
+                $obsolete_persons
+        ] = $present_model->diffPersons(
+                $model,
+                [
+                        'contact_id',
+                        'formal_title',
+                        'prefix',
+                        'street_address',
+                        'house_number',
+                        'postal_code',
+                        'city',
+                        'email',
+                        'supplemental_address_1',
+                        'phone',
+                        'gender_id',
+                        'prefix_id',
+                        'suffix_id',
+                        'job_title_key',
+                        'country_id'
+                ]
+        );
 
-        // create missing contacts
-        //$person_custom_field_mapping = $this->getPersonCustomFieldMapping($model);
         foreach ($new_persons as $new_person) {
             /** @var CRM_Committees_Model_Person $new_person */
-            $person_data = $new_person->getDataWithout(['id']);
+            $person_data                 = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = 'Individual';
-            $person_data['source'] = 'SESSION-' . date('Y');
-//            if ($person_custom_field_mapping) {
-//                foreach ($person_custom_field_mapping as $person_property => $contact_custom_field) {
-//                    $person_data[$contact_custom_field] = $new_person->getAttribute($person_property);
-//                }
-//            }
-            $result = $this->callApi3('Contact', 'create', $person_data);
+            $person_data['source']       = 'PO Import ' . date('Y-m-d');
 
-            // contact post-processing
-            $this->setIDTContactID($new_person->getID(), $result['id'], self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $new_person->setAttribute('contact_id', $result['id']);
+            // convert job title
+            $job_title                                                = $person_data['job_title_key'] ?? null;
+            $person_data['pfarrer_innen.pfarrer_innen_job_title_key'] =
+                    $this->getOrCreateOptionValue(['label' => $job_title],
+                                                  'pfarrer_innen_job_title_key'
+                    )['value'] ?? '';
 
-            // add to the present model
-            $present_model->addPerson($new_person->getData());
+            try {
+                CRM_Committees_CustomData::resolveCustomFields($person_data);
+                $result = $this->callApi3('Contact', 'create', $person_data);
+                $this->setIDTContactID(
+                        $new_person->getID(),
+                        $result['id'],
+                        self::CONTACT_TRACKER_TYPE,
+                        self::CONTACT_TRACKER_PREFIX
+                );
+                $new_person->setAttribute('contact_id', $result['id']);
 
-            $this->log("Session Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
+                // add to the present model
+                $present_model->addPerson($new_person->getData());
+                $this->log(
+                        "PO Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}]."
+                );
+            } catch (Exception $exception) {
+                $this->logError(
+                        "Exception when trying to create new contact [{$new_person->getID()}]: " . $exception->getMessage(
+                        )
+                );
+            }
         }
+
         if (!$new_persons) {
             $this->log("No new contacts detected in import data.");
         }
+
 
         // apply changes to existing contacts
         foreach ($changed_persons as $current_person) {
@@ -354,9 +397,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $this->log("Added address '{$shortened_address_data}' to contact [{$address_data['contact_id']}]");
             }
         }
-//        if ($unwanted_relationship_counter) {
-//            $this->log("{$unwanted_relationship_counter} unwanted relationships (employee of) have been deleted");
-//        }
         if (!$new_addresses) {
             $this->log("No new addresses detected in import data.");
         }
@@ -369,79 +409,80 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $this->log("{$obsolete_addresses_count} addresses are not listed in input, but won't delete.");
         }
 
-        /**********************************************
-         **        SYNC COMMITTEE MEMBERSHIPS        **
-         **********************************************/
-        // adjust memberships
-        $relationship_type_id = $this->getRelationshipTypeID('is_committee_member_of');
-
-        foreach ($model->getAllMemberships() as $membership) {
-            /** @var $membership CRM_Committees_Model_Membership */
-
-            // 1) set the relationship types (and consider active)
-            $membership->setAttribute('relationship_type_id', $relationship_type_id);
-            $membership->setAttribute('is_active', 1);
-        }
-
-        // extract current memberships
-        $this->addCurrentMemberships($model, $present_model);
-        //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
-
-        $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
-        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
-        // first: disable absent (deleted)
-        foreach ($obsolete_memberships as $membership) {
-            /** @var CRM_Committees_Model_Membership $membership */
-            // this membership needs to be ended/deactivated
-            $relationship_id = $membership->getAttribute('relationship_id');
-
-            // check if already disabled
-            try {
-                $is_enabled = $this->callApi3('Relationship', 'getvalue', [
-                        'id' => $relationship_id,
-                        'return' => 'is_active',
-                ]);
-                if ($is_enabled) {
-                    $this->callApi3('Relationship', 'create', [
-                            'id' => $relationship_id,
-                            'is_active' => 0,
-                            'end_date' => date('Y-m-d'),
-                    ]);
-                    $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
-                }
-            } catch (Exception $ex) {
-                $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
-            }
-        }
-
-        // CREATE the new ones
-        foreach ($new_memberships as $new_membership) {
-            /** @var CRM_Committees_Model_Membership $new_membership */
-//            $person = $new_membership->getPerson();
-            $person_id = $new_membership->getAttribute('contact_id');
-            $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
-            if (!$person) {
-                $this->logError("Person of membership [{$new_membership->getID()}] not found.");
-                continue;
-            }
-            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
-            if (!$committee_id) {
-                $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
-                continue;
-            }
-            $this->callApi3('Relationship', 'create', [
-                    'contact_id_a' => $person_civicrm_id,
-                    'contact_id_b' => $committee_id,
-                    'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
-                    'is_active' => 1,
-            ]);
-            $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
-        }
-        $new_count = count($new_memberships);
-        $this->log("{$new_count} new committee memberships created.");
+//        /**********************************************
+//         **        SYNC COMMITTEE MEMBERSHIPS        **
+//         **********************************************/
+//        // adjust memberships
+//        $relationship_type_id = $this->getRelationshipTypeID('is_committee_member_of');
+//
+//        foreach ($model->getAllMemberships() as $membership) {
+//            /** @var $membership CRM_Committees_Model_Membership */
+//
+//            // 1) set the relationship types (and consider active)
+//            $membership->setAttribute('relationship_type_id', $relationship_type_id);
+//            $membership->setAttribute('is_active', 1);
+//        }
+//
+//        // extract current memberships
+//        $this->addCurrentMemberships($model, $present_model);
+//        //$this->log(count($present_model->getAllMemberships()) . " existing committee memberships identified in CiviCRM.");
+//
+//        $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
+//        [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
+//        // first: disable absent (deleted)
+//        foreach ($obsolete_memberships as $membership) {
+//            /** @var CRM_Committees_Model_Membership $membership */
+//            // this membership needs to be ended/deactivated
+//            $relationship_id = $membership->getAttribute('relationship_id');
+//
+//            // check if already disabled
+//            try {
+//                $is_enabled = $this->callApi3('Relationship', 'getvalue', [
+//                        'id' => $relationship_id,
+//                        'return' => 'is_active',
+//                ]);
+//                if ($is_enabled) {
+//                    $this->callApi3('Relationship', 'create', [
+//                            'id' => $relationship_id,
+//                            'is_active' => 0,
+//                            'end_date' => date('Y-m-d'),
+//                    ]);
+//                    $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+//                }
+//            } catch (Exception $ex) {
+//                $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+//            }
+//        }
+//
+//        // CREATE the new ones
+//        foreach ($new_memberships as $new_membership) {
+//            /** @var CRM_Committees_Model_Membership $new_membership */
+////            $person = $new_membership->getPerson();
+//            $person_id = $new_membership->getAttribute('contact_id');
+//            $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
+//            if (!$person) {
+//                $this->logError("Person of membership [{$new_membership->getID()}] not found.");
+//                continue;
+//            }
+//            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+//            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+//            if (!$committee_id) {
+//                $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
+//                continue;
+//            }
+//            $this->callApi3('Relationship', 'create', [
+//                    'contact_id_a' => $person_civicrm_id,
+//                    'contact_id_b' => $committee_id,
+//                    'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
+//                    'is_active' => 1,
+//            ]);
+//            $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
+//        }
+//        $new_count = count($new_memberships);
+//        $this->log("{$new_count} new committee memberships created.");
 
         // THAT'S IT, WE'RE DONE
+        return true;
     }
 
     /**
