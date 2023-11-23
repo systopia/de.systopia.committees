@@ -364,7 +364,12 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                 continue;
             }
             $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
+            $committee = $new_membership->getCommittee();
+            if (!$committee) {
+                $this->logError("Membership [{$new_membership->getID()}] has no committee.");
+                continue;
+            }
+            $committee_id = $this->getIDTContactID($committee->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
             if (!$committee_id) {
                 $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
                 continue;
