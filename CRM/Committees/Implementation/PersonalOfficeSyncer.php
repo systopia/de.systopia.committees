@@ -35,13 +35,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     /** @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
     const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
 
-    /** @var string option group ID for the church parishes */
-    const PARISHES_LIST_OPTION_GROUP = 'church_parish';
-
-    /** @var string custom field id (group_name.field_name) for the EKIR division the contact works at */
-    // values are in the ekir_church_parish option group
-    const ORGANISATION_WORKS_AT_FIELD = 'contact_ekir.ekir_church_parish';
-
     /** @var string  custom field id (group_name.field_name) for the job title custom field */
     const CONTACT_JOB_TITLE_KEY_FIELD = 'pfarrer_innen.pfarrer_innen_job_title_key';
 
@@ -163,12 +156,23 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
+        // todo: disable
         $this->log("CustomData synchronisation still active!", 'warning');
         $customData = new CRM_Committees_CustomData(E::LONG_NAME);
         $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
         $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
         $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
         CRM_Committees_CustomData::flushCashes();
+
+        if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
+            $field_key = self::ORGANISATION_EKIR_ID_FIELD;
+            $this->logError("'EKIR ID' ({$field_key}) field missing!", 'This field is needed for synchronisation');
+        }
+
+        if (!$this->customFieldExists(self::CONTACT_JOB_TITLE_KEY_FIELD)) {
+            $field_key = self::CONTACT_JOB_TITLE_KEY_FIELD;
+            $this->logError("'Job Title' ({$field_key}) field missing!", 'This field is needed for synchronisation');
+        }
 
         if ($transaction) {
             $transaction = new CRM_Core_Transaction();
@@ -197,7 +201,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             try {
                 $new_division_data = [
                     'contact_type' => 'Organization',
-                    'gmv_data.gmv_data_identifier' => $new_division->getID(),
+                    self::ORGANISATION_EKIR_ID_FIELD => $new_division->getID(),
                     'organization_name' => $new_division->getAttribute('name')
                 ];
                 CRM_Committees_CustomData::labelCustomFields($new_division_data);
@@ -241,7 +245,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // convert job title
             $job_title = $person_data['job_title_key'] ?? null;
-            $person_data['pfarrer_innen.pfarrer_innen_job_title_key'] =
+            $person_data[self::CONTACT_JOB_TITLE_KEY_FIELD] =
                     $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
             try {
                 CRM_Committees_CustomData::resolveCustomFields($person_data);
@@ -518,14 +522,14 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     protected function extractCurrentCommittees($requested_model, $present_model)
     {
         $employers = \Civi\Api4\Contact::get()
-                ->addSelect('id', 'gmv_data.gmv_data_identifier', 'display_name')
+                ->addSelect('id', self::ORGANISATION_EKIR_ID_FIELD, 'display_name')
                 ->addWhere('contact_type', '=', 'Organization')
-                ->addWhere('gmv_data.gmv_data_identifier', 'IS NOT EMPTY')
+                ->addWhere(self::ORGANISATION_EKIR_ID_FIELD, 'IS NOT EMPTY')
                 ->execute();
         foreach ($employers->getArrayCopy() as $employer) {
             $present_model->addCommittee([
                     'name' => $employer['display_name'] ?? 'n/a',
-                    'id' => $employer['gmv_data.gmv_data_identifier'],
+                    'id' => $employer[self::ORGANISATION_EKIR_ID_FIELD],
                     'contact_id' => $employer['id']
             ]);
         }
