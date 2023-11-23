@@ -94,9 +94,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             [$group_name, $field_name] = explode('.', self::ORGANISATION_EKIR_ID_FIELD);
             $custom_groups = (array) CRM_Committees_CustomData::getGroup2Name();
             if (!in_array($group_name, $custom_groups)) {
-                // make sure remanence of the table is gone
-                CRM_Core_DAO::executeQuery("DROP TABLE IF EXISTS civicrm_value_gmv_data;");
-
                 // create group
                 civicrm_api3('CustomGroup', 'create', [
                     "name" => "gmv_data",
@@ -166,9 +163,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
+        $this->log("CustomData synchronisation still active!", 'warning');
         $customData = new CRM_Committees_CustomData(E::LONG_NAME);
         $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
         $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
+        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
         CRM_Committees_CustomData::flushCashes();
 
         if ($transaction) {
@@ -196,11 +195,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             // we want to create new divisions, otherwise we can't continue
             /** @var CRM_Committees_Model_Committee $new_division */
             try {
-                civicrm_api3('Contact', 'create', [
-                        'contact_type' => 'Organization',
-                        'gmv_data.gmv_data_identifier' => $new_division->getID(),
-                        'organization_name' => $new_division->getAttribute('name')
-                ]);
+                $new_division_data = [
+                    'contact_type' => 'Organization',
+                    'gmv_data.gmv_data_identifier' => $new_division->getID(),
+                    'organization_name' => $new_division->getAttribute('name')
+                ];
+                CRM_Committees_CustomData::labelCustomFields($new_division_data);
+                civicrm_api3('Contact', 'create', $new_division_data);
                 $this->log("Created new division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}'");
             } catch (Exception $ex) {
                 $this->log("Couldn't create division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}'.", 'warning');
@@ -431,18 +432,18 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 continue;
             }
             $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
-            if (!$committee_id) {
+            $committee_civicrm_id = $new_membership->getCommittee()->getAttribute('contact_id');
+            if (!$committee_civicrm_id) {
                 $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
                 continue;
             }
             $this->callApi3('Relationship', 'create', [
                     'contact_id_a' => $person_civicrm_id,
-                    'contact_id_b' => $committee_id,
+                    'contact_id_b' => $committee_civicrm_id,
                     'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                     'is_active' => 1,
             ]);
-            $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
+            $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_civicrm_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
