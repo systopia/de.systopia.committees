@@ -104,23 +104,14 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             /* @var CRM_Committees_Model_Committee $changed_committee */
             $differing_attributes = explode(',', $changed_committee->getAttribute('differing_attributes'));
             $differing_values = $changed_committee->getAttribute('differing_values');
-            $changed_committee_contact_id = $changed_committee->getAttribute('contact_id');
-            $changed_committee_name = $changed_committee->getAttribute('name');
             foreach ($differing_attributes as $differing_attribute) {
-                if ($differing_attribute == 'name' && $changed_committee_contact_id) {
-                    // update committee name
-                    $this->callApi3('Contact', 'create', [
-                       'contact_id' => $changed_committee_contact_id,
-                       'organization_name' => $changed_committee_name
-                    ]);
-                    $this->log("Name of committee [{$changed_committee->getID()}] was changed from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}.");
-                } else {
-                    $this->log("Committee [{$changed_committee->getID()}] has changed '{$differing_attribute}' from {$differing_values[$differing_attribute][0]} to {$differing_values[$differing_attribute][1]}. Please adjust manually");
-                }
+                $this->log("TODO: Change attribute '{$differing_attribute}' of committee [{$changed_committee->getID()}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
             }
         }
-        if ($obsolete_committees) {
-            $this->log("There are obsolete committees, but they will not be removed.");
+        foreach ($obsolete_committees as $obsolete_committee) {
+            /* @var CRM_Committees_Model_Committee $obsolete_committee */
+            $committee_name = $obsolete_committee->getAttribute('name');
+            $this->log("TODO: Remove obsolete committee '{$committee_name}'?");
         }
 
         /**********************************************
@@ -148,6 +139,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
         // create missing contacts
         //$person_custom_field_mapping = $this->getPersonCustomFieldMapping($model);
+        $new_person_ids = [];
         foreach ($new_persons as $new_person) {
             /** @var CRM_Committees_Model_Person $new_person */
             $person_data = $new_person->getDataWithout(['id']);
@@ -161,39 +153,35 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
 
             // add to the present model
             $present_model->addPerson($new_person->getData());
-
-            $this->log("Session Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
+            $new_person_ids[] = $new_person->getID();
+            $this->log("Session Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}] - maybe have a brief look?");
         }
         if (!$new_persons) {
             $this->log("No new contacts detected in import data.");
         }
 
         // apply changes to existing contacts
-        foreach ($changed_persons as $current_person) {
-            /** @var CRM_Committees_Model_Person $current_person */
-            $person_update = [
-                'id' => $this->getIDTContactID($current_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX),
-            ];
-            $differing_attributes = explode(',', $current_person->getAttribute('differing_attributes'));
-            $changed_person = $model->getPerson($current_person->getID());
+        foreach ($changed_persons as $changed_person) {
+            /** @var CRM_Committees_Model_Person $changed_person */
+            $contact_id = $this->getIDTContactID($changed_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
+            $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
-                $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
+                $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
             }
-            $result = $this->callApi3('Contact', 'create', $person_update);
-            $this->log("Session Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
         }
 
         // note obsolete contacts
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
-            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted:");
+            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those have *not* been deleted:");
             // clear lobby data from obsolete persons
             foreach ($obsolete_persons as $obsolete_person) {
                 /** @var CRM_Committees_Model_Person $obsolete_person */
                 $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                 if ($contact_id) {
                     $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
-                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
+                    $this->log("TODO: delete obsolete(?) contact CiviCRM-ID [{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
                 } else {
                     $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
                 }
@@ -213,9 +201,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $person = $email->getContact($present_model);
             if ($person) {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->callApi3('Email', 'create', $email_data);
-                $shortened_email_data = $this->obfuscate($email_data['email']);
-                $this->log("Added email '{$shortened_email_data}' to contact [{$email_data['contact_id']}]");
+                $this->log("TODO: add email '{$email_data['email']}' to contact [{$email_data['contact_id']}]?");
             }
         }
         if (!$new_emails) {
@@ -237,16 +223,19 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         [$new_phones, $changed_phones, $obsolete_phones] = $present_model->diffPhones($model, ['location_type', 'id'], ['phone', 'contact_id']);
         foreach ($new_phones as $phone) {
             /** @var CRM_Committees_Model_Phone $phone */
-            $phone_data = $phone->getData();
-            //$phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
-            $phone_data['is_primary'] = 1;
-            //$phone_data['phone_type_id'] = $this->getPhoneTypeId($phone_data);
             $person = $phone->getContact($present_model);
-            if ($person) {
+            $phone_data = $phone->getData();
+            $person_id = $person->getID();
+            if (in_array($person_id, $new_person_ids)) {
+                // this is a new person's phone -> create phone
+                $phone_data['is_primary'] = 1;
                 $phone_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Phone', 'create', $phone_data);
-                $shortened_phone_data = $this->obfuscate($phone_data['phone']);
-                $this->log("Added phone '{$shortened_phone_data} to contact [{$phone_data['contact_id']}]");
+                $this->log("Added phone '{$phone_data['phone']} to new contact [#{$phone_data['contact_id']}]");
+
+            } else {
+                // this is an existing person -> add TODO
+                $this->log("TODO: add phone '{$phone_data['phone']}' to contact [#{$phone_data['contact_id']}]?");
             }
         }
         if (!$new_phones) {
@@ -266,30 +255,41 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
          **********************************************/
         $this->extractCurrentDetails($model, $present_model, 'address');
         [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name', 'house_number', 'id']);
-        $unwanted_relationship_counter = 0;
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
             $address_data = $address->getData();
-            //$address_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
             $address_data['is_primary'] = 1;
+            $address_string = $address_data['street_address'] ?? '';
+            if (!empty($address_data['supplemental_address_1'])) $address_string .= "|{$address_data['supplemental_address_1']}";
+            if (!empty($address_data['postal_code'])) $address_string .= "|{$address_data['postal_code']}";
+            if (!empty($address_data['city'])) $address_string .= "|{$address_data['city']}";
+
             $person = $address->getContact($present_model);
-            if ($person) {
+            $person_id = $person->getID();
+            if (in_array($person_id, $new_person_ids)) {
+                // newly created contact, add address
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
-                $last_relationship_id = (int) CRM_Core_DAO::singleValueQuery("SELECT MAX(id) FROM civicrm_relationship;");
                 $this->callApi3('Address', 'create', $address_data);
-                $shortened_address_data = $this->obfuscate($address_data['street_address']) . '/' . $address_data['postal_code'];
-                $this->log("Added address '{$shortened_address_data}' to contact [{$address_data['contact_id']}]");
+                $this->log("Added address '{$address_string}' to new contact [#{$address_data['contact_id']}]");
+            } else {
+                // existing contact, add TODO
+                $this->log("TODO: add new address '{$address_string}' to contact [#{$address_data['contact_id']}]?");
             }
         }
-//        if ($unwanted_relationship_counter) {
-//            $this->log("{$unwanted_relationship_counter} unwanted relationships (employee of) have been deleted");
-//        }
         if (!$new_addresses) {
             $this->log("No new addresses detected in import data.");
         }
-        if ($changed_addresses) {
-            $changed_addresses_count = count($changed_addresses);
-            $this->log("Some attributes have changed for {$changed_addresses_count} addresses, but won't adjust that.");
+        foreach ($changed_addresses as $changed_address) {
+            $person = $changed_address->getContact($present_model);
+            if ($person) {
+                $address_contact_id = $person->getAttribute('contact_id');
+                $differing_attributes = explode(',', $changed_address->getAttribute('differing_attributes'));
+                $differing_values = $changed_address->getAttribute('differing_values');
+                foreach ($differing_attributes as $differing_attribute) {
+                    if ($differing_attribute == 'supplemental_address_1') continue; // we don't want to add that to existing address
+                    $this->log("TODO: Change address attribute '{$differing_attribute}' of contact [#{$address_contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
+                }
+            }
         }
         if ($obsolete_addresses) {
             $obsolete_addresses_count = count($obsolete_addresses);
@@ -334,11 +334,10 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                     $membership_id = $membership->getID();
                     if (isset($membership_end_dates[$membership_id])) {
                         $membership_end_date = $membership_end_dates[$membership_id];
+                        $end_date_remark = date('Y-m-d', strtotime($membership_end_date));
                     } else {
                         $membership_end_date = date('Y-m-d');
-                        $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-                        $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
-                        $this->log("Couldn't find end date for membership [{$person_civicrm_id}]<->[{$committee_id}], using today.");
+                        $end_date_remark = "No end date provided, using today.";
                     }
                     $this->callApi3('Relationship', 'create', [
                             'id' => $relationship_id,
@@ -347,7 +346,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                     ]);
                     $person_civicrm_id = $this->getIDTContactID($membership->getPerson()->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                     $committee_id = $this->getIDTContactID($membership->getCommittee()->getID(), self::CONTACT_TRACKER_TYPE, self::COMMITTEE_TRACKER_PREFIX);
-                    $this->log("Disabled obsolete committee membership [{$person_civicrm_id}]<->[{$committee_id}] (ID:[{$membership->getAttribute('relationship_id')}]).");
+                    $this->log("Ended committee membership [{$person_civicrm_id}]<->[{$committee_id}] (ID:[{$membership->getAttribute('relationship_id')}]): {$end_date_remark}");
                 }
             } catch (Exception $ex) {
                 $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
