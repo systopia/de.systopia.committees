@@ -154,7 +154,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             // add to the present model
             $present_model->addPerson($new_person->getData());
             $new_person_ids[] = $new_person->getID();
-            $this->log("Session Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}] - maybe have a brief look?");
+            $this->log("Session Contact [{$new_person->getID()}] created with CiviCRM-ID [#{$result['id']}] - maybe have a brief look?");
         }
         if (!$new_persons) {
             $this->log("No new contacts detected in import data.");
