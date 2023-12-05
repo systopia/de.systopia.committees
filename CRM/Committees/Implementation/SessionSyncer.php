@@ -167,7 +167,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
             $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
-                $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
+                $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
             }
         }
 
@@ -181,7 +181,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                 $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                 if ($contact_id) {
                     $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
-                    $this->log("TODO: delete obsolete(?) contact CiviCRM-ID [{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
+                    $this->log("TODO: delete obsolete(?) contact CiviCRM-ID [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
                 } else {
                     $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
                 }
@@ -201,7 +201,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $person = $email->getContact($present_model);
             if ($person) {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->log("TODO: add email '{$email_data['email']}' to contact [{$email_data['contact_id']}]?");
+                $this->log("TODO: add email '{$email_data['email']}' to contact [#{$email_data['contact_id']}]?");
             }
         }
         if (!$new_emails) {
@@ -225,14 +225,13 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             /** @var CRM_Committees_Model_Phone $phone */
             $person = $phone->getContact($present_model);
             $phone_data = $phone->getData();
+            $phone_data['contact_id'] = $person->getAttribute('contact_id');
             $person_id = $person->getID();
             if (in_array($person_id, $new_person_ids)) {
                 // this is a new person's phone -> create phone
                 $phone_data['is_primary'] = 1;
-                $phone_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Phone', 'create', $phone_data);
                 $this->log("Added phone '{$phone_data['phone']} to new contact [#{$phone_data['contact_id']}]");
-
             } else {
                 // this is an existing person -> add TODO
                 $this->log("TODO: add phone '{$phone_data['phone']}' to contact [#{$phone_data['contact_id']}]?");
@@ -257,14 +256,15 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name', 'house_number', 'id']);
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
+            $person = $address->getContact($present_model);
             $address_data = $address->getData();
+            $address_data['contact_id'] = $person->getAttribute('contact_id');
             $address_data['is_primary'] = 1;
             $address_string = $address_data['street_address'] ?? '';
             if (!empty($address_data['supplemental_address_1'])) $address_string .= "|{$address_data['supplemental_address_1']}";
             if (!empty($address_data['postal_code'])) $address_string .= "|{$address_data['postal_code']}";
             if (!empty($address_data['city'])) $address_string .= "|{$address_data['city']}";
 
-            $person = $address->getContact($present_model);
             $person_id = $person->getID();
             if (in_array($person_id, $new_person_ids)) {
                 // newly created contact, add address
