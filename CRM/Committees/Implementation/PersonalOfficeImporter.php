@@ -135,6 +135,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         $main_sheet = $this->getMainSheet($file_path);
         $row_count = $main_sheet->getHighestRow();
         $this->log("Start importing {$row_count} rows");
+        $duplicate_contact_count = 0;
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($main_sheet, $row_nr, self::ROW_MAPPING);
 
@@ -158,7 +159,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                     $this->model->addEmail($email);
                 }
             } else {
-                $this->log("Skipped duplicate contact data [{$contact['id']}].");
+                $duplicate_contact_count++;
             }
 
             // extract committees and membership relationships

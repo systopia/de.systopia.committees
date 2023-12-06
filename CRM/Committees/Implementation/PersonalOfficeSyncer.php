@@ -205,9 +205,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             /** @var CRM_Committees_Model_Committee $new_division */
             try {
                 $new_division_data = [
+                    'organization_name' => $new_division->getAttribute('name'),
                     'contact_type' => 'Organization',
+                    'contact_sub_type' => $this->getContactSubTypeFromId($new_division->getID()),
                     self::ORGANISATION_EKIR_ID_FIELD => $new_division->getID(),
-                    'organization_name' => $new_division->getAttribute('name')
                 ];
                 CRM_Committees_CustomData::labelCustomFields($new_division_data);
                 civicrm_api3('Contact', 'create', $new_division_data);
@@ -503,7 +504,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         }
 
         // Extract the existing 'committee memberships' (read: employments)
-        $current_employments = \Civi\Api4\Relationship::get()
+        $current_employments = \Civi\Api4\Relationship::get(FALSE)
                 ->addSelect('value', 'label')
                 ->addWhere('contact_id_a', 'IN', $current_person_ids)
                 ->addWhere('contact_id_b', 'IN', $current_employer_ids)
@@ -531,7 +532,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     protected function extractCurrentCommittees($requested_model, $present_model)
     {
         $committee_count_before = count($present_model->getAllCommittees());
-        $divisions = \Civi\Api4\Contact::get()
+        $divisions = \Civi\Api4\Contact::get(FALSE)
                 ->addSelect('id', self::ORGANISATION_EKIR_ID_FIELD, 'display_name')
                 ->addWhere(self::ORGANISATION_EKIR_ID_FIELD, 'IS NOT EMPTY')
                 ->addWhere('contact_type', '=', 'Organization')
@@ -543,9 +544,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                  'contact_id' => $division['id']
             ]);
         }
-
-        $committees_added_count = (int) count($present_model->getAllCommittees()) - $committee_count_before;
-        $this->log("{$committees_added_count} divisions found in the current system.");
     }
 
     /**
@@ -652,4 +650,20 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->log("Simple import complete.");
     }
 
+    /**
+     * Try to derive the contact sub type from a given 'externe org. nr'
+     *
+     * @param $org_nummer
+     * @return string
+     */
+    protected function getContactSubTypeFromId($org_nummer)
+    {
+        if (preg_match("/^[0-9]{6}$/", $org_nummer)) {
+            return 'Kirchenkreis';
+        } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
+            return 'Gemeinde';
+        } else {
+            return '';
+        }
+    }
 }
