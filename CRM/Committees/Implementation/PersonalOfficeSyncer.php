@@ -148,7 +148,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
      *
      * @return boolean
      */
-    public function syncModel($model, $transaction = false)
+    public function syncModel($model, $transaction = true)
     {
         // first, make sure some stuff is there
         $this->registerIDTrackerType(self::CONTACT_TRACKER_TYPE, "Personal Office ID");
@@ -157,12 +157,12 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
         // todo: disable
-        $this->log("CustomData synchronisation still active!", 'warning');
-        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
-        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
-        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
-        CRM_Committees_CustomData::flushCashes();
+//        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
+//        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
+//        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
+//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
+//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
+//        CRM_Committees_CustomData::flushCashes();
 
         if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
             $field_key = self::ORGANISATION_EKIR_ID_FIELD;
@@ -458,6 +458,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->log("{$new_count} new committee memberships created.");
 
         // THAT'S IT, WE'RE DONE
+        if ($transaction) {
+            //$transaction->commit();
+        }
+
         return true;
     }
 

@@ -170,8 +170,8 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                 if (!$existing_committee) {
                     // apply different naming scheme
                     $committee_name = $committee_data['name'];
-                    $committee_name = preg_replace('/^KG//', 'Evangelische Kirchengemeinde', $committee_name);
-                    $committee_name = preg_replace('/^KK//', 'Evangelischer Kirchenkreis', $committee_name);
+                    $committee_name = preg_replace('/^KG/', 'Evangelische Kirchengemeinde', $committee_name);
+                    $committee_name = preg_replace('/^KK/', 'Evangelischer Kirchenkreis', $committee_name);
                     $committee_data['name'] = $committee_name;
                     $this->model->addCommittee($committee_data);
                 }
