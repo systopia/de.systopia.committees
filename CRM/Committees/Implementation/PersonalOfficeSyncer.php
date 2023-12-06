@@ -530,18 +530,22 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
      */
     protected function extractCurrentCommittees($requested_model, $present_model)
     {
-        $employers = \Civi\Api4\Contact::get()
+        $committee_count_before = count($present_model->getAllCommittees());
+        $divisions = \Civi\Api4\Contact::get()
                 ->addSelect('id', self::ORGANISATION_EKIR_ID_FIELD, 'display_name')
-                ->addWhere('contact_type', '=', 'Organization')
                 ->addWhere(self::ORGANISATION_EKIR_ID_FIELD, 'IS NOT EMPTY')
+                ->addWhere('contact_type', '=', 'Organization')
                 ->execute();
-        foreach ($employers->getArrayCopy() as $employer) {
+        foreach ($divisions as $division) {
             $present_model->addCommittee([
-                    'name' => $employer['display_name'] ?? 'n/a',
-                    'id' => $employer[self::ORGANISATION_EKIR_ID_FIELD],
-                    'contact_id' => $employer['id']
+                 'name' => $division['display_name'] ?? 'n/a',
+                 'id' => $division[self::ORGANISATION_EKIR_ID_FIELD],
+                 'contact_id' => $division['id']
             ]);
         }
+
+        $committees_added_count = (int) count($present_model->getAllCommittees()) - $committee_count_before;
+        $this->log("{$committees_added_count} divisions found in the current system.");
     }
 
     /**

@@ -181,7 +181,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             $this->model->addCommitteeMembership($employment);
         }
         $this->log(count($this->model->getAllPersons()) . " contacts read.");
-        $this->log(count($this->model->getAllCommittees()) . " divisions found.");
+        $this->log(count($this->model->getAllCommittees()) . " divisions referenced in input.");
 
         return true;
     }
