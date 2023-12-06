@@ -16,7 +16,7 @@
 use CRM_Committees_ExtensionUtil as E;
 
 /**
- * Importer for Session XLS Export
+ * Importer for PersonalOffice XLS Export
  *
  * @todo migrate to separate extension or leave as example?
  */
@@ -168,6 +168,11 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             if (!empty($committee_data['id']) && !empty($committee_data['name'])) {
                 $existing_committee = $this->model->getCommittee($committee_data['id']);
                 if (!$existing_committee) {
+                    // apply different naming scheme
+                    $committee_name = $committee_data['name'];
+                    $committee_name = preg_replace('/^KG//', 'Evangelische Kirchengemeinde', $committee_name);
+                    $committee_name = preg_replace('/^KK//', 'Evangelischer Kirchenkreis', $committee_name);
+                    $committee_data['name'] = $committee_name;
                     $this->model->addCommittee($committee_data);
                 }
             }
@@ -176,6 +181,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             $this->model->addCommitteeMembership($employment);
         }
         $this->log(count($this->model->getAllPersons()) . " contacts read.");
+        $this->log(count($this->model->getAllCommittees()) . " divisions found.");
 
         return true;
     }
