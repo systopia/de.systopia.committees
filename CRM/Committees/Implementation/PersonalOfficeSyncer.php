@@ -66,7 +66,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->checkIdTrackerRequirements($this);
 
         // we need the extended contact matcher (XCM)
-        $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
+        //$this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
 
         // check if the employer relationship is there
         try {
@@ -511,7 +511,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ->addWhere('is_active', '=', true)
                 ->setCheckPermissions(false)
                 ->execute();
-        foreach ($current_employments->getArrayCopy() as $existing_employers) {
+        foreach ($current_employments->getIterator() as $existing_employers) {
             $present_model->addCommitteeMembership([
                 'id' => $existing_employers['value'] ?? 'ERROR',
                 'name' => $existing_employers['label'] ?? 'ERROR',
