@@ -214,7 +214,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 civicrm_api3('Contact', 'create', $new_division_data);
                 $this->log("Created new division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}'");
             } catch (Exception $ex) {
-                $this->log("Couldn't create division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}'.", 'warning');
+                $this->log("Couldn't create division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}' - error was: '{$ex->getMessage()}'", 'warning');
             }
         }
 
@@ -234,14 +234,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
 
-        // join addresses, emails, phones
+        // join addresses, emails
         $model->joinAddressesToPersons();
         $model->joinEmailsToPersons();
-        $model->joinPhonesToPersons();
 
         // then compare to current model and apply changes
         $this->extractCurrentContacts($model, $present_model, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'phone', 'gender_id', 'prefix_id', 'suffix_id', 'job_title_key', 'country_id']);
+        [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'gender_id', 'prefix_id', 'suffix_id', 'job_title_key', 'country_id']);
 
         foreach ($new_persons as $new_person) {
             /** @var CRM_Committees_Model_Person $new_person */
@@ -294,16 +293,16 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
             $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted:");
-            foreach ($obsolete_persons as $obsolete_person) {
-                /** @var CRM_Committees_Model_Person $obsolete_person */
-                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-                if ($contact_id) {
-                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
-                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
-                } else {
-                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
-                }
-            }
+//            foreach ($obsolete_persons as $obsolete_person) {
+//                /** @var CRM_Committees_Model_Person $obsolete_person */
+//                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+//                if ($contact_id) {
+//                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
+//                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
+//                } else {
+//                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
+//                }
+//            }
         }
 
         /**********************************************
@@ -334,37 +333,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         if ($obsolete_emails) {
             $obsolete_emails_count = count($obsolete_emails);
             $this->log("{$obsolete_emails_count} emails are not listed in input, but won't delete.");
-        }
-
-        /**********************************************
-         **           SYNC CONTACT PHONES            **
-         **********************************************/
-        $this->extractCurrentDetails($model, $present_model, 'phone');
-        [$new_phones, $changed_phones, $obsolete_phones] = $present_model->diffPhones($model, ['location_type', 'id'], ['phone', 'contact_id']);
-        foreach ($new_phones as $phone) {
-            /** @var CRM_Committees_Model_Phone $phone */
-            $phone_data = $phone->getData();
-            //$phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
-            $phone_data['is_primary'] = 1;
-            //$phone_data['phone_type_id'] = $this->getPhoneTypeId($phone_data);
-            $person = $phone->getContact($present_model);
-            if ($person) {
-                $phone_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->callApi3('Phone', 'create', $phone_data);
-                $shortened_phone_data = $this->obfuscate($phone_data['phone']);
-                $this->log("Added phone '{$shortened_phone_data} to contact [{$phone_data['contact_id']}]");
-            }
-        }
-        if (!$new_phones) {
-            $this->log("No new phones detected in import data.");
-        }
-        if ($changed_phones) {
-            $changed_phones_count = count($changed_phones);
-            $this->log("Some attributes have changed for {$changed_phones_count} phones, but won't adjust that.");
-        }
-        if ($obsolete_phones) {
-            $obsolete_phones_count = count($obsolete_phones);
-            $this->log("{$obsolete_phones_count} phones are not listed in input, but won't delete.");
         }
 
         /**********************************************
@@ -555,7 +523,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
      */
     protected function simpleImport($model)
     {
-        // join addresses, emails, phones
+        // join addresses, emails
         $model->joinAddressesToPersons();
         $model->joinEmailsToPersons();
 
