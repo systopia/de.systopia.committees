@@ -16,7 +16,7 @@
 use CRM_Committees_ExtensionUtil as E;
 
 /**
- * Syncer for Session XLS Export
+ * Syncer for PersonalOffice (PO) XLS Export
  *
  * @todo migrate to separate extension or leave as example?
  */
@@ -195,6 +195,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // now extract current committees and run the diff
         $this->extractCurrentCommittees($model, $present_model);
         [$new_divisions, $changed_divisions, $obsolete_divisions] = $present_model->diffCommittees($model, ['contact_id', 'id', 'name']);
+        $total_division_count = count($present_model->getAllCommittees());
+        $new_division_count = count($new_divisions);
+        $obsolete_division_count = count($obsolete_divisions);
+        $this->log("Identified {$total_division_count} existing divisions in the system, {$obsolete_division_count} of which might be obsolete.");
+        $this->log("{$new_division_count} new divisions will be created.");
         foreach ($new_divisions as $new_division) {
             // we want to create new divisions, otherwise we can't continue
             /** @var CRM_Committees_Model_Committee $new_division */
@@ -281,7 +286,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
             }
             $result = $this->callApi3('Contact', 'create', $person_update);
-            $this->log("Session Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
+            $this->log("PO Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
         }
 
         // note obsolete contacts
