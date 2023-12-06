@@ -536,7 +536,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ->addWhere(self::ORGANISATION_EKIR_ID_FIELD, 'IS NOT EMPTY')
                 ->addWhere('contact_type', '=', 'Organization')
                 ->execute();
-        foreach ($divisions as $division) {
+        foreach ($divisions->getIterator() as $division) {
             $present_model->addCommittee([
                  'name' => $division['display_name'] ?? 'n/a',
                  'id' => $division[self::ORGANISATION_EKIR_ID_FIELD],
