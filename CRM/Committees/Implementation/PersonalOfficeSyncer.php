@@ -247,6 +247,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $person_data                 = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = 'Individual';
             $person_data['source']       = 'PO Import ' . date('Y-m-d');
+            $person_data['tag_id']       = 'Personal Office';
 
             // convert job title
             $job_title = $person_data['job_title_key'] ?? null;
@@ -292,7 +293,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // note obsolete contacts
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
-            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted:");
+            $this->log("There are {$obsolete_person_count} potentially relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted:");
 //            foreach ($obsolete_persons as $obsolete_person) {
 //                /** @var CRM_Committees_Model_Person $obsolete_person */
 //                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
@@ -319,8 +320,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             if ($person) {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Email', 'create', $email_data);
-                $shortened_email_data = $this->obfuscate($email_data['email']);
-                $this->log("Added email '{$shortened_email_data}' to contact [{$email_data['contact_id']}]");
+                $shortened_email_data = $email_data['email']; // $this->obfuscate($email_data['email']);
+                $this->log("Added email '{$shortened_email_data}' to contact [#{$email_data['contact_id']}]");
             }
         }
         if (!$new_emails) {
@@ -348,8 +349,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             if ($person) {
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Address', 'create', $address_data);
-                $shortened_address_data = $this->obfuscate($address_data['street_address']) . '/' . $address_data['postal_code'];
-                $this->log("Added address '{$shortened_address_data}' to contact [{$address_data['contact_id']}]");
+                //$shortened_address_data = $this->obfuscate($address_data['street_address']) . '/' . $address_data['postal_code'];
+                $shortened_address_data = "{$address_data['street_address']}, {$address_data['postal_code']} {$address_data['city']}";
+                $this->log("Added address '{$shortened_address_data}' to contact [#{$address_data['contact_id']}]");
             }
         }
         if (!$new_addresses) {
