@@ -326,7 +326,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $email_data['location_type_id'] = 'Work';
                 $email_data['is_primary'] = 1;
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->callApi3('Phone', 'create', $email_data);
+                $this->callApi3('Email', 'create', $email_data);
                 $this->log("Added email '{$email_data['email']}' to new contact [#{$email_data['contact_id']}]?");
             } else {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
@@ -343,38 +343,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         if ($obsolete_emails) {
             $obsolete_emails_count = count($obsolete_emails);
             $this->log("{$obsolete_emails_count} emails are not listed in input, but won't delete.");
-        }
-
-        /**********************************************
-         **           SYNC CONTACT PHONES            **
-         **********************************************/
-        $this->extractCurrentDetails($model, $present_model, 'phone');
-        [$new_phones, $changed_phones, $obsolete_phones] = $present_model->diffPhones($model, ['location_type', 'id'], ['phone', 'contact_id']);
-        foreach ($new_phones as $phone) {
-            /** @var CRM_Committees_Model_Phone $phone */
-            $person = $phone->getContact($present_model);
-            $phone_data = $phone->getData();
-            $phone_data['contact_id'] = $person->getAttribute('contact_id');
-            if (!$person->getAttribute('is_new')) {
-                // this is a new person's phone -> create phone
-                $phone_data['is_primary'] = 1;
-                $this->callApi3('Phone', 'create', $phone_data);
-                $this->log("Added phone '{$phone_data['phone']} to new contact [#{$phone_data['contact_id']}]");
-            } else {
-                // this is an existing person -> add TODO
-                $this->log("TODO: add phone '{$phone_data['phone']}' to contact [#{$phone_data['contact_id']}]?");
-            }
-        }
-        if (!$new_phones) {
-            $this->log("No new phones detected in import data.");
-        }
-        if ($changed_phones) {
-            $changed_phones_count = count($changed_phones);
-            $this->log("Some attributes have changed for {$changed_phones_count} phones, but won't adjust that.");
-        }
-        if ($obsolete_phones) {
-            $obsolete_phones_count = count($obsolete_phones);
-            $this->log("{$obsolete_phones_count} phones are not listed in input, but won't delete.");
         }
 
         /**********************************************
