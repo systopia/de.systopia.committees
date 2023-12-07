@@ -156,7 +156,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
-        // todo: disable
+//        // todo: enable for local testing
 //        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
 //        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
 //        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
@@ -326,10 +326,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $email_data['location_type_id'] = 'Work';
                 $email_data['is_primary'] = 1;
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->log("TODO: add email '{$email_data['email']}' to contact [#{$email_data['contact_id']}]?");
+                $this->callApi3('Phone', 'create', $email_data);
+                $this->log("Added email '{$email_data['email']}' to new contact [#{$email_data['contact_id']}]?");
             } else {
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->log("TODO: add email '{$email_data['email']}' to contact [#{$email_data['contact_id']}]?");
+                $this->log("TODO: add email '{$email_data['email']}' to existing contact [#{$email_data['contact_id']}]?");
             }
         }
         if (!$new_emails) {
@@ -380,7 +381,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **           SYNC CONTACT ADDRESSES         **
          **********************************************/
         $this->extractCurrentDetails($model, $present_model, 'address');
-        [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name', 'house_number', 'id']);
+        [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name', 'house_number', 'id', 'country_id']);
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
             $person = $address->getContact($present_model);
@@ -508,40 +509,45 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $employee_of_relationship_type_id = $this->getRelationshipTypeID('Employee of');
 
         // get all person IDs
-        $current_person_ids = [];
+        $existing_person_contact_ids = [];
         $current_persons = $present_model->getAllPersons();
         foreach ($current_persons as $current_person) {
             /** @var CRM_Committees_Model_Person $current_person */
-            $current_person_id = $current_person->getAttribute('contact_id');
-            if ($current_person_id) {
-                $current_person_ids[] = $current_person_id;
+            $current_person_contact_id = $current_person->getAttribute('contact_id');
+            if ($current_person_contact_id) {
+                $existing_person_contact_ids[$current_person->getID()] = $current_person_contact_id;
             }
         }
+        $existing_person_contact_count = count($existing_person_contact_ids);
 
         // get all committee (employer) IDs
-        $current_employer_ids = [];
+        $current_employer_contact_ids = [];
         $current_employers = $present_model->getAllCommittees();
         foreach ($current_employers as $current_employer) {
             /** @var CRM_Committees_Model_Committee $current_employer */
-            $current_employer_id = $current_employer->getAttribute('contact_id');
-            if ($current_employer_id) {
-                $current_employer_ids[] = $current_employer_id;
+            $current_employer_contact_id = $current_employer->getAttribute('contact_id');
+            if ($current_employer_contact_id) {
+                $current_employer_contact_ids[$current_employer->getID()] = $current_employer_contact_id;
             }
         }
+        $current_employer_contact_count = count($current_employer_contact_ids);
 
         // Extract the existing 'committee memberships' (read: employments)
+        $this->log("Looking for work relationships between {$current_employer_contact_count} existing divisions and {$$existing_person_contact_count} existing persons.");
+        $contact_civiID_to_poID = array_flip($existing_person_contact_ids);
+        $committee_civiID_to_poID = array_flip($current_employer_contact_ids);
         $current_employments = \Civi\Api4\Relationship::get(FALSE)
                 ->addSelect('value', 'label')
-                ->addWhere('contact_id_a', 'IN', $current_person_ids)
-                ->addWhere('contact_id_b', 'IN', $current_employer_ids)
+                ->addWhere('contact_id_a', 'IN', $existing_person_contact_ids)
+                ->addWhere('contact_id_b', 'IN', $current_employer_contact_ids)
                 ->addWhere('relationship_type_id', '=', $employee_of_relationship_type_id)
                 ->addWhere('is_active', '=', true)
                 ->setCheckPermissions(false)
                 ->execute();
-        foreach ($current_employments->getIterator() as $existing_employers) {
+        foreach ($current_employments->getIterator() as $existing_employment) {
             $present_model->addCommitteeMembership([
-                'id' => $existing_employers['value'] ?? 'ERROR',
-                'name' => $existing_employers['label'] ?? 'ERROR',
+               'contact_id' => $contact_civiID_to_poID['contact_id_a'],
+               'committee_id' => $committee_civiID_to_poID['contact_id_b'],
              ]);
         }
     }
