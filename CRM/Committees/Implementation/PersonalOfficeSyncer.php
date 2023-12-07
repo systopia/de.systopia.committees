@@ -282,7 +282,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
 
         // apply changes to existing contacts
-        foreach ($changed_persons as $current_person) {
+        foreach ($changed_persons as $changed_person) {
             /** @var CRM_Committees_Model_Person $changed_person */
             $contact_id = $changed_person->getAttribute('contact_id');
             $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
@@ -486,7 +486,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // THAT'S IT, WE'RE DONE
         if ($transaction) {
-            //$transaction->commit();
+            $transaction->commit();
         }
 
         return true;
