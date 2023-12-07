@@ -82,9 +82,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // make sure a certain custom field exists
         $db_schema_changed = false;
-        if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
+        if (!$this->customFieldExists(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD)) {
             // check if the group is missing:
-            [$group_name, $field_name] = explode('.', self::ORGANISATION_EKIR_ID_FIELD);
+            [$group_name, $field_name] = explode('.', CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD);
             $custom_groups = (array) CRM_Committees_CustomData::getGroup2Name();
             if (!in_array($group_name, $custom_groups)) {
                 // create group
@@ -164,8 +164,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 //        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
 //        CRM_Committees_CustomData::flushCashes();
 
-        if (!$this->customFieldExists(self::ORGANISATION_EKIR_ID_FIELD)) {
-            $field_key = self::ORGANISATION_EKIR_ID_FIELD;
+        if (!$this->customFieldExists(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD)) {
+            $field_key = CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD;
             $this->logError("'EKIR ID' ({$field_key}) field missing!", 'This field is needed for synchronisation');
         }
 
@@ -208,9 +208,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     'organization_name' => $new_division->getAttribute('name'),
                     'contact_type' => 'Organization',
                     'contact_sub_type' => $this->getContactSubTypeFromId($new_division->getID()),
-                    self::ORGANISATION_EKIR_ID_FIELD => $new_division->getID(),
+                    CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD => $new_division->getID(),
                 ];
                 CRM_Committees_CustomData::labelCustomFields($new_division_data);
+                $contact_type = $new_division_data['contact_sub_type'] ?? 'Organization';
                 civicrm_api3('Contact', 'create', $new_division_data);
                 $this->log("Created new division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}'");
             } catch (Exception $ex) {
@@ -266,7 +267,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
                 // add to the present model
                 $present_model->addPerson($new_person->getData());
-                $this->log("PO Contact [{$new_person->getID()}] created with CiviCRM-ID [{$result['id']}].");
+                $this->log("PO Contact [{$new_person->getID()}] created with CiviCRM-ID [#{$result['id']}].");
             } catch (Exception $exception) {
                 $this->logError("Exception when trying to create new contact [{$new_person->getID()}]: " . $exception->getMessage());
             }
@@ -503,14 +504,14 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     {
         $committee_count_before = count($present_model->getAllCommittees());
         $divisions = \Civi\Api4\Contact::get(FALSE)
-                ->addSelect('id', self::ORGANISATION_EKIR_ID_FIELD, 'display_name')
-                ->addWhere(self::ORGANISATION_EKIR_ID_FIELD, 'IS NOT EMPTY')
+                ->addSelect('id', CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD, 'display_name')
+                ->addWhere(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD, 'IS NOT EMPTY')
                 ->addWhere('contact_type', '=', 'Organization')
                 ->execute();
         foreach ($divisions->getIterator() as $division) {
             $present_model->addCommittee([
                  'name' => $division['display_name'] ?? 'n/a',
-                 'id' => $division[self::ORGANISATION_EKIR_ID_FIELD],
+                 'id' => $division[CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD],
                  'contact_id' => $division['id']
             ]);
         }
@@ -591,7 +592,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $employer_contact = null;
             try {
                 $ekir_field_query = [
-                        self::ORGANISATION_EKIR_ID_FIELD => $employer_ekir_id,
+                        CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD => $employer_ekir_id,
                         'return' => 'id'
                 ];
                 CRM_Committees_CustomData::resolveCustomFields($ekir_field_query);
@@ -631,7 +632,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         if (preg_match("/^[0-9]{6}$/", $org_nummer)) {
             return 'Kirchenkreis';
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
-            return 'Gemeinde';
+            return 'Kirchengemeinde';
         } else {
             return '';
         }
