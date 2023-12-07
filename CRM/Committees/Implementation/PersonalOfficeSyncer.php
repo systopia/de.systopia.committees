@@ -330,7 +330,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $email_data['is_primary'] = 1;
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Email', 'create', $email_data);
-                $this->log("Added email '{$email_data['email']}' to new contact [#{$email_data['contact_id']}]?");
+                $this->log("Added email '{$email_data['email']}' to new contact [#{$email_data['contact_id']}]");
             }
         }
         if (!$new_emails) {
@@ -399,9 +399,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // extract current memberships
         $this->extractCurrentMemberships($model, $present_model);
         $this->log(count($present_model->getAllMemberships()) . " existing employments identified in CiviCRM.");
+        $this->log(count($model->getAllMemberships()) . " employments provided by input data.");
 
+        // run diff
         $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
+        $this->log(count($new_memberships) . " new employments extracted, " . count($changed_memberships) . " updated ones, and " . count($obsolete_memberships) . " have been discontinued.");
+
         // first: disable absent (deleted)
         foreach ($obsolete_memberships as $membership) {
             /** @var CRM_Committees_Model_Membership $membership */
@@ -420,10 +424,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                             'is_active' => 0,
                             'end_date' => date('Y-m-d'),
                     ]);
-                    $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+                    $this->log("Ended employment [{$relationship_id}].");
                 }
             } catch (Exception $ex) {
-                $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
+                $this->log("Exception while ending employment [{$relationship_id}].");
             }
         }
 
@@ -501,7 +505,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $current_employer_contact_count = count($current_employer_contact_ids);
 
         // Extract the existing 'committee memberships' (read: employments)
-        $this->log("Looking for work relationships between {$current_employer_contact_count} existing divisions and {$$existing_person_contact_count} existing persons.");
+        $this->log("Looking for employment relationships between {$current_employer_contact_count} existing divisions and {$existing_person_contact_count} existing persons...");
         $contact_civiID_to_poID = array_flip($existing_person_contact_ids);
         $committee_civiID_to_poID = array_flip($current_employer_contact_ids);
         $current_employments = \Civi\Api4\Relationship::get(FALSE)
