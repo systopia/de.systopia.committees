@@ -320,6 +320,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $email_data['is_primary'] = 1;
             $person = $email->getContact($present_model);
             if (!$person->getAttribute('is_new')) {
+                $email_data['contact_id'] = $person->getAttribute('contact_id');
+                $this->log("TODO: add email '{$email_data['email']}' to existing contact [#{$email_data['contact_id']}]?");
+            } else {
                 // new contact: create
                 /** @var CRM_Committees_Model_Email $email */
                 $email_data = $email->getData();
@@ -328,9 +331,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Email', 'create', $email_data);
                 $this->log("Added email '{$email_data['email']}' to new contact [#{$email_data['contact_id']}]?");
-            } else {
-                $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->log("TODO: add email '{$email_data['email']}' to existing contact [#{$email_data['contact_id']}]?");
             }
         }
         if (!$new_emails) {
@@ -362,13 +362,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             if (!empty($address_data['city'])) $address_string .= "|{$address_data['city']}";
 
             if (!$person->getAttribute('is_new')) {
+                // existing contact, add TODO
+                $this->log("TODO: add new address '{$address_string}' to contact [#{$address_data['contact_id']}]?");
+            } else {
                 // newly created contact, add address
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Address', 'create', $address_data);
                 $this->log("Added address '{$address_string}' to new contact [#{$address_data['contact_id']}]");
-            } else {
-                // existing contact, add TODO
-                $this->log("TODO: add new address '{$address_string}' to contact [#{$address_data['contact_id']}]?");
             }
         }
         if (!$new_addresses) {
