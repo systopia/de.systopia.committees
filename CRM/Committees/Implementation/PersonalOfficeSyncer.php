@@ -212,8 +212,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ];
                 CRM_Committees_CustomData::labelCustomFields($new_division_data);
                 $contact_type = $new_division_data['contact_sub_type'] ?? 'Organization';
-                civicrm_api3('Contact', 'create', $new_division_data);
-                $this->log("Created new division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}'");
+                $result = civicrm_api3('Contact', 'create', $new_division_data);
+                $new_division->setAttribute('contact_id', $result['id']);
+                $new_division->setAttribute('is_new', true);
+                $this->log("Created new division [#{$result['id']}]: '{$new_division->getAttribute('name')}'");
             } catch (Exception $ex) {
                 $this->log("Couldn't create division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}' - error was: '{$ex->getMessage()}'", 'warning');
             }
@@ -264,6 +266,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                         self::CONTACT_TRACKER_PREFIX
                 );
                 $new_person->setAttribute('contact_id', $result['id']);
+                $new_person->setAttribute('is_new', true);
 
                 // add to the present model
                 $present_model->addPerson($new_person->getData());
@@ -280,15 +283,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // apply changes to existing contacts
         foreach ($changed_persons as $current_person) {
-            /** @var CRM_Committees_Model_Person $current_person */
-            $person_update = ['id' => $this->getIDTContactID($current_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX),];
-            $differing_attributes = explode(',', $current_person->getAttribute('differing_attributes'));
-            $changed_person = $model->getPerson($current_person->getID());
+            /** @var CRM_Committees_Model_Person $changed_person */
+            $contact_id = $changed_person->getAttribute('contact_id');
+            $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
+            $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
-                $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
+                $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
             }
-            $result = $this->callApi3('Contact', 'create', $person_update);
-            $this->log("PO Contact [{$current_person->getID()}] (CID [{$person_update['id']}]) updated, changed: " . $current_person->getAttribute('differing_attributes'));
         }
 
         // note obsolete contacts
@@ -318,11 +319,17 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $email_data['location_type_id'] = 'Work';
             $email_data['is_primary'] = 1;
             $person = $email->getContact($present_model);
-            if ($person) {
+            if (!$person->getAttribute('is_new')) {
+                // new contact: create
+                /** @var CRM_Committees_Model_Email $email */
+                $email_data = $email->getData();
+                $email_data['location_type_id'] = 'Work';
+                $email_data['is_primary'] = 1;
                 $email_data['contact_id'] = $person->getAttribute('contact_id');
-                $this->callApi3('Email', 'create', $email_data);
-                $shortened_email_data = $email_data['email']; // $this->obfuscate($email_data['email']);
-                $this->log("Added email '{$shortened_email_data}' to contact [#{$email_data['contact_id']}]");
+                $this->log("TODO: add email '{$email_data['email']}' to contact [#{$email_data['contact_id']}]?");
+            } else {
+                $email_data['contact_id'] = $person->getAttribute('contact_id');
+                $this->log("TODO: add email '{$email_data['email']}' to contact [#{$email_data['contact_id']}]?");
             }
         }
         if (!$new_emails) {
@@ -338,29 +345,77 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         }
 
         /**********************************************
+         **           SYNC CONTACT PHONES            **
+         **********************************************/
+        $this->extractCurrentDetails($model, $present_model, 'phone');
+        [$new_phones, $changed_phones, $obsolete_phones] = $present_model->diffPhones($model, ['location_type', 'id'], ['phone', 'contact_id']);
+        foreach ($new_phones as $phone) {
+            /** @var CRM_Committees_Model_Phone $phone */
+            $person = $phone->getContact($present_model);
+            $phone_data = $phone->getData();
+            $phone_data['contact_id'] = $person->getAttribute('contact_id');
+            if (!$person->getAttribute('is_new')) {
+                // this is a new person's phone -> create phone
+                $phone_data['is_primary'] = 1;
+                $this->callApi3('Phone', 'create', $phone_data);
+                $this->log("Added phone '{$phone_data['phone']} to new contact [#{$phone_data['contact_id']}]");
+            } else {
+                // this is an existing person -> add TODO
+                $this->log("TODO: add phone '{$phone_data['phone']}' to contact [#{$phone_data['contact_id']}]?");
+            }
+        }
+        if (!$new_phones) {
+            $this->log("No new phones detected in import data.");
+        }
+        if ($changed_phones) {
+            $changed_phones_count = count($changed_phones);
+            $this->log("Some attributes have changed for {$changed_phones_count} phones, but won't adjust that.");
+        }
+        if ($obsolete_phones) {
+            $obsolete_phones_count = count($obsolete_phones);
+            $this->log("{$obsolete_phones_count} phones are not listed in input, but won't delete.");
+        }
+
+        /**********************************************
          **           SYNC CONTACT ADDRESSES         **
          **********************************************/
         $this->extractCurrentDetails($model, $present_model, 'address');
-        [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name', 'house_number', 'id', 'country_id']);
+        [$new_addresses, $changed_addresses, $obsolete_addresses] = $present_model->diffAddresses($model, ['location_type', 'organization_name', 'house_number', 'id']);
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
-            $address_data = $address->getData();
-            $address_data['is_primary'] = 1;
             $person = $address->getContact($present_model);
-            if ($person) {
+            $address_data = $address->getData();
+            $address_data['contact_id'] = $person->getAttribute('contact_id');
+            $address_data['is_primary'] = 1;
+            $address_string = $address_data['street_address'] ?? '';
+            if (!empty($address_data['supplemental_address_1'])) $address_string .= "|{$address_data['supplemental_address_1']}";
+            if (!empty($address_data['postal_code'])) $address_string .= "|{$address_data['postal_code']}";
+            if (!empty($address_data['city'])) $address_string .= "|{$address_data['city']}";
+
+            if (!$person->getAttribute('is_new')) {
+                // newly created contact, add address
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Address', 'create', $address_data);
-                //$shortened_address_data = $this->obfuscate($address_data['street_address']) . '/' . $address_data['postal_code'];
-                $shortened_address_data = "{$address_data['street_address']}, {$address_data['postal_code']} {$address_data['city']}";
-                $this->log("Added address '{$shortened_address_data}' to contact [#{$address_data['contact_id']}]");
+                $this->log("Added address '{$address_string}' to new contact [#{$address_data['contact_id']}]");
+            } else {
+                // existing contact, add TODO
+                $this->log("TODO: add new address '{$address_string}' to contact [#{$address_data['contact_id']}]?");
             }
         }
         if (!$new_addresses) {
             $this->log("No new addresses detected in import data.");
         }
-        if ($changed_addresses) {
-            $changed_addresses_count = count($changed_addresses);
-            $this->log("Some attributes have changed for {$changed_addresses_count} addresses, but won't adjust that.");
+        foreach ($changed_addresses as $changed_address) {
+            $person = $changed_address->getContact($present_model);
+            if ($person) {
+                $address_contact_id = $person->getAttribute('contact_id');
+                $differing_attributes = explode(',', $changed_address->getAttribute('differing_attributes'));
+                $differing_values = $changed_address->getAttribute('differing_values');
+                foreach ($differing_attributes as $differing_attribute) {
+                    if ($differing_attribute == 'supplemental_address_1') continue; // we don't want to add that to existing address
+                    $this->log("TODO: Change address attribute '{$differing_attribute}' of contact [#{$address_contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
+                }
+            }
         }
         if ($obsolete_addresses) {
             $obsolete_addresses_count = count($obsolete_addresses);
