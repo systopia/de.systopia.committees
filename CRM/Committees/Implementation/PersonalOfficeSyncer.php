@@ -452,7 +452,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                     'is_active' => 1,
             ]);
-            $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_civicrm_id}].");
+            $this->log("Added new employment [{$person_civicrm_id}]<->[{$committee_civicrm_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
@@ -517,9 +517,20 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ->setCheckPermissions(false)
                 ->execute();
         foreach ($current_employments->getIterator() as $existing_employment) {
+            $employee_id = $contact_civiID_to_poID[$existing_employment['contact_id_a']] ?? null;
+            if (!$employee_id) {
+                $this->log("Inconsistency: employee [#{$existing_employment['contact_id_a']}] wasn't found in our model.", 'warn');
+                continue;
+            }
+            $employer_id = $committee_civiID_to_poID[$existing_employment['contact_id_b']] ?? null;
+            if (!$employer_id) {
+                $this->log("Inconsistency: employer [#{$existing_employment['contact_id_b']}] wasn't found in our model.", 'warn');
+                continue;
+            }
+
             $present_model->addCommitteeMembership([
-               'contact_id' => $contact_civiID_to_poID['contact_id_a'],
-               'committee_id' => $committee_civiID_to_poID['contact_id_b'],
+               'contact_id' => $employee_id,
+               'committee_id' => $employer_id,
              ]);
         }
     }
