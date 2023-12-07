@@ -509,7 +509,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $contact_civiID_to_poID = array_flip($existing_person_contact_ids);
         $committee_civiID_to_poID = array_flip($current_employer_contact_ids);
         $current_employments = \Civi\Api4\Relationship::get(FALSE)
-                ->addSelect('value', 'label')
+                ->addSelect('contact_id_a', 'contact_id_b', 'is_active')
                 ->addWhere('contact_id_a', 'IN', $existing_person_contact_ids)
                 ->addWhere('contact_id_b', 'IN', $current_employer_contact_ids)
                 ->addWhere('relationship_type_id', '=', $employee_of_relationship_type_id)
