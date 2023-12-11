@@ -179,12 +179,15 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             }
 
             $employment = $this->copyAttributes($record, ['contact_id', 'committee_id']);
-            $this->model->addCommitteeMembership($employment);
+            if (!empty($employment['contact_id']) && !empty($employment['committee_id'])) {
+                $this->model->addCommitteeMembership($employment);
+            }
         }
         $this->log(count($this->model->getAllPersons()) . " contacts read.");
         $this->log(count($this->model->getAllEmails()) . " emails read.");
         $this->log(count($this->model->getAllAddresses()) . " addresses read.");
         $this->log(count($this->model->getAllCommittees()) . " divisions referenced in input.");
+        $this->log(count($this->model->getAllMemberships()) . " employments referenced in input.");
 
         return true;
     }
