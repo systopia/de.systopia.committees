@@ -73,9 +73,6 @@ trait CRM_Committees_Tools_IdTrackerTrait
     /**
      * Get the (cached) contact ID via the IdentityTracker
      *
-     * @param string $internal_id
-     *   ID as used by the data source
-     *
      * @param string $id_type
      *   a registered contact tracker type
      *
@@ -100,9 +97,6 @@ trait CRM_Committees_Tools_IdTrackerTrait
 
     /**
      * Get the (cached) contact ID via the IdentityTracker
-     *
-     * @param string $internal_id
-     *   ID as used by the data source
      *
      * @param string $id_type
      *   a registered contact tracker type
