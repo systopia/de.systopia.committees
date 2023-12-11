@@ -401,6 +401,26 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->log(count($present_model->getAllMemberships()) . " existing employments identified in CiviCRM.");
         $this->log(count($model->getAllMemberships()) . " employments provided by input data.");
 
+        // debugging data
+        $counter = 1;
+        $this->log("Showing some requested memberships for debugging...");
+        /** @var CRM_Committees_Model_Membership $membership */
+        foreach ($model->getAllMemberships() as $membership) {
+            $person = $membership->getPerson();
+            $organisation = $membership->getCommittee();
+            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
+            if ($counter++ > 20) break;
+        }
+        $counter = 1;
+        $this->log("Showing some identified memberships currently in CiviCRM...");
+        /** @var CRM_Committees_Model_Membership $membership */
+        foreach ($present_model->getAllMemberships() as $membership) {
+            $person = $membership->getPerson();
+            $organisation = $membership->getCommittee();
+            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
+            if ($counter++ > 20) break;
+        }
+
         // run diff
         $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
