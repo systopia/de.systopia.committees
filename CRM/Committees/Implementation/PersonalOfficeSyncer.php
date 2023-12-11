@@ -527,7 +527,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // Extract the existing 'committee memberships' (read: employments)
         $this->log("Looking for employment relationships between {$current_employer_contact_count} existing divisions and {$existing_person_contact_count} existing persons...");
         $contact_civiID_to_poID = array_flip($existing_person_contact_ids);
+        $this->log("contact_civiID_to_poID: " . json_encode($contact_civiID_to_poID));
         $committee_civiID_to_poID = array_flip($current_employer_contact_ids);
+        $this->log("committee_civiID_to_poID: " . json_encode($committee_civiID_to_poID));
         $current_employments = \Civi\Api4\Relationship::get(FALSE)
                 ->addSelect('contact_id_a', 'contact_id_b', 'is_active')
                 ->addWhere('contact_id_a', 'IN', $existing_person_contact_ids)
@@ -539,12 +541,12 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         foreach ($current_employments->getIterator() as $existing_employment) {
             $employee_id = $contact_civiID_to_poID[$existing_employment['contact_id_a']] ?? null;
             if (!$employee_id) {
-                $this->log("Inconsistency: employee [#{$existing_employment['contact_id_a']}] wasn't found in our model.", 'warn');
+                $this->log("Inconsistency: employee [#{$existing_employment['contact_id_a']}] wasn't found in our model.", 'warning');
                 continue;
             }
             $employer_id = $committee_civiID_to_poID[$existing_employment['contact_id_b']] ?? null;
             if (!$employer_id) {
-                $this->log("Inconsistency: employer [#{$existing_employment['contact_id_b']}] wasn't found in our model.", 'warn');
+                $this->log("Inconsistency: employer [#{$existing_employment['contact_id_b']}] wasn't found in our model.", 'warning');
                 continue;
             }
 
