@@ -6,10 +6,6 @@
 
 We recommend to download the [latest release](https://github.com/systopia/de.systopia.committees/releases), and install it using [the official guidline](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/#disable-automatic-installations-of-extension).
 
-Status of the automated tests of this version is:
-
-[![CircleCI](https://circleci.com/gh/systopia/de.systopia.committees.svg?style=svg)](https://circleci.com/gh/systopia/de.systopia.committees)
-
 
 ### Objective
 
