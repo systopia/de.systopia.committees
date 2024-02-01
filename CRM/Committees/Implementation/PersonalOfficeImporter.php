@@ -156,6 +156,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                 // extract email
                 $email = $this->copyAttributes($record, ['contact_id', 'email'], );
                 if (!empty($email['email'])) {
+                    $email['email'] = strtolower($email['email']);
                     $this->model->addEmail($email);
                 }
             } else {
