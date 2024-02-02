@@ -459,7 +459,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             /** @var CRM_Committees_Model_Membership $new_membership */
 
             // get person and committee
-            $this->log("Trying to create membership: " . json_encode($new_membership->getData()));
+            //$this->log("Trying to create membership: " . json_encode($new_membership->getData()));
             $committee_id = $new_membership->getAttribute('committee_id');
             $committee = $present_model->getCommittee($committee_id) ?? $model->getCommittee($committee_id);
             $committee_civicrm_id = $committee->getAttribute('contact_id');
@@ -484,7 +484,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     'relationship_type_id' => $this->getRelationshipTypeID('Employee of'),
                     'is_active' => 1,
             ]);
-            $this->log("Added new employment [{$person_civicrm_id}]<->[{$committee_civicrm_id}].");
+            $this->log("Added new employment (CiviCRM relationship) between CiviCRM individual [{$person_civicrm_id}] and CiviCRM organisation [{$committee_civicrm_id}].");
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
