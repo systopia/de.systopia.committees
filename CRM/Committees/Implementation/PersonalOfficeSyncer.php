@@ -462,17 +462,17 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $this->log("Trying to create membership: " . json_encode($new_membership->getData()));
             $committee_id = $new_membership->getAttribute('committee_id');
             $committee = $present_model->getCommittee($committee_id) ?? $model->getCommittee($committee_id);
-            $this->log("want to create relationship with committee [{$committee_id}]: " . json_encode($committee->getData()));
-            $committee_civicrm_id = $new_membership->getAttribute('committee_contact_id');
+            $committee_civicrm_id = $committee->getAttribute('contact_id');
+            //$this->log("want to create relationship with committee [{$committee_id}]: " . json_encode($committee->getData()));
 
             $person_id = $new_membership->getAttribute('contact_id');
             $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
             $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             $person->setAttribute('person_contact_id', $person_civicrm_id);
-            $this->log("want to create relationship with person [{$person['contact_id']}]: " . json_encode($person->getData()));
+            //$this->log("want to create relationship with person [{$person->getID()}]: " . json_encode($person->getData()));
 
             if (empty($person_civicrm_id) || empty($committee_civicrm_id)) {
-                $this->log("Cannot create membership");
+                $this->log("Cannot create membership P{$person_civicrm_id}-C{$committee_civicrm_id}");
                 continue;
             }
 
@@ -481,7 +481,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     'start_date' => date('YmdHis'),
                     'contact_id_a' => $person_civicrm_id,
                     'contact_id_b' => $committee_civicrm_id,
-                    'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
+                    'relationship_type_id' => $this->getRelationshipTypeID('Employee of'),
                     'is_active' => 1,
             ]);
             $this->log("Added new employment [{$person_civicrm_id}]<->[{$committee_civicrm_id}].");
