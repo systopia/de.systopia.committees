@@ -444,7 +444,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                             'is_active' => 0,
                             'end_date' => date('Y-m-d'),
                     ]);
-                    $this->log("Ended employment [{$relationship_id}].");
+                    $person_civicrm_id = $membership->getAttribute('employee_contact_id');
+                    $committee_civicrm_id = $membership->getAttribute('committee_contact_id');
+                    $this->log("Ended employment (CiviCRM relationship) [#{$relationship_id}] between CiviCRM individual [{$person_civicrm_id}] and CiviCRM organisation [{$committee_civicrm_id}].");
                 }
             } catch (Exception $ex) {
                 $this->log("Exception while ending employment [{$relationship_id}].");
@@ -454,19 +456,29 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // CREATE the new ones
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
+
+            // get person and committee
             $this->log("Trying to create membership: " . json_encode($new_membership->getData()));
             $person_id = $new_membership->getAttribute('contact_id');
-            $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
-            if (!$person) {
-                $this->logError("Person of membership [{$new_membership->getID()}] not found.");
+            $person = $model->getPerson($person_id) ?? $present_model->getPerson($person_id);
+            $this->log("want to create relationship with person [{$person_id}]: " . json_encode($person->getData()));
+
+            $committee_id = $new_membership->getAttribute('committee_id');
+            $committee = $model->getCommittee($committee_id) ?? $present_model->getCommittee($committee_id);
+            $this->log("want to create relationship with committee [{$committee_id}]: " . json_encode($committee->getData()));
+
+            // get civicrm IDs
+            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $committee_civicrm_id = $new_membership->getCommittee()->getAttribute('contact_id');
+
+            if (empty($person_civicrm_id) || empty($committee_civicrm_id)) {
+                $this->log("Cannot create membership");
                 continue;
             }
-            $person_civicrm_id = $new_membership->getAttribute('employee_contact_id');
-            $committee_civicrm_id = $new_membership->getAttribute('committee_contact_id');
-            if (!$committee_civicrm_id) {
-                $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
-                continue;
-            }
+
+            //$person_civicrm_id = $new_membership->getAttribute('employee_contact_id');
+            //$committee_civicrm_id = $new_membership->getAttribute('committee_contact_id');
+
             $this->callApi3('Relationship', 'create', [
                     'contact_id_a' => $person_civicrm_id,
                     'contact_id_b' => $committee_civicrm_id,
@@ -485,6 +497,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         return true;
     }
+
+
+
+
+
+
+
 
 
     /**
