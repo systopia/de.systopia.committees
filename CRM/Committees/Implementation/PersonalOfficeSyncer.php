@@ -401,28 +401,28 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->log(count($present_model->getAllMemberships()) . " existing employments identified in CiviCRM.");
         $this->log(count($model->getAllMemberships()) . " employments provided by input data.");
 
-        // debugging data
-        $counter = 1;
-        $this->log("Showing some requested memberships for debugging...");
-        /** @var CRM_Committees_Model_Membership $membership */
-        foreach ($model->getAllMemberships() as $membership) {
-            $person = $membership->getPerson();
-            $organisation = $membership->getCommittee();
-            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
-            if ($counter++ > 20) break;
-        }
-        $counter = 1;
-        $this->log("Showing some identified memberships currently in CiviCRM...");
-        /** @var CRM_Committees_Model_Membership $membership */
-        foreach ($present_model->getAllMemberships() as $membership) {
-            $person = $membership->getPerson();
-            $organisation = $membership->getCommittee();
-            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
-            if ($counter++ > 20) break;
-        }
+//        // debugging data
+//        $counter = 1;
+//        $this->log("Showing some requested memberships for debugging...");
+//        /** @var CRM_Committees_Model_Membership $membership */
+//        foreach ($model->getAllMemberships() as $membership) {
+//            $person = $membership->getPerson();
+//            $organisation = $membership->getCommittee();
+//            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
+//            if ($counter++ > 20) break;
+//        }
+//        $counter = 1;
+//        $this->log("Showing some identified memberships currently in CiviCRM...");
+//        /** @var CRM_Committees_Model_Membership $membership */
+//        foreach ($present_model->getAllMemberships() as $membership) {
+//            $person = $membership->getPerson();
+//            $organisation = $membership->getCommittee();
+//            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
+//            if ($counter++ > 20) break;
+//        }
 
         // run diff
-        $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents']; // todo: fine-tune
+        $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents', 'employee_contact_id', 'employer_contact_id']; // todo: fine-tune
         [$new_memberships, $changed_memberships, $obsolete_memberships] = $present_model->diffMemberships($model, $ignore_attributes, ['id']);
         $this->log(count($new_memberships) . " new employments extracted, " . count($changed_memberships) . " updated ones, and " . count($obsolete_memberships) . " have been discontinued.");
 
@@ -454,14 +454,15 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // CREATE the new ones
         foreach ($new_memberships as $new_membership) {
             /** @var CRM_Committees_Model_Membership $new_membership */
+            $this->log("Trying to create membership: " . json_encode($new_membership->getData()));
             $person_id = $new_membership->getAttribute('contact_id');
             $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
             if (!$person) {
                 $this->logError("Person of membership [{$new_membership->getID()}] not found.");
                 continue;
             }
-            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $committee_civicrm_id = $new_membership->getCommittee()->getAttribute('contact_id');
+            $person_civicrm_id = $new_membership->getAttribute('employee_contact_id');
+            $committee_civicrm_id = $new_membership->getAttribute('committee_contact_id');
             if (!$committee_civicrm_id) {
                 $this->logError("Committee of membership [{$new_membership->getID()}] not found.");
                 continue;
@@ -531,7 +532,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $committee_civiID_to_poID = array_flip($current_employer_contact_ids);
         //$this->log("committee_civiID_to_poID: " . json_encode($committee_civiID_to_poID));
         $current_employments = \Civi\Api4\Relationship::get(FALSE)
-                ->addSelect('contact_id_a', 'contact_id_b', 'is_active')
+                ->addSelect('contact_id_a', 'contact_id_b', 'is_active', 'id')
                 ->addWhere('contact_id_a', 'IN', $existing_person_contact_ids)
                 ->addWhere('contact_id_b', 'IN', $current_employer_contact_ids)
                 ->addWhere('relationship_type_id', '=', $employee_of_relationship_type_id)
@@ -539,20 +540,26 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ->setCheckPermissions(false)
                 ->execute();
         foreach ($current_employments->getIterator() as $existing_employment) {
+            $employee_contact_id = $existing_employment['contact_id_a'];
             $employee_id = $contact_civiID_to_poID[$existing_employment['contact_id_a']] ?? null;
             if (!$employee_id) {
                 $this->log("Inconsistency: employee [#{$existing_employment['contact_id_a']}] wasn't found in our model.", 'warning');
                 continue;
             }
-            $employer_id = $committee_civiID_to_poID[$existing_employment['contact_id_b']] ?? null;
+            $employer_contact_id = $existing_employment['contact_id_b'] ?? null;
+            $employer_id = $committee_civiID_to_poID[$employer_contact_id] ?? null;
             if (!$employer_id) {
                 $this->log("Inconsistency: employer [#{$existing_employment['contact_id_b']}] wasn't found in our model.", 'warning');
                 continue;
             }
 
+            // add the committee membership with CiviCRM contact IDs
             $present_model->addCommitteeMembership([
                'contact_id' => $employee_id,
+               'employee_contact_id' => $employee_contact_id,
                'committee_id' => $employer_id,
+               'committee_contact_id' => $employer_contact_id,
+               'relationship_id' => $employer_id,
              ]);
         }
     }
