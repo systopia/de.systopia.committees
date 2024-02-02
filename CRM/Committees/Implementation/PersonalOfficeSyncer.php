@@ -559,7 +559,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                'employee_contact_id' => $employee_contact_id,
                'committee_id' => $employer_id,
                'committee_contact_id' => $employer_contact_id,
-               'relationship_id' => $employer_id,
+               'relationship_id' => $existing_employment['id'],
              ]);
         }
     }
