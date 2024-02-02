@@ -295,7 +295,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // note obsolete contacts
         if (!empty($obsolete_persons)) {
             $obsolete_person_count = count($obsolete_persons);
-            $this->log("There are {$obsolete_person_count} potentially relevant persons in CiviCRM that are not listed in the new data set. Those will *not* be deleted:");
+            $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. However, those will *not* be deleted.");
+
 //            foreach ($obsolete_persons as $obsolete_person) {
 //                /** @var CRM_Committees_Model_Person $obsolete_person */
 //                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
@@ -459,25 +460,21 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // get person and committee
             $this->log("Trying to create membership: " . json_encode($new_membership->getData()));
-            $person_id = $new_membership->getAttribute('contact_id');
-            $person = $model->getPerson($person_id) ?? $present_model->getPerson($person_id);
-            $this->log("want to create relationship with person [{$person_id}]: " . json_encode($person->getData()));
-
             $committee_id = $new_membership->getAttribute('committee_id');
-            $committee = $model->getCommittee($committee_id) ?? $present_model->getCommittee($committee_id);
+            $committee = $present_model->getCommittee($committee_id) ?? $model->getCommittee($committee_id);
             $this->log("want to create relationship with committee [{$committee_id}]: " . json_encode($committee->getData()));
+            $committee_civicrm_id = $new_membership->getAttribute('committee_contact_id');
 
-            // get civicrm IDs
-            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-            $committee_civicrm_id = $new_membership->getCommittee()->getAttribute('contact_id');
+            $person_id = $new_membership->getAttribute('contact_id');
+            $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
+            $person['contact_id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $this->log("want to create relationship with person [{$person['contact_id']}]: " . json_encode($person->getData()));
+            $person_civicrm_id = $new_membership->getAttribute('employee_contact_id');
 
             if (empty($person_civicrm_id) || empty($committee_civicrm_id)) {
                 $this->log("Cannot create membership");
                 continue;
             }
-
-            //$person_civicrm_id = $new_membership->getAttribute('employee_contact_id');
-            //$committee_civicrm_id = $new_membership->getAttribute('committee_contact_id');
 
             $this->callApi3('Relationship', 'create', [
                     'contact_id_a' => $person_civicrm_id,
