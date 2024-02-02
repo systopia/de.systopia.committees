@@ -467,16 +467,18 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             $person_id = $new_membership->getAttribute('contact_id');
             $person = $present_model->getPerson($person_id) ?? $model->getPerson($person_id);
-            $person['contact_id'] = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $person_civicrm_id = $this->getIDTContactID($person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            $person->setAttribute('person_contact_id', $person_civicrm_id);
             $this->log("want to create relationship with person [{$person['contact_id']}]: " . json_encode($person->getData()));
-            $person_civicrm_id = $new_membership->getAttribute('employee_contact_id');
 
             if (empty($person_civicrm_id) || empty($committee_civicrm_id)) {
                 $this->log("Cannot create membership");
                 continue;
             }
 
+            // create the relationship
             $this->callApi3('Relationship', 'create', [
+                    'start_date' => date('YmdHis'),
                     'contact_id_a' => $person_civicrm_id,
                     'contact_id_b' => $committee_civicrm_id,
                     'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
