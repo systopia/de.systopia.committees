@@ -16,7 +16,7 @@
 use CRM_Committees_ExtensionUtil as E;
 
 /**
- * Importer for Session XLS Export
+ * Importer for PersonalOffice XLS Export
  *
  * @todo migrate to separate extension or leave as example?
  */
@@ -36,9 +36,9 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         11 => 'postal_code',
         12 => 'city',
         //13 => 'kk/kb-. kg-. gkg-schlüssel',
-        //14 => 'kk/kb-. kg-. gkg-schlüssel',
-        15 => 'committee_id', // externe org. nr
-        16 => 'committee_name',
+        14 => 'committee_id', // 'externe org. nr',
+        //15 => 'committee_id', // externe org. nr
+        15 => 'committee_name',
         //17 => 'versand-nr.',
         //18 => 'dienststnr._2',
         //19 => 'dienststnr.',
@@ -135,6 +135,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         $main_sheet = $this->getMainSheet($file_path);
         $row_count = $main_sheet->getHighestRow();
         $this->log("Start importing {$row_count} rows");
+        $duplicate_contact_count = 0;
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($main_sheet, $row_nr, self::ROW_MAPPING);
 
@@ -155,10 +156,11 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                 // extract email
                 $email = $this->copyAttributes($record, ['contact_id', 'email'], );
                 if (!empty($email['email'])) {
+                    $email['email'] = strtolower($email['email']);
                     $this->model->addEmail($email);
                 }
             } else {
-                $this->log("Skipped duplicate contact data [{$contact['id']}].");
+                $duplicate_contact_count++;
             }
 
             // extract committees and membership relationships
@@ -168,14 +170,25 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
             if (!empty($committee_data['id']) && !empty($committee_data['name'])) {
                 $existing_committee = $this->model->getCommittee($committee_data['id']);
                 if (!$existing_committee) {
+                    // apply different naming scheme
+                    $committee_name = $committee_data['name'];
+                    $committee_name = preg_replace('/^KG/', 'Evangelische Kirchengemeinde', $committee_name);
+                    $committee_name = preg_replace('/^KK/', 'Evangelischer Kirchenkreis', $committee_name);
+                    $committee_data['name'] = $committee_name;
                     $this->model->addCommittee($committee_data);
                 }
             }
 
             $employment = $this->copyAttributes($record, ['contact_id', 'committee_id']);
-            $this->model->addCommitteeMembership($employment);
+            if (!empty($employment['contact_id']) && !empty($employment['committee_id'])) {
+                $this->model->addCommitteeMembership($employment);
+            }
         }
         $this->log(count($this->model->getAllPersons()) . " contacts read.");
+        $this->log(count($this->model->getAllEmails()) . " emails read.");
+        $this->log(count($this->model->getAllAddresses()) . " addresses read.");
+        $this->log(count($this->model->getAllCommittees()) . " divisions referenced in input.");
+        $this->log(count($this->model->getAllMemberships()) . " employments referenced in input.");
 
         return true;
     }

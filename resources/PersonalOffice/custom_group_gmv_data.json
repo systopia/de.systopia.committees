@@ -1,0 +1,40 @@
+{
+  "_lookup": ["name"],
+  "_translate": ["title"],
+  "name": "gmv_data",
+  "title": "EKIR Strukturdaten",
+  "extends": "Organization",
+  "_extends_entity_column_value": [
+    "Kirchenkreis",
+    "Kirchengemeinde",
+    "Pfarrstelle"
+  ],
+  "style": "Tab",
+  "collapse_display": "0",
+  "weight": "12",
+  "is_active": "1",
+  "table_name": "civicrm_value_gmv_data",
+  "is_multiple": "0",
+  "collapse_adv_display": "0",
+  "is_reserved": "0",
+  "is_public": "1",
+  "icon": "fa-info",
+  "_fields": [
+    {
+      "_lookup": ["column_name"],
+      "_translate": ["label"],
+      "name": "gmv_data_identifier",
+      "label": "EKIR ID",
+      "data_type": "String",
+      "html_type": "Text",
+      "is_required": "0",
+      "is_searchable": "1",
+      "is_search_range": "1",
+      "is_active": "1",
+      "is_view": "0",
+      "column_name": "identifier",
+      "serialize": "0",
+      "in_selector": "1"
+    }
+  ]
+}

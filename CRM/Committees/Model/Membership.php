@@ -29,9 +29,19 @@ class CRM_Committees_Model_Membership extends CRM_Committees_Model_Entity
      */
     public function __construct($model, $data)
     {
+        if (empty($data['contact_id'])) {
+            throw new Exception("Membership data requires a contact_id");
+        }
+        if (empty($data['committee_id'])) {
+            throw new Exception("Membership data requires a committee_id");
+        }
         if (!isset($data['is_active'])) {
             // set is_active as default, if omitted
             $data['is_active'] = "1";
+        }
+        if (!isset($data['id'])) {
+            // set is_active as default, if omitted
+            $data['id'] = "{$data['contact_id']}-{$data['committee_id']}";
         }
         parent::__construct($model, $data);
     }

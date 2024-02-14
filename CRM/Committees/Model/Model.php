@@ -798,8 +798,6 @@ class CRM_Committees_Model_Model
             unset($this->committees[$entity->getID()]);
         } elseif ($entity instanceof CRM_Committees_Model_Membership) {
             unset($this->memberships[$entity->getID()]);
-        } elseif ($entity instanceof CRM_Committees_Model_Person) {
-            unset($this->persons[$entity->getID()]);
             throw new Exception("removeEntity:Person incomplete, needs to affect depending entities as well");
         }
     }
