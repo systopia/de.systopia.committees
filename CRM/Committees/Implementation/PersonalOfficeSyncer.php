@@ -100,9 +100,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
-        $customData = new CRM_Gmv_CustomData(E::LONG_NAME);
-        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
+        if (class_exists('CRM_Gmv_CustomData')) {
+            $customData = new CRM_Gmv_CustomData(E::LONG_NAME);
+            $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
+            $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
+        }
 
         if ($transaction) {
             $transaction = new CRM_Core_Transaction();
