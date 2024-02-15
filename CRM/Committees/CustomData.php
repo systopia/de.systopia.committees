@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA CUSTOM DATA HELPER                            |
-| Copyright (C) 2018-2023 SYSTOPIA                       |
+| Copyright (C) 2018-2024 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | Source: https://github.com/systopia/Custom-Data-Helper |
 +--------------------------------------------------------+
@@ -15,7 +15,7 @@
 +--------------------------------------------------------*/
 
 class CRM_Committees_CustomData {
-  const CUSTOM_DATA_HELPER_VERSION   = '0.11';
+  const CUSTOM_DATA_HELPER_VERSION   = '0.12.0';
   const CUSTOM_DATA_HELPER_LOG_LEVEL = 0;
   const CUSTOM_DATA_HELPER_LOG_DEBUG = 1;
   const CUSTOM_DATA_HELPER_LOG_INFO  = 3;
@@ -24,9 +24,9 @@ class CRM_Committees_CustomData {
   /** caches custom field data, indexed by group name */
   protected static $custom_group2name       = NULL;
   protected static $custom_group2table_name = NULL;
-  protected static $custom_group_cache      = array();
-  protected static $custom_group_spec_cache = array();
-  protected static $custom_field_cache      = array();
+  protected static $custom_group_cache      = [];
+  protected static $custom_group_spec_cache = [];
+  protected static $custom_field_cache      = [];
 
   protected $ts_domain = NULL;
   protected $version   = self::CUSTOM_DATA_HELPER_VERSION;
@@ -134,7 +134,7 @@ class CRM_Committees_CustomData {
     if (isset($data['extends_entity_column_value'])) {
       $force_update = TRUE; // this doesn't get returned by the API, so differences couldn't be detected
       if ($data['extends'] == 'Activity') {
-        $extends_list = array();
+        $extends_list = [];
         foreach ($data['extends_entity_column_value'] as $activity_type) {
           if (!is_numeric($activity_type)) {
             $activity_type = self::getOptionValue('activity_type', $activity_type, 'name');
@@ -269,8 +269,8 @@ class CRM_Committees_CustomData {
   /**
    * create a new entity
    */
-  protected function updateEntity($entity_type, $requested_data, $current_data, $required_fields = array(), $force = FALSE) {
-    $update_query = array();
+  protected function updateEntity($entity_type, $requested_data, $current_data, $required_fields = [], $force = FALSE) {
+    $update_query = [];
 
     // first: identify fields that need to be updated
     foreach ($requested_data as $field => $value) {
@@ -329,6 +329,17 @@ class CRM_Committees_CustomData {
   }
 
   /**
+   * Flush all internal caches
+   */
+  public static function flushCashes() {
+    self::$custom_group2name = null;
+    self::$custom_group2table_name = null;
+    self::$custom_group_cache = [];
+    self::$custom_group_spec_cache = [];
+    self::$custom_field_cache = [];
+  }
+
+  /**
    * function to replace custom_XX notation with the more
    * stable "<custom_group_name>.<custom_field_name>" format
    *
@@ -340,7 +351,7 @@ class CRM_Committees_CustomData {
   public static function labelCustomFields(&$data, $depth=1, $separator = '.') {
     if ($depth <= 0) return;
 
-    $custom_fields_used = array();
+    $custom_fields_used = [];
     foreach ($data as $key => $value) {
       if (preg_match('#^custom_(?P<field_id>\d+)$#', $key, $match)) {
         $custom_fields_used[] = $match['field_id'];
@@ -439,7 +450,7 @@ class CRM_Committees_CustomData {
    */
   public static function resolveCustomFields(&$data, $customgroups = NULL) {
     // first: find out which ones to cache
-    $customgroups_used = array();
+    $customgroups_used = [];
     foreach ($data as $key => $value) {
       if (preg_match('/^(?P<group_name>\w+)[.](?P<field_name>\w+)$/', $key, $match)) {
         if ($match['group_name'] == 'option' || $match['group_name'] == 'options') {
@@ -506,7 +517,7 @@ class CRM_Committees_CustomData {
     foreach ($custom_group_names as $custom_group_name) {
       if (!isset(self::$custom_group_cache[$custom_group_name])) {
         // set to empty array to indicate our intentions
-        self::$custom_group_cache[$custom_group_name] = array();
+        self::$custom_group_cache[$custom_group_name] = [];
         $fields = civicrm_api3('CustomField', 'get', array(
             'custom_group_id' => $custom_group_name,
             'option.limit'    => 0));
@@ -523,7 +534,7 @@ class CRM_Committees_CustomData {
    */
   public static function cacheCustomFields($custom_field_ids) {
     // first: check if they are already cached
-    $fields_to_load = array();
+    $fields_to_load = [];
     foreach ($custom_field_ids as $field_id) {
       if (!array_key_exists($field_id, self::$custom_field_cache)) {
         $fields_to_load[] = $field_id;
@@ -549,7 +560,7 @@ class CRM_Committees_CustomData {
    */
   public static function cacheCustomGroupSpecs($custom_group_ids) {
     // first: check if they are already cached
-    $fields_to_load = array();
+    $fields_to_load = [];
     foreach ($custom_group_ids as $group_id) {
       if (!array_key_exists($group_id, self::$custom_group_spec_cache)) {
         $groups_to_load[] = $group_id;
@@ -598,8 +609,8 @@ class CRM_Committees_CustomData {
    * Load group data (all groups)
    */
   protected static function loadGroups() {
-    self::$custom_group2name = array();
-    self::$custom_group2table_name = array();
+    self::$custom_group2name = [];
+    self::$custom_group2table_name = [];
     $group_search = civicrm_api3('CustomGroup', 'get', array(
         'return'       => 'name,table_name',
         'option.limit' => 0,
