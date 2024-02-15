@@ -43,16 +43,6 @@ function committees_civicrm_config(&$config)
 }
 
 /**
- * Implements hook_civicrm_xmlMenu().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_xmlMenu
- */
-function committees_civicrm_xmlMenu(&$files)
-{
-    _committees_civix_civicrm_xmlMenu($files);
-}
-
-/**
  * Implements hook_civicrm_install().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_install
@@ -63,26 +53,6 @@ function committees_civicrm_install()
 }
 
 /**
- * Implements hook_civicrm_postInstall().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_postInstall
- */
-function committees_civicrm_postInstall()
-{
-    _committees_civix_civicrm_postInstall();
-}
-
-/**
- * Implements hook_civicrm_uninstall().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_uninstall
- */
-function committees_civicrm_uninstall()
-{
-    _committees_civix_civicrm_uninstall();
-}
-
-/**
  * Implements hook_civicrm_enable().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_enable
@@ -90,94 +60,6 @@ function committees_civicrm_uninstall()
 function committees_civicrm_enable()
 {
     _committees_civix_civicrm_enable();
-}
-
-/**
- * Implements hook_civicrm_disable().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_disable
- */
-function committees_civicrm_disable()
-{
-    _committees_civix_civicrm_disable();
-}
-
-/**
- * Implements hook_civicrm_upgrade().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_upgrade
- */
-function committees_civicrm_upgrade($op, CRM_Queue_Queue $queue = null)
-{
-    return _committees_civix_civicrm_upgrade($op, $queue);
-}
-
-/**
- * Implements hook_civicrm_managed().
- *
- * Generate a list of entities to create/deactivate/delete when this module
- * is installed, disabled, uninstalled.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_managed
- */
-function committees_civicrm_managed(&$entities)
-{
-    _committees_civix_civicrm_managed($entities);
-}
-
-/**
- * Implements hook_civicrm_caseTypes().
- *
- * Add CiviCase types provided by this extension.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_caseTypes
- */
-function committees_civicrm_caseTypes(&$caseTypes)
-{
-    _committees_civix_civicrm_caseTypes($caseTypes);
-}
-
-/**
- * Implements hook_civicrm_angularModules().
- *
- * Add Angular modules provided by this extension.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_angularModules
- */
-function committees_civicrm_angularModules(&$angularModules)
-{
-    // Auto-add module files from ./ang/*.ang.php
-    _committees_civix_civicrm_angularModules($angularModules);
-}
-
-/**
- * Implements hook_civicrm_alterSettingsFolders().
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_alterSettingsFolders
- */
-function committees_civicrm_alterSettingsFolders(&$metaDataFolders = null)
-{
-    _committees_civix_civicrm_alterSettingsFolders($metaDataFolders);
-}
-
-/**
- * Implements hook_civicrm_entityTypes().
- *
- * Declare entity types provided by this module.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
- */
-function committees_civicrm_entityTypes(&$entityTypes)
-{
-    _committees_civix_civicrm_entityTypes($entityTypes);
-}
-
-/**
- * Implements hook_civicrm_themes().
- */
-function committees_civicrm_themes(&$themes)
-{
-    _committees_civix_civicrm_themes($themes);
 }
 
 /**
