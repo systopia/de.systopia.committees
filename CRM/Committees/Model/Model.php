@@ -615,7 +615,7 @@ class CRM_Committees_Model_Model
                     if ($attribute != $entity_id_field && $attribute != $other_id_field) {
                         $new_value = $other_entity->getAttribute($attribute);
                         if ($new_value === null) {
-                            Civi::log()->log("Join on {$entity_id_field}:{$other_id_field} missing an entry for {$attribute}.");
+                            Civi::log()->debug("Join on {$entity_id_field}:{$other_id_field} missing an entry for {$attribute}.");
                         } else {
                             $entity->setAttribute($attribute, $new_value);
                         }
