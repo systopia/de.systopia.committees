@@ -92,7 +92,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "name" => "gmv_data",
                     "title" => "EKIR Strukturdaten",
                     "extends" => "Organization",
-                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle"],
+                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit],
                     "style" => "Tab",
                     "weight" => "12",
                     "is_active" => "1",
@@ -725,7 +725,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
             return 'Kirchengemeinde';
         } else {
-            return '';
+            return 'Organisationseinheit';
         }
     }
 }

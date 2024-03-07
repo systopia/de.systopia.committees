@@ -139,6 +139,11 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($main_sheet, $row_nr, self::ROW_MAPPING);
 
+            // create artificial committee ID based on name, if missing
+            if (empty($record['committee_id']) && !empty($record['committee_name'])) {
+                $record['committee_id'] = 'X' . crc32($record['committee_name']);
+            }
+
             // extract contact
             $contact = $this->copyAttributes($record, ['contact_id', 'formal_title', 'last_name', 'first_name', 'job_title_key'], ['contact_id' => 'id']);
             $existing_contact = $this->model->getPerson($contact['id']);
