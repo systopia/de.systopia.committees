@@ -210,7 +210,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     'contact_sub_type' => $this->getContactSubTypeFromId($new_division->getID()),
                     CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD => $new_division->getID(),
                 ];
-                CRM_Committees_CustomData::labelCustomFields($new_division_data);
+                CRM_Committees_CustomData::resolveCustomFields($new_division_data);
                 $contact_type = $new_division_data['contact_sub_type'] ?? 'Organization';
                 $result = civicrm_api3('Contact', 'create', $new_division_data);
                 $new_division->setAttribute('contact_id', $result['id']);
