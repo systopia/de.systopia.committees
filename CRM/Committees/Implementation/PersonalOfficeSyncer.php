@@ -92,7 +92,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "name" => "gmv_data",
                     "title" => "EKIR Strukturdaten",
                     "extends" => "Organization",
-                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle"],
+                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit],
                     "style" => "Tab",
                     "weight" => "12",
                     "is_active" => "1",
@@ -210,7 +210,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     'contact_sub_type' => $this->getContactSubTypeFromId($new_division->getID()),
                     CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD => $new_division->getID(),
                 ];
-                CRM_Committees_CustomData::labelCustomFields($new_division_data);
+                CRM_Committees_CustomData::resolveCustomFields($new_division_data);
                 $contact_type = $new_division_data['contact_sub_type'] ?? 'Organization';
                 $result = civicrm_api3('Contact', 'create', $new_division_data);
                 $new_division->setAttribute('contact_id', $result['id']);
@@ -725,7 +725,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
             return 'Kirchengemeinde';
         } else {
-            return '';
+            return 'Organisationseinheit';
         }
     }
 }
