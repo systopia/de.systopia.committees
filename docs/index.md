@@ -40,7 +40,7 @@ Every entity has some basic attributes (usually based on the CiviCRM fields), bu
 * PersonalOffice Importer - proprietary, will be removed
 * Session Importer - proprietary, will be removed
 
-### Exporter Modules
+### Syncer Modules
 
 * [Bundestag (Oxfam)](syncer/oxfam/index.md)
 * PersonalOffice Syncer - proprietary, will be removed
