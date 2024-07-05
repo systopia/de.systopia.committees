@@ -1,0 +1,30 @@
+site_name: Committees
+repo_url: https://github.com/systopia/de.systopia.committees
+site_description: 'Extension to synchronise committee structures, such as parliaments, sessions, boards, etc'
+site_author: 'systopia'
+theme:
+  name: material
+
+nav:
+  - 'Introduction': index.md
+  - 'Importer':
+    - 'Kürschner List Importer': importer/kuerschner/index.md
+  - 'Syncer':
+    - 'Oxfam Bundestag Importer': syncer/oxfam/index.md
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - def_list
+  - codehilite
+  - toc:
+      permalink: True
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tilde
+  - pymdownx.betterem
+  - pymdownx.mark
+
+plugins:
+  - search:
+      lang: en
