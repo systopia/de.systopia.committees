@@ -53,6 +53,9 @@ provided by a separate extension using a Symfony hook.
 ## Credits
 Oxfam Germany and Evangelische Kirche im Rheinland (Protestant Church Rhineland) provided generous support for the initial development and as early adopters of this extension.
 
+## Documentation
+- EN: https://docs.civicrm.org/committees/en/latest (automatic publishing)
+
 ## We need your support
 This CiviCRM extension is provided as Free and Open Source Software, and we are happy if you find it useful. However, we have put a lot of work into it (and continue to do so), parts of it unpaid for. So if you benefit from our software, please consider making a financial contribution so we can continue to maintain and develop it further.
 
