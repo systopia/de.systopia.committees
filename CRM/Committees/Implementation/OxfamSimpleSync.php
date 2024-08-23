@@ -295,7 +295,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if ($obsolete_urls) {
             foreach ($obsolete_urls as $obsolete_url) {
                 $shortened_url_data = $this->obfuscate($obsolete_url->getAttribute('url'), 7, 5);
-                $this->log("Won't remove obsolete url '{$shortened_url_data}' from contact [{$obsolete_url->getAttribute('contact_id')}]");
+                $this->log("Won't remove obsolete url '{$shortened_url_data}' from contact [KUE-{$obsolete_url->getAttribute('contact_id')}]");
             }
         }
 
@@ -469,12 +469,13 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     break;
             }
             $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
+
             $this->callApi3('Relationship', 'create', [
                 'contact_id_a' => $person_civicrm_id,
                 'contact_id_b' => $committee_id,
                 'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                 'is_active' => 1,
-                'description' => substr($new_membership->getAttribute('description'), 0, 255),
+                'description' => substr($new_membership->getAttribute('description') ?? '', 0, 255),
                 $political_functions_field => $political_functions,
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
