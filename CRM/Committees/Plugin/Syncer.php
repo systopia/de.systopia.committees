@@ -13,8 +13,8 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
+use Civi\Share\CommitteeModuleSurvey;
 use CRM_Committees_ExtensionUtil as E;
-use Civi\CommitteeModuleSurvey;
 
 /**
  * Base for all syncers. Syncers are able to export the given internal model,
@@ -56,6 +56,13 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
             E::ts("Kürschner/Oxfam Bundestag"),
             null, // todo
             E::ts("Importer for the Kürschner/Bundestag model using Oxfam mapping/model")
+        );
+        $syncer_survey->registerSyncerModule(
+            'de.boell.kuerschner.syncer.generic',
+            'CRM_Committees_Implementation_BoellSimpleSync',
+            E::ts("Kürschner/Böll Parlament"),
+            null, // todo
+            E::ts("Importer for the Kürschner/Parliament model using Böll mapping/model")
         );
         $syncer_survey->registerSyncerModule(
             'de.ekir.po.syncer',

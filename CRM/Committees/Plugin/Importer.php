@@ -13,8 +13,8 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
+use Civi\Share\CommitteeModuleSurvey;
 use CRM_Committees_ExtensionUtil as E;
-use Civi\CommitteeModuleSurvey;
 
 /**
  * Base for all importers. Importers are able to
