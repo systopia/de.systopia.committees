@@ -236,6 +236,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **           SYNC BASE CONTACTS            **
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
+        $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
 
         // join addresses, emails
         $model->joinAddressesToPersons();
@@ -270,6 +271,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
                 // add to the present model
                 $present_model->addPerson($new_person->getData());
+
+                // add import tag
+                civicrm_api3('Contact', 'create', ['id' => $result['id'], 'tag_id' => $import_tag_name]);
+
                 $this->log("PO Contact [{$new_person->getID()}] created with CiviCRM-ID [#{$result['id']}].");
             } catch (Exception $exception) {
                 $this->logError("Exception when trying to create new contact [{$new_person->getID()}]: " . $exception->getMessage());
@@ -289,6 +294,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
                 $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
+
+                // add import tag
+                civicrm_api3('Contact', 'create', ['id' => $contact_id, 'tag_id' => $import_tag_name]);
             }
         }
 
