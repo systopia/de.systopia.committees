@@ -237,6 +237,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
         $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
+        $import_tag_create = civicrm_api4('Tag', 'create', ['values' => ['name' => $import_tag_name, 'label' => 'Import ' . $import_tag_name]]);
+        $import_tag_id = reset($import_tag_create)['id'];
+        $this->log("Created import tag " . $import_tag_name);
 
         // join addresses, emails
         $model->joinAddressesToPersons();
@@ -273,7 +276,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $present_model->addPerson($new_person->getData());
 
                 // add import tag
-                civicrm_api3('Contact', 'create', ['id' => $result['id'], 'tag_id' => $import_tag_name]);
+                civicrm_api4('EntityTag', 'create', ['values' =>
+                        ['entity_id' => $result['id'], 'entity_table' => 'civicrm_contact', 'tag_id' => $import_tag_id]]);
 
                 $this->log("PO Contact [{$new_person->getID()}] created with CiviCRM-ID [#{$result['id']}].");
             } catch (Exception $exception) {
@@ -294,10 +298,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
                 $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
-
-                // add import tag
-                civicrm_api3('Contact', 'create', ['id' => $contact_id, 'tag_id' => $import_tag_name]);
             }
+
+            // add import tag
+            civicrm_api4('EntityTag', 'create', ['values' =>
+                    ['entity_id' => $contact_id, 'entity_table' => 'civicrm_contact', 'tag_id' => $import_tag_id]]);
         }
 
         // note obsolete contacts
