@@ -236,7 +236,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
         $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
-        $import_tag_create = \civicrm_api4('Tag', 'create', ['values' => ['name' => $import_tag_name, 'label' => 'Import ' . $import_tag_name, 'checkPermissions' => false]]);
+        $import_tag_create = \civicrm_api4('Tag', 'create', ['values' => ['name' => $import_tag_name, 'label' => 'Import ' . $import_tag_name], 'checkPermissions' => false]);
         $import_tag_id = $import_tag_create->first()['id'];
         $this->log("Created import tag " . $import_tag_name);
 
