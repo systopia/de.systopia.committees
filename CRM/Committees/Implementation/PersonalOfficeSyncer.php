@@ -160,7 +160,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 //        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
 //        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
 //        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
 //        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
 //        CRM_Committees_CustomData::flushCashes();
 
@@ -237,8 +236,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
         $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
-        $import_tag_create = civicrm_api4('Tag', 'create', ['values' => ['name' => $import_tag_name, 'label' => 'Import ' . $import_tag_name]]);
-        $import_tag_id = reset($import_tag_create)['id'];
+        $import_tag_create = \civicrm_api4('Tag', 'create', ['values' => ['name' => $import_tag_name, 'label' => 'Import ' . $import_tag_name, 'checkPermissions' => false]]);
+        $import_tag_id = $import_tag_create->first()['id'];
         $this->log("Created import tag " . $import_tag_name);
 
         // join addresses, emails
@@ -262,6 +261,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
             try {
                 CRM_Committees_CustomData::resolveCustomFields($person_data);
+//                unset($person_data['job_title_key'], $person_data['tag_id']);
                 $result = $this->callApi3('Contact', 'create', $person_data);
                 $this->setIDTContactID(
                         $new_person->getID(),
@@ -738,6 +738,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
             return 'Kirchengemeinde';
         } else {
+//            return 'Organization';
             return 'Organisationseinheit';
         }
     }
