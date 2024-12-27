@@ -276,9 +276,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $present_model->addPerson($new_person->getData());
 
                 // add import tag
-                civicrm_api4('EntityTag', 'create', ['values' =>
-                        ['entity_id' => $result['id'], 'entity_table' => 'civicrm_contact', 'tag_id' => $import_tag_id]]);
-
+                \civicrm_api4('EntityTag', 'create', ['values' => [
+                        'entity_id' => $result['id'],
+                        'entity_table' => 'civicrm_contact',
+                        'tag_id' => $import_tag_id],
+                    'checkPermissions' => false]);
                 $this->log("PO Contact [{$new_person->getID()}] created with CiviCRM-ID [#{$result['id']}].");
             } catch (Exception $exception) {
                 $this->logError("Exception when trying to create new contact [{$new_person->getID()}]: " . $exception->getMessage());
@@ -301,8 +303,12 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             }
 
             // add import tag
-            civicrm_api4('EntityTag', 'create', ['values' =>
-                    ['entity_id' => $contact_id, 'entity_table' => 'civicrm_contact', 'tag_id' => $import_tag_id]]);
+            \civicrm_api4('EntityTag', 'create', ['values' => [
+                    'entity_id' => $contact_id,
+                    'entity_table' => 'civicrm_contact',
+                    'tag_id' => $import_tag_id],
+                    'checkPermissions' => false
+            ]);
         }
 
         // note obsolete contacts
