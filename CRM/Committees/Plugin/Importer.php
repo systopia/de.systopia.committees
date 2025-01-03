@@ -13,7 +13,7 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
-use Civi\Share\CommitteeModuleSurvey;
+use Civi\Committees\CommitteeModuleSurvey;
 use CRM_Committees_ExtensionUtil as E;
 
 /**
