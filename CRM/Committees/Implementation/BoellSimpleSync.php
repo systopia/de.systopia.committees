@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | Heinrich-Böll-Stiftung Importer (Based on OxfamSimple) |
-| Copyright (C) 2024 SYSTOPIA                            |
+| Copyright (C) 2025 SYSTOPIA                            |
 | Author: B. Endres (endres@systopia.de)                 |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
@@ -20,20 +20,27 @@ use CRM_Committees_ExtensionUtil as E;
  */
 class CRM_Committees_Implementation_BoellSimpleSync extends CRM_Committees_Implementation_OxfamSimpleSync
 {
+
+    public function syncModel($model, $transaction = false)
+    {
+        // anything custom to do here?
+        parent::syncModel($model, $transaction);
+    }
+
     /**
      * Get the civicrm location type for the give kuerschner address type
      *
      * @param string $kuerschner_location_type
-     *   should be one of 'Bundestag' / 'Regierung' / 'Wahlkreis'
+     *   should be one of 'Parlament' / 'Regierung' / 'Wahlkreis'
      *
      * @return string|null
      *   return the location type name or ID, or null/empty to NOT import
      */
-    protected function getAddressLocationType($kuerschner_location_type)
+    protected function disabled_getAddressLocationType($kuerschner_location_type)
     {
         switch ($kuerschner_location_type) {
-            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG:
-                return 'Fraktion';
+            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT:
+                return 'Parlament';
 
             default:
                 return parent::getAddressLocationType($kuerschner_location_type);
@@ -48,7 +55,6 @@ class CRM_Committees_Implementation_BoellSimpleSync extends CRM_Committees_Imple
      */
     protected function getCommitteeSubType()
     {
-        return 'Organization';
+        return null; // 'Organization', no subtype;
     }
-
 }

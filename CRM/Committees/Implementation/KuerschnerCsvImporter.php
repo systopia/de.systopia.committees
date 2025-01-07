@@ -86,9 +86,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
 
 
     // location types
-    const LOCATION_TYPE_BUNDESTAG = 'Bundestag'; // parliament
-    const LOCATION_TYPE_REGIERUNG = 'Regierung'; // government
-    const LOCATION_TYPE_WAHLKREIS = 'Wahlkreis'; // constituency
+    const LOCATION_TYPE_PARLIAMENT = 'Parlament'; // parliament
+    const LOCATION_TYPE_REGIERUNG  = 'Regierung'; // government
+    const LOCATION_TYPE_WAHLKREIS  = 'Wahlkreis'; // constituency
 
     // attribute mapping
     const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via', 'mop_staff', 'mop_salutation'];
@@ -192,14 +192,14 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             // extract PARLIAMENT address
             $address = $this->copyAttributes($record, array_keys(self::ADDRESS_PARLIAMENT_ATTRIBUTES), self::ADDRESS_PARLIAMENT_ATTRIBUTES);
             if (count(array_filter($address)) > 1) { // the contact_id is always there
-                $address['location_type'] = self::LOCATION_TYPE_BUNDESTAG;
+                $address['location_type'] = self::LOCATION_TYPE_PARLIAMENT;
                 $this->model->addAddress($address);
             }
 
             // extract PARLIAMENT emails
             $email = $this->copyAttributes($record, array_keys(self::EMAIL_PARLIAMENT_ATTRIBUTES), self::EMAIL_PARLIAMENT_ATTRIBUTES);
             if (!empty($email['email'])) {
-                $email['location_type'] = self::LOCATION_TYPE_BUNDESTAG;
+                $email['location_type'] = self::LOCATION_TYPE_PARLIAMENT;
                 $this->model->addEmail($email);
             }
 
@@ -210,7 +210,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             if (!empty($phone['phone'])) {
                 unset($phone['phone_prefix']);
                 $phone['phone_numeric'] = preg_replace('/[^0-9]/', '', $phone['phone']);
-                $phone['location_type'] = self::LOCATION_TYPE_BUNDESTAG;
+                $phone['location_type'] = self::LOCATION_TYPE_PARLIAMENT;
                 $this->model->addPhone($phone);
             }
 
@@ -463,11 +463,20 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     protected function unpackCommittees($packed_committee_string)
     {
         $committee2function = [];
-        $entries = explode('),', $packed_committee_string);
+        if (str_contains($packed_committee_string, '),')) {
+            // this is the old notation
+            $entries = explode('),', $packed_committee_string);
+        } else {
+            // this is the new notation
+            $entries = explode('; ', $packed_committee_string);
+        }
         foreach ($entries as $entry) {
             //if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) \(([a-zA-ZäöüÄÖÜß \.]+)$/', $entry, $match)) {
-            if (preg_match('/^([^\(]+) \(([^\(]+)$/', $entry, $match)) {
-                $committee2function[] = [trim($match[1]), trim($match[2], " \t\n\r\0\x0B)")];
+            //if (preg_match('/^([^\(]+) \(([^\(]+)$/', $entry, $match)) {
+            //    $committee2function[] = [trim($match[1]), trim($match[2], " \t\n\r\0\x0B)")];
+            //} else
+            if (preg_match('/^([^\(]+) \[([^\(]+)$/', $entry, $match)) {
+                $committee2function[] = [trim($match[1]), trim($match[2], " ]\t\n\r\0\x0B)")];
             }
         }
         return $committee2function;

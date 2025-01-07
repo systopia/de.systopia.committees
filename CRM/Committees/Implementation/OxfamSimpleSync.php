@@ -246,7 +246,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_emails as $email) {
             /** @var CRM_Committees_Model_Email $email */
             $email_data = $email->getData();
-            $email_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $email_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT);
             $email_data['is_primary'] = 1;
             $person = $email->getContact($present_model);
             if ($person) {
@@ -307,7 +307,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_phones as $phone) {
             /** @var CRM_Committees_Model_Phone $phone */
             $phone_data = $phone->getData();
-            $phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT);
             $phone_data['is_primary'] = 1;
             $phone_data['phone_type_id'] = $this->getPhoneTypeId($phone_data);
             $person = $phone->getContact($present_model);
@@ -336,7 +336,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // first: apply custom adjustments to the addresses
         foreach ($model->getAllAddresses() as $address) {
             /** @var CRM_Committees_Model_Address $address */
-            if ($address->getAttribute('location_type') != CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+            if ($address->getAttribute('location_type') != CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT) {
                 $address->removeFromModel();
             }
         }
@@ -347,7 +347,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
             $address_data = $address->getData();
-            $address_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $address_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT);
             $address_data['is_primary'] = 1;
             $address_data['master_id'] = $this->getParliamentAddressID($model);
             $person = $address->getContact($present_model);
@@ -980,7 +980,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             foreach ($model->getAllAddresses() as $address) {
                 /** @var \CRM_Committees_Model_Address $address */
                 $location_type = $address->getAttribute('location_type');
-                if ($location_type == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+                if ($location_type == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT) {
                     $potential_parliament_name = $address->getAttribute('organization_name');
                     if (!empty($potential_parliament_name)) {
                         $parliament_name = $potential_parliament_name;
@@ -1054,7 +1054,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 foreach ($model->getAllAddresses() as $address) {
                     /** @var CRM_Committees_Model_Address $address */
                     if ($address->getAttribute('location_type')
-                        == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+                        == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT) {
                         // this should be the parliament's address
                         $parliament_address_data = [
                             'location_type_id' => 'Work',
@@ -1089,7 +1089,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     protected function getAddressLocationType($kuerschner_location_type)
     {
         switch ($kuerschner_location_type) {
-            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG:
+            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT:
                 return 'Work';
 
             default:
@@ -1164,6 +1164,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      *
      * @return string
      *   the subtype name or null/empty string
+     *
+     * @note ONLY return subtypes, returning contact types (like 'Organization' will cause an error)
      */
     protected function getCommitteeSubType()
     {
@@ -1299,6 +1301,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 ""
             );
 
+            $speaker_member_relationship = $this->createRelationshipTypeIfNotExists(
+                    'is_speaker_of',
+                    'has_speaker',
+                    "Sprecher*in von",
+                    "Sprecher*in ist",
+                    'Individual',
+                    'Organization',
+                    null,
+                    null,
+                    ""
+            );
+
             // compile role mapping:
             $role2relationship_type['stellv. Mitglied'] = $deputy_member_relationship['id'];
             $role2relationship_type['Mitglied'] = $member_relationship['id'];
@@ -1310,6 +1324,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $role2relationship_type['stellv. Vorsitzender'] = $deputy_chairperson_relationship['id'];
             $role2relationship_type['stellv. Vorsitzende'] = $deputy_chairperson_relationship['id'];
             $role2relationship_type['beratendes Mitglied'] = $consulting_member_relationship['id'];
+            $role2relationship_type['beratendes Mitglied'] = $consulting_member_relationship['id'];
+            $role2relationship_type['Sprecherin'] = $speaker_member_relationship['id'];
+            $role2relationship_type['Sprecher'] = $speaker_member_relationship['id'];
         }
         return $role2relationship_type;
     }
