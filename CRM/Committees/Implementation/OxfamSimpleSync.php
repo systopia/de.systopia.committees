@@ -119,7 +119,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // first: apply custom adjustments to the committees
         foreach ($model->getAllCommittees() as $committee) {
             if ($committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
-                $new_committee_name = $this->getFraktionName($committee->getAttribute('name'));
+                $new_committee_name = $this->getFraktionName($committee->getAttribute('name'), $model);
                 $committee->setAttribute('name', $new_committee_name);
             }
         }
@@ -698,7 +698,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     protected function extractCurrentContacts($requested_model, $present_model)
     {
         // add existing contacts
-        $existing_contacts = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        $all_existing_kuerschner_contacts = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        $existing_contacts = $this->restrictExistingContactsToThisParliament($all_existing_kuerschner_contacts);
         $person_custom_field_mapping = $this->getPersonCustomFieldMapping($requested_model);
         if ($existing_contacts) {
             $contacts_found = $this->callApi3('Contact', 'get', [
@@ -1334,13 +1335,15 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     /**
      * Generate a name for the Fraktion based on the party
      *
-     * @param $party_name
+     * @param string $party_name
+     *    name of the party
      *
      * @return string
      */
-    public function getFraktionName($party_name)
+    public function getFraktionName($party_name, $model)
     {
-        return E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $party_name]);
+        $parliament_name = $this->getParliamentName($model);
+        return E::ts("Fraktion %1 im %2", [1 => $party_name, 2 => $parliament_name]);
     }
 
     /**
@@ -1504,5 +1507,41 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
 
         return trim($function);
+    }
+
+    /**
+     * Takes a list of contacts (tracker ID => contact ID) and removes the ones
+     *  that do not belong to the current parliament
+     *
+     * @return array
+     */
+    public function restrictExistingContactsToThisParliament($existing_contacts)
+    {
+        $existing_contact_count = count($existing_contacts);
+        if (empty($existing_contacts)) return $existing_contacts;
+
+        $this->log("Found {$existing_contact_count} contacts with KUE prefix. Will restrict to members of the current parliament...");
+        $parliament_id = $this->getParliamentContactID();
+        $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
+        $relationship_type_id = $role2relationship_type['Mitglied'];
+
+        // remove all of those contacts that are linked to the current parliament
+        $remaining_contacts = civicrm_api3('Relationship', 'get', [
+                'option.limit' => 0,
+                'relationship_type_id' => $relationship_type_id,
+                'contact_id_a' => ['IN' => array_keys($existing_contacts)],
+                'contact_id_b' => $parliament_id,
+                'return' => 'contact_id_a'
+        ]);
+
+        // copy all of them to a new array
+        $restricted_contacts = [];
+        foreach ($remaining_contacts['values'] as $remaining_contact) {
+            $contact_id = $remaining_contact['contact_id_a'];
+            $restricted_contacts[$contact_id] = $existing_contacts[$contact_id];
+        }
+
+        $this->log("Contacts restricted to this parliament are: " . count($restricted_contacts));
+        return $restricted_contacts;
     }
 }

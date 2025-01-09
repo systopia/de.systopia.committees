@@ -59,9 +59,9 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
         $importer_survey->registerImporterModule(
             'de.oxfam.kuerschner',
             'CRM_Committees_Implementation_KuerschnerCsvImporter',
-            E::ts("Kürschner Liste Bundestag (CSV)"),
+            E::ts("Kürschner Liste Parlament (CSV)"),
             null, // todo
-            E::ts("Importiert Kürschner Liste Bundestag (CSV)")
+            E::ts("Importiert Kürschner Liste Parlament (CSV)")
         );
         $importer_survey->registerImporterModule(
             'de.ekir.po.importer',
