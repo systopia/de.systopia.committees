@@ -25,6 +25,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     use CRM_Committees_Tools_IdTrackerTrait;
     use CRM_Committees_Tools_XcmTrait;
     use CRM_Committees_Tools_ModelExtractionTrait;
+    use CRM_Committees_Tools_ContactTagTrait;
 
     const CONTACT_TRACKER_TYPE = 'personal_office';
     const CONTACT_TRACKER_PREFIX = 'PO-';
@@ -236,9 +237,12 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
         $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
-        $import_tag_create = \civicrm_api4('Tag', 'create', ['values' => ['name' => $import_tag_name, 'label' => 'Import ' . $import_tag_name], 'checkPermissions' => false]);
-        $import_tag_id = $import_tag_create->first()['id'];
+        $import_tag_id = $this->createTagIfNotExists($import_tag_name);
         $this->log("Created import tag " . $import_tag_name);
+
+        // make sure the PO tag is there
+        $po_tag_id = $this->createTagIfNotExists('po_aktuell', 'aktuelle Pfarrer*in');
+        $current_po_contact_ids = [];
 
         // join addresses, emails
         $model->joinAddressesToPersons();
@@ -253,7 +257,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $person_data                 = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = 'Individual';
             $person_data['source']       = 'PO Import ' . date('Y-m-d');
-            $person_data['tag_id']       = 'Personal Office';
+            //$person_data['tag_id']       = 'Personal Office';
 
             // convert job title
             $job_title = $person_data['job_title_key'] ?? null;
@@ -271,6 +275,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 );
                 $new_person->setAttribute('contact_id', $result['id']);
                 $new_person->setAttribute('is_new', true);
+                $current_po_contact_ids[] = $result['id'];
 
                 // add to the present model
                 $present_model->addPerson($new_person->getData());
@@ -296,6 +301,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         foreach ($changed_persons as $changed_person) {
             /** @var CRM_Committees_Model_Person $changed_person */
             $contact_id = $changed_person->getAttribute('contact_id');
+            $current_po_contact_ids[] = $contact_id;
             $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
             $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
@@ -327,6 +333,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 //                }
 //            }
         }
+
+        // sync the tag
+        $this->synchronizeTag($import_tag_id, $current_po_contact_ids);
 
         /**********************************************
          **           SYNC CONTACT EMAILS            **
@@ -415,7 +424,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **           (read: 'employments')          **
          **********************************************/
-
         // extract current memberships
         $this->extractCurrentMemberships($model, $present_model);
         $this->log(count($present_model->getAllMemberships()) . " existing employments identified in CiviCRM.");
