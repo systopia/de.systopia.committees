@@ -34,7 +34,7 @@ trait CRM_Committees_Tools_ContactTagTrait
     public function tagContact($contact_id, $tag_id, $tag_name = null)
     {
         try {
-            \Civi\Api4\EntityTag::create(TRUE)
+            \Civi\Api4\EntityTag::create(false)
                     ->addValue('tag_id', $tag_id)
                     ->addValue('entity_table', 'civicrm_contact')
                     ->addValue('entity_id', $contact_id)
@@ -69,7 +69,7 @@ trait CRM_Committees_Tools_ContactTagTrait
     {
         // step 1: load current contact_ids with the tag
         $currently_tagged_contact_ids = [];
-        $tagged_contacts = \Civi\Api4\EntityTag::get(TRUE)
+        $tagged_contacts = \Civi\Api4\EntityTag::get(false)
                 ->addSelect('entity_id')
                 ->addWhere('entity_table', '=', 'civicrm_contact')
                 ->addWhere('tag_id', '=', $tag_id)
@@ -84,7 +84,7 @@ trait CRM_Committees_Tools_ContactTagTrait
         // step 2: remove the ones that are not in the new list
         if (!empty($contact_diff['deletions'])) {
             $this->log("Removing tag [{$tag_id}] from the following contact IDs: " . implode(',', $contact_diff['deletions']));
-            \Civi\Api4\EntityTag::delete(TRUE)
+            \Civi\Api4\EntityTag::delete(false)
                     ->addWhere('tag_id', '=', $tag_id)
                     ->addWhere('entity_table', '=', 'civicrm_contact')
                     ->addWhere('entity_id', 'IN', $contact_diff['deletions'])
@@ -95,7 +95,7 @@ trait CRM_Committees_Tools_ContactTagTrait
         if (!empty($contact_diff['insertions'])) {
             $this->log("Adding tag [{$tag_id}] to the following contact IDs: " . implode(',', $contact_diff['insertions']));
             foreach ($contact_diff['insertions'] as $contact_id) {
-                \Civi\Api4\EntityTag::create(TRUE)
+                \Civi\Api4\EntityTag::create(false)
                         ->addValue('entity_table', 'civicrm_contact')
                         ->addValue('tag_id', $tag_id)
                         ->addValue('entity_id', $contact_id)
@@ -129,7 +129,7 @@ trait CRM_Committees_Tools_ContactTagTrait
     public function getOrCreateTagId(string $tag_name, string $tag_label = null, string $tag_description = null, string $used_for = 'civicrm_contact') : int
     {
         // look up if it exists and return tag ID
-        $tag_search = \Civi\Api4\Tag::get(TRUE)
+        $tag_search = \Civi\Api4\Tag::get(false)
                 ->addSelect('id')
                 ->addWhere('name', '=', 'Verwaltungsdirektor')
                 ->setLimit(1)
@@ -144,7 +144,7 @@ trait CRM_Committees_Tools_ContactTagTrait
                             'description' => $tag_description ?? '',
                             'used_for' => [$used_for],
                     ],
-                    'checkPermissions' => TRUE,
+                    'checkPermissions' => false,
             ]);
             return $new_tag->first()['id'];
         } else {
