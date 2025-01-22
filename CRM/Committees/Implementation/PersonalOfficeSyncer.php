@@ -240,8 +240,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $import_tag_id = $this->getOrCreateTagId($import_tag_name);
         $this->log("Created import tag " . $import_tag_name);
 
-        // make sure the PO tag is there
+        // make sure the PO tags are there
         $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
+        $former_po_tag_id = $this->getOrCreateTagId('po_former', 'ehemaliger Pfarrer*in');
         $current_po_contact_ids = [];
 
         // join addresses, emails
@@ -307,14 +308,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             foreach ($differing_attributes as $differing_attribute) {
                 $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
             }
-
-            // add import tag
-            \civicrm_api4('EntityTag', 'create', ['values' => [
-                    'entity_id' => $contact_id,
-                    'entity_table' => 'civicrm_contact',
-                    'tag_id' => $import_tag_id],
-                    'checkPermissions' => false
-            ]);
         }
 
         // note obsolete contacts
@@ -322,20 +315,25 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $obsolete_person_count = count($obsolete_persons);
             $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. However, those will *not* be deleted.");
 
-//            foreach ($obsolete_persons as $obsolete_person) {
-//                /** @var CRM_Committees_Model_Person $obsolete_person */
-//                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-//                if ($contact_id) {
+            foreach ($obsolete_persons as $obsolete_person) {
+                /** @var CRM_Committees_Model_Person $obsolete_person */
+                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+                if ($contact_id) {
+                    $this->tagContact($contact_id, $former_po_tag_id);
 //                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
 //                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
-//                } else {
-//                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
-//                }
-//            }
+                } else {
+                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
+                }
+            }
         }
 
-        // sync the tag
+        // sync the tags
+        // this is a new tag, so this will just newly tag all contacts in that list
         $this->synchronizeTag($import_tag_id, $current_po_contact_ids);
+
+        // this will tag new PO personal, and also remove the tag ones from obsolete ones
+        $this->synchronizeTag($po_tag_id, $current_po_contact_ids);
 
         /**********************************************
          **           SYNC CONTACT EMAILS            **

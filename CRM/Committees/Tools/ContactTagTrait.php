@@ -21,6 +21,35 @@ use CRM_Committees_ExtensionUtil as E;
 trait CRM_Committees_Tools_ContactTagTrait
 {
     /**
+     * Tag contact with the given tag.
+     *   If the tag is already there nothing happens
+     *
+     * @param int $contact_id
+     *   contact ID
+     * @param int $tag_id
+     *   tag ID
+     *
+     * @return void
+     */
+    public function tagContact($contact_id, $tag_id, $tag_name = null)
+    {
+        try {
+            \Civi\Api4\EntityTag::create(TRUE)
+                    ->addValue('tag_id', $tag_id)
+                    ->addValue('entity_table', 'civicrm_contact')
+                    ->addValue('entity_id', $contact_id)
+                    ->execute();
+            if ($tag_name) {
+                $this->log("Tagged contact [{$contact_id}] with tag '{$tag_name}.");
+            } else {
+                $this->log("Tagged contact [{$contact_id}] with tag [{$tag_id}].");
+            }
+        } catch (Exception $e) {
+            // probably already there - ignore
+        }
+    }
+
+    /**
      * Update the given tag for the given contact group,
      *  i.e. removes the tag from contacts that are not in the list
      *   and adds the tag to all contacts in the list that don't have it yet
@@ -36,25 +65,48 @@ trait CRM_Committees_Tools_ContactTagTrait
      *   'contacts_removed' - list of contact IDs that have been newly removed from the tag
      *
      */
-    public function synchronizeTag(int $tag_id, array $contact_ids)
+    public function synchronizeTag(int $tag_id, array $contact_ids) : array
     {
         // step 1: load current contact_ids with the tag
         $currently_tagged_contact_ids = [];
         $tagged_contacts = \Civi\Api4\EntityTag::get(TRUE)
                 ->addSelect('entity_id')
                 ->addWhere('entity_table', '=', 'civicrm_contact')
-                ->addWhere('tag_id', '=', 199)
+                ->addWhere('tag_id', '=', $tag_id)
                 ->execute();
         foreach ($tagged_contacts as $tagged_contact) {
             $currently_tagged_contact_ids[] = $tagged_contact->entity_id;
         }
-        $contact_diff = array_diff($contact_ids, $currently_tagged_contact_ids);
+
+        // and then calculate the difference between the should-be vs. the current)
+        $contact_diff = self::arrayDifference($contact_ids, $currently_tagged_contact_ids);
 
         // step 2: remove the ones that are not in the new list
+        if (!empty($contact_diff['deletions'])) {
+            $this->log("Removing tag [{$tag_id}] from the following contact IDs: " . implode(',', $contact_diff['deletions']));
+            \Civi\Api4\EntityTag::delete(TRUE)
+                    ->addWhere('tag_id', '=', $tag_id)
+                    ->addWhere('entity_table', '=', 'civicrm_contact')
+                    ->addWhere('entity_id', 'IN', $contact_diff['deletions'])
+                    ->execute();
+        }
 
         // step 3: add the ones that are not in the current list
+        if (!empty($contact_diff['insertions'])) {
+            $this->log("Adding tag [{$tag_id}] to the following contact IDs: " . implode(',', $contact_diff['insertions']));
+            foreach ($contact_diff['insertions'] as $contact_id) {
+                \Civi\Api4\EntityTag::create(TRUE)
+                        ->addValue('entity_table', 'civicrm_contact')
+                        ->addValue('tag_id', $tag_id)
+                        ->addValue('entity_id', $contact_id)
+                        ->execute();
+            }
+        }
 
-        // @todo: implement
+        return [
+            'contacts_added'   => $contact_diff['insertions'],
+            'contacts_removed' => $contact_diff['deletions'],
+        ];
     }
 
     /**
@@ -112,5 +164,47 @@ trait CRM_Committees_Tools_ContactTagTrait
     public function deleteTagIfExists(string $tag_name)
     {
         throw new \Civi\API\Exception\NotImplementedException('ContactTagTrait.deleteTagIfExists is not yet implemented');
+    }
+
+
+    /**
+     * Compare two arrays and return a list of items only in array1 (deletions) and only in array2 (insertions)
+     *
+     * @param array $array1 The 'original' array, for comparison. Items that exist here only are considered to be deleted (deletions).
+     * @param array $array2 The 'new' array. Items that exist here only are considered to be new items (insertions).
+     * @param ?array $keysToCompare A list of array key names that should be used for comparison of arrays (ignore all other keys)
+     * @return array[] array with keys 'insertions' and 'deletions'
+     *
+     * @note copied from https://gist.github.com/cjthompson/5485005
+     */
+    public static function arrayDifference(array $array1, array $array2, array $keysToCompare = null) : array {
+        $serialize = function (&$item, $idx, $keysToCompare) {
+            if (is_array($item) && $keysToCompare) {
+                $a = array();
+                foreach ($keysToCompare as $k) {
+                    if (array_key_exists($k, $item)) {
+                        $a[$k] = $item[$k];
+                    }
+                }
+                $item = $a;
+            }
+            $item = serialize($item);
+        };
+
+        $deserialize = function (&$item) {
+            $item = unserialize($item);
+        };
+
+        array_walk($array1, $serialize, $keysToCompare);
+        array_walk($array2, $serialize, $keysToCompare);
+
+        // Items that are in the original array but not the new one
+        $deletions = array_diff($array1, $array2);
+        $insertions = array_diff($array2, $array1);
+
+        array_walk($insertions, $deserialize);
+        array_walk($deletions, $deserialize);
+
+        return ['insertions' => $insertions, 'deletions' => $deletions];
     }
 }
