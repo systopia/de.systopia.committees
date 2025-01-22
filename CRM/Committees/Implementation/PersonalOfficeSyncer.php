@@ -237,11 +237,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
         $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
-        $import_tag_id = $this->createTagIfNotExists($import_tag_name);
+        $import_tag_id = $this->getOrCreateTagId($import_tag_name);
         $this->log("Created import tag " . $import_tag_name);
 
         // make sure the PO tag is there
-        $po_tag_id = $this->createTagIfNotExists('po_aktuell', 'aktuelle Pfarrer*in');
+        $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
         $current_po_contact_ids = [];
 
         // join addresses, emails

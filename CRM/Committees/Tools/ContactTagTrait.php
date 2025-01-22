@@ -31,11 +31,29 @@ trait CRM_Committees_Tools_ContactTagTrait
      * @param array $contact_ids
      *   list of contact IDs
      *
-     * @return void
+     * @return array with the following entries
+     *   'contacts_added'   - list of contact IDs that have been newly added to the tag
+     *   'contacts_removed' - list of contact IDs that have been newly removed from the tag
      *
      */
     public function synchronizeTag(int $tag_id, array $contact_ids)
     {
+        // step 1: load current contact_ids with the tag
+        $currently_tagged_contact_ids = [];
+        $tagged_contacts = \Civi\Api4\EntityTag::get(TRUE)
+                ->addSelect('entity_id')
+                ->addWhere('entity_table', '=', 'civicrm_contact')
+                ->addWhere('tag_id', '=', 199)
+                ->execute();
+        foreach ($tagged_contacts as $tagged_contact) {
+            $currently_tagged_contact_ids[] = $tagged_contact->entity_id;
+        }
+        $contact_diff = array_diff($contact_ids, $currently_tagged_contact_ids);
+
+        // step 2: remove the ones that are not in the new list
+
+        // step 3: add the ones that are not in the current list
+
         // @todo: implement
     }
 
@@ -56,20 +74,34 @@ trait CRM_Committees_Tools_ContactTagTrait
      * @return int
      *   tag ID
      */
-    public function createTagIfNotExists(string $tag_name, string $tag_label = null, string $tag_description = null) : int
+    public function getOrCreateTagId(string $tag_name, string $tag_label = null, string $tag_description = null, string $used_for = 'civicrm_contact') : int
     {
         // look up if it exists and return tag ID
+        $tag_search = \Civi\Api4\Tag::get(TRUE)
+                ->addSelect('id')
+                ->addWhere('name', '=', 'Verwaltungsdirektor')
+                ->setLimit(1)
+                ->execute();
 
-        // if not: create one
-        if (empty($tag_label)) {
-            $tag_label = $tag_name;
+        if (empty($tag_search)) {
+            // tag does not exist yet => create!
+            $new_tag = civicrm_api4('Tag', 'create', [
+                    'values' => [
+                            'name' => $tag_name,
+                            'label' => $tag_label ?? $tag_name,
+                            'description' => $tag_description ?? '',
+                            'used_for' => [$used_for],
+                    ],
+                    'checkPermissions' => TRUE,
+            ]);
+            return $new_tag->first()['id'];
+        } else {
+            return $tag_search->first()['id'];
         }
-
-        // @todo: implement
     }
 
     /**
-     * Update the given tag for the given contact group
+     * Delete a given tag
      *
      * @param string $tag_name
      *   internal name of the tag
@@ -79,6 +111,6 @@ trait CRM_Committees_Tools_ContactTagTrait
      */
     public function deleteTagIfExists(string $tag_name)
     {
-        // @todo: implement
+        throw new \Civi\API\Exception\NotImplementedException('ContactTagTrait.deleteTagIfExists is not yet implemented');
     }
 }
