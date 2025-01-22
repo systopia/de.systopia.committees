@@ -75,7 +75,7 @@ trait CRM_Committees_Tools_ContactTagTrait
                 ->addWhere('tag_id', '=', $tag_id)
                 ->execute();
         foreach ($tagged_contacts as $tagged_contact) {
-            $currently_tagged_contact_ids[] = $tagged_contact->entity_id;
+            $currently_tagged_contact_ids[] = $tagged_contact['entity_id'];
         }
 
         // and then calculate the difference between the should-be vs. the current)
@@ -131,7 +131,7 @@ trait CRM_Committees_Tools_ContactTagTrait
         // look up if it exists and return tag ID
         $tag_search = \Civi\Api4\Tag::get(false)
                 ->addSelect('id')
-                ->addWhere('name', '=', 'Verwaltungsdirektor')
+                ->addWhere('name', '=', $tag_name)
                 ->setLimit(1)
                 ->execute();
 
