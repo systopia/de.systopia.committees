@@ -151,10 +151,11 @@ trait CRM_Committees_Tools_ContactTagTrait
 
         if (empty($tag_search['id'])) {
             // tag does not exist yet => create!
+            $tag_label = $tag_label ?? $tag_name;
             $new_tag = civicrm_api4('Tag', 'create', [
                     'values' => [
                             'name' => $tag_name,
-                            'label' => $tag_label ?? $tag_name,
+                            'label' => $tag_label,
                             'description' => $tag_description ?? '',
                             'used_for' => [$used_for],
                     ],
