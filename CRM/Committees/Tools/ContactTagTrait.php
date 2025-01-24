@@ -133,14 +133,16 @@ trait CRM_Committees_Tools_ContactTagTrait
                 ->addSelect('id')
                 ->addWhere('name', '=', $tag_name)
                 ->setLimit(1)
-                ->execute();
+                ->execute()
+                ->first();
 
         if (empty($tag_search)) {
             // tag does not exist yet => create!
+            $tag_label = $tag_label ?? $tag_name;
             $new_tag = civicrm_api4('Tag', 'create', [
                     'values' => [
                             'name' => $tag_name,
-                            'label' => $tag_label ?? $tag_name,
+                            'label' => $tag_label,
                             'description' => $tag_description ?? '',
                             'used_for' => [$used_for],
                     ],
@@ -148,7 +150,7 @@ trait CRM_Committees_Tools_ContactTagTrait
             ]);
             return $new_tag->first()['id'];
         } else {
-            return $tag_search->first()['id'];
+            return $tag_search['id'];
         }
     }
 
