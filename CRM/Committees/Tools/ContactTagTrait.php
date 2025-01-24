@@ -67,6 +67,16 @@ trait CRM_Committees_Tools_ContactTagTrait
      */
     public function synchronizeTag(int $tag_id, array $contact_ids, $tag_name = null) : array
     {
+        // step 0: look up tag name if necessary
+        if (empty($tag_name)) {
+            $tag_data = \Civi\Api4\Tag::get(false)
+                    ->addSelect('name')
+                    ->addWhere('id', '=', $tag_id)
+                    ->execute()
+                    ->first();
+            $tag_name = $tag_data['name'];
+        }
+
         // step 1: load current contact_ids with the tag
         $currently_tagged_contact_ids = [];
         $tagged_contacts = \Civi\Api4\EntityTag::get(false)
@@ -78,18 +88,11 @@ trait CRM_Committees_Tools_ContactTagTrait
             $currently_tagged_contact_ids[] = $tagged_contact['entity_id'];
         }
 
-        // look up tag name
-        if (empty($tag_name)) {
-            $tag_data = \Civi\Api4\Tag::get(false)
-                    ->addSelect('name')
-                    ->addWhere('id', '=', $tag_id)
-                    ->execute()
-                    ->first();
-            $tag_name = $tag_data['name'];
-        }
-
         // and then calculate the difference between the should-be vs. the current)
         $contact_diff = self::arrayDifference($contact_ids, $currently_tagged_contact_ids);
+        $insertion_count = count($contact_diff['insertions']);
+        $deletion_count = count($contact_diff['deletions']);
+        $this->log("Synchronising tag '{$tag_name}': {$insertion_count} additions, {$deletion_count} removals.");
 
         // step 2: remove the ones that are not in the new list
         if (!empty($contact_diff['deletions'])) {
@@ -146,19 +149,20 @@ trait CRM_Committees_Tools_ContactTagTrait
                 ->execute()
                 ->first();
 
-        if (empty($tag_search)) {
+        if (empty($tag_search['id'])) {
             // tag does not exist yet => create!
-            $tag_label = $tag_label ?? $tag_name;
             $new_tag = civicrm_api4('Tag', 'create', [
                     'values' => [
                             'name' => $tag_name,
-                            'label' => $tag_label,
+                            'label' => $tag_label ?? $tag_name,
                             'description' => $tag_description ?? '',
                             'used_for' => [$used_for],
                     ],
                     'checkPermissions' => false,
             ]);
-            return $new_tag->first()['id'];
+            $tag_id = $new_tag->first()['id'];
+            $this->log("Created new tag '{$tag_name}' with label '{$tag_label}', ID is [{$tag_id}].");
+            return $tag_id;
         } else {
             return $tag_search['id'];
         }
