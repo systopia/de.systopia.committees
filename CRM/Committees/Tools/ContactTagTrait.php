@@ -80,7 +80,7 @@ trait CRM_Committees_Tools_ContactTagTrait
 
         // look up tag name
         if (empty($tag_name)) {
-            $tag_data = \Civi\Api4\Tag::get(TRUE)
+            $tag_data = \Civi\Api4\Tag::get(false)
                     ->addSelect('name')
                     ->addWhere('id', '=', $tag_id)
                     ->execute()
