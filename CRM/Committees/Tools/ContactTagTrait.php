@@ -89,7 +89,7 @@ trait CRM_Committees_Tools_ContactTagTrait
         }
 
         // and then calculate the difference between the should-be vs. the current)
-        $contact_diff = self::arrayDifference($contact_ids, $currently_tagged_contact_ids);
+        $contact_diff = self::arrayDifference($currently_tagged_contact_ids, $contact_ids);
         $insertion_count = count($contact_diff['insertions']);
         $deletion_count = count($contact_diff['deletions']);
         $this->log("Synchronising tag '{$tag_name}': {$insertion_count} additions, {$deletion_count} removals.");
@@ -187,14 +187,14 @@ trait CRM_Committees_Tools_ContactTagTrait
     /**
      * Compare two arrays and return a list of items only in array1 (deletions) and only in array2 (insertions)
      *
-     * @param array $array1 The 'original' array, for comparison. Items that exist here only are considered to be deleted (deletions).
-     * @param array $array2 The 'new' array. Items that exist here only are considered to be new items (insertions).
+     * @param array $original_array The 'original' array, for comparison. Items that exist here only are considered to be deleted (deletions).
+     * @param array $desired_array The 'new' array. Items that exist here only are considered to be new items (insertions).
      * @param ?array $keysToCompare A list of array key names that should be used for comparison of arrays (ignore all other keys)
      * @return array[] array with keys 'insertions' and 'deletions'
      *
      * @note copied from https://gist.github.com/cjthompson/5485005
      */
-    public static function arrayDifference(array $array1, array $array2, array $keysToCompare = null) : array {
+    public static function arrayDifference(array $original_array, array $desired_array, array $keysToCompare = null) : array {
         $serialize = function (&$item, $idx, $keysToCompare) {
             if (is_array($item) && $keysToCompare) {
                 $a = array();
@@ -212,12 +212,12 @@ trait CRM_Committees_Tools_ContactTagTrait
             $item = unserialize($item);
         };
 
-        array_walk($array1, $serialize, $keysToCompare);
-        array_walk($array2, $serialize, $keysToCompare);
+        array_walk($original_array, $serialize, $keysToCompare);
+        array_walk($desired_array, $serialize, $keysToCompare);
 
         // Items that are in the original array but not the new one
-        $deletions = array_diff($array1, $array2);
-        $insertions = array_diff($array2, $array1);
+        $deletions = array_diff($original_array, $desired_array);
+        $insertions = array_diff($desired_array, $original_array);
 
         array_walk($insertions, $deserialize);
         array_walk($deletions, $deserialize);
