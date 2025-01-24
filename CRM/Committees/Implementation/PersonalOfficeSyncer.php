@@ -319,7 +319,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 /** @var CRM_Committees_Model_Person $obsolete_person */
                 $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                 if ($contact_id) {
-                    $this->tagContact($contact_id, $former_po_tag_id);
+                    $this->tagContact($contact_id, $former_po_tag_id, 'ehemaliger Pfarrer*in');
 //                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
 //                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
                 } else {
