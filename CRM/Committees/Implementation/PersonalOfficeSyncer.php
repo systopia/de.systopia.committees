@@ -158,11 +158,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
 //        // todo: enable for local testing
-//        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
-//        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
-//        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
-//        CRM_Committees_CustomData::flushCashes();
+        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
+        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
+        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
+        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
+        CRM_Committees_CustomData::flushCashes();
 
         if (!$this->customFieldExists(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD)) {
             $field_key = CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD;
@@ -239,11 +239,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
         $import_tag_id = $this->getOrCreateTagId($import_tag_name);
         $this->log("Created import tag " . $import_tag_name);
+        $new_contact_ids_in_file = [];
+        $known_contact_ids_in_file = [];
 
         // make sure the PO tags are there
         $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
         $former_po_tag_id = $this->getOrCreateTagId('po_former', 'ehemaliger Pfarrer*in');
-        $current_po_contact_ids = [];
+
 
         // join addresses, emails
         $model->joinAddressesToPersons();
@@ -262,11 +264,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // convert job title
             $job_title = $person_data['job_title_key'] ?? null;
-            $person_data[self::CONTACT_JOB_TITLE_KEY_FIELD] =
-                    $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
+//            $person_data[self::CONTACT_JOB_TITLE_KEY_FIELD] =
+//                    $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
             try {
                 CRM_Committees_CustomData::resolveCustomFields($person_data);
-//                unset($person_data['job_title_key'], $person_data['tag_id']);
+                unset($person_data['job_title_key'], $person_data['tag_id']);
                 $result = $this->callApi3('Contact', 'create', $person_data);
                 $this->setIDTContactID(
                         $new_person->getID(),
@@ -276,7 +278,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 );
                 $new_person->setAttribute('contact_id', $result['id']);
                 $new_person->setAttribute('is_new', true);
-                $current_po_contact_ids[] = $result['id'];
+                $new_contact_ids_in_file[] = $result['id'];
 
                 // add to the present model
                 $present_model->addPerson($new_person->getData());
@@ -302,7 +304,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         foreach ($changed_persons as $changed_person) {
             /** @var CRM_Committees_Model_Person $changed_person */
             $contact_id = $changed_person->getAttribute('contact_id');
-            $current_po_contact_ids[] = $contact_id;
+            $known_contact_ids_in_file[] = $contact_id;
             $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
             $differing_values = $changed_person->getAttribute('differing_values');
             foreach ($differing_attributes as $differing_attribute) {
@@ -330,10 +332,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // sync the tags
         // this is a new tag, so this will just newly tag all contacts in that list
-        $this->synchronizeTag($import_tag_id, $current_po_contact_ids);
+        $all_contacts_in_file = $new_contact_ids_in_file + $known_contact_ids_in_file;
+        $this->synchronizeTag($import_tag_id, $all_contacts_in_file);
 
-        // this will tag new PO personal, and also remove the tag ones from obsolete ones
-        $this->synchronizeTag($po_tag_id, $current_po_contact_ids);
+        // this will tag active PO personal, i.e. tag the new ones and changed ones, also remove the tag from obsolete ones
+        $this->synchronizeTag($po_tag_id, $all_contacts_in_file);
 
         /**********************************************
          **           SYNC CONTACT EMAILS            **
@@ -426,26 +429,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->extractCurrentMemberships($model, $present_model);
         $this->log(count($present_model->getAllMemberships()) . " existing employments identified in CiviCRM.");
         $this->log(count($model->getAllMemberships()) . " employments provided by input data.");
-
-//        // debugging data
-//        $counter = 1;
-//        $this->log("Showing some requested memberships for debugging...");
-//        /** @var CRM_Committees_Model_Membership $membership */
-//        foreach ($model->getAllMemberships() as $membership) {
-//            $person = $membership->getPerson();
-//            $organisation = $membership->getCommittee();
-//            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
-//            if ($counter++ > 20) break;
-//        }
-//        $counter = 1;
-//        $this->log("Showing some identified memberships currently in CiviCRM...");
-//        /** @var CRM_Committees_Model_Membership $membership */
-//        foreach ($present_model->getAllMemberships() as $membership) {
-//            $person = $membership->getPerson();
-//            $organisation = $membership->getCommittee();
-//            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
-//            if ($counter++ > 20) break;
-//        }
 
         // run diff
         $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents', 'employee_contact_id', 'employer_contact_id']; // todo: fine-tune
@@ -656,7 +639,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // map job_title_key field
             if (isset($data['job_title_key']) && isset(self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']])) {
-                $data[self::CONTACT_JOB_TITLE_KEY_FIELD] = self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']];
+                // todo: re-enable: $data[self::CONTACT_JOB_TITLE_KEY_FIELD] = self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']];
             }
             unset($data['job_title_key']);
 
