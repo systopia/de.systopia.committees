@@ -40,7 +40,7 @@ trait CRM_Committees_Tools_ContactTagTrait
                     ->addValue('entity_id', $contact_id)
                     ->execute();
             if ($tag_name) {
-                $this->log("Tagged contact [{$contact_id}] with tag '{$tag_name}.");
+                $this->log("Tagged contact [{$contact_id}] with tag '{$tag_name}' [{$tag_id}].");
             } else {
                 $this->log("Tagged contact [{$contact_id}] with tag [{$tag_id}].");
             }
@@ -65,7 +65,7 @@ trait CRM_Committees_Tools_ContactTagTrait
      *   'contacts_removed' - list of contact IDs that have been newly removed from the tag
      *
      */
-    public function synchronizeTag(int $tag_id, array $contact_ids) : array
+    public function synchronizeTag(int $tag_id, array $contact_ids, $tag_name = null) : array
     {
         // step 1: load current contact_ids with the tag
         $currently_tagged_contact_ids = [];
@@ -78,12 +78,22 @@ trait CRM_Committees_Tools_ContactTagTrait
             $currently_tagged_contact_ids[] = $tagged_contact['entity_id'];
         }
 
+        // look up tag name
+        if (empty($tag_name)) {
+            $tag_data = \Civi\Api4\Tag::get(TRUE)
+                    ->addSelect('name')
+                    ->addWhere('id', '=', $tag_id)
+                    ->execute()
+                    ->first();
+            $tag_name = $tag_data['name'];
+        }
+
         // and then calculate the difference between the should-be vs. the current)
         $contact_diff = self::arrayDifference($contact_ids, $currently_tagged_contact_ids);
 
         // step 2: remove the ones that are not in the new list
         if (!empty($contact_diff['deletions'])) {
-            $this->log("Removing tag [{$tag_id}] from the following contact IDs: " . implode(',', $contact_diff['deletions']));
+            $this->log("Removing tag '{$tag_name}' [{$tag_id}] from the following contact IDs: " . implode(',', $contact_diff['deletions']));
             \Civi\Api4\EntityTag::delete(false)
                     ->addWhere('tag_id', '=', $tag_id)
                     ->addWhere('entity_table', '=', 'civicrm_contact')
@@ -93,7 +103,7 @@ trait CRM_Committees_Tools_ContactTagTrait
 
         // step 3: add the ones that are not in the current list
         if (!empty($contact_diff['insertions'])) {
-            $this->log("Adding tag [{$tag_id}] to the following contact IDs: " . implode(',', $contact_diff['insertions']));
+            $this->log("Adding tag '{$tag_name}' [{$tag_id}] to the following contact IDs: " . implode(',', $contact_diff['insertions']));
             foreach ($contact_diff['insertions'] as $contact_id) {
                 \Civi\Api4\EntityTag::create(false)
                         ->addValue('entity_table', 'civicrm_contact')
