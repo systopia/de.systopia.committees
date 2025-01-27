@@ -37,6 +37,8 @@ trait CRM_Committees_Tools_IdTrackerTrait
      *
      * @param string $prefix
      *   ID prefix
+     *
+     * @return
      */
     public function getIDTContactID($internal_id, $id_type, $prefix = '')
     {
