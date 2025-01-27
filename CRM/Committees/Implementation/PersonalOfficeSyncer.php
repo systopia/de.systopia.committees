@@ -243,7 +243,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $known_contact_ids_in_file = [];
 
         // make sure the PO tags are there
-        $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
         $former_po_tag_id = $this->getOrCreateTagId('po_former', 'ehemaliger Pfarrer*in');
 
 
@@ -336,9 +335,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // this is a new tag, so this will just newly tag all contacts in that list
         $all_contacts_in_file = array_merge($new_contact_ids_in_file, $known_contact_ids_in_file);
         $this->synchronizeTag($import_tag_id, $all_contacts_in_file);
-
-        // this will tag active PO personal, i.e. tag the new ones and changed ones, also remove the tag from obsolete ones
-        $this->synchronizeTag($po_tag_id, $all_contacts_in_file);
 
         /**********************************************
          **           SYNC CONTACT EMAILS            **
@@ -498,6 +494,18 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
+
+        // tag all contacts in the model as current PO
+        $current_po_contact_ids = [];
+        foreach ($model->getAllPersons() as $person) {
+            $current_po_contact_ids[] = (int) $person->getAttribute('contact_id');
+        }
+
+        // finally, this will tag active PO personal, i.e. tag the new ones and changed ones, also remove the tag from obsolete ones
+        $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
+        $this->synchronizeTag($po_tag_id, $current_po_contact_ids);
+
+
 
         // THAT'S IT, WE'RE DONE
         if ($transaction) {
