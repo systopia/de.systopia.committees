@@ -495,16 +495,19 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
 
-        // tag all contacts in the model as current PO
+
+        // tag all contacts in the model that have a contact_id should be the current POs
+        $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
         $current_po_contact_ids = [];
         foreach ($model->getAllPersons() as $person) {
-            $current_po_contact_ids[] = (int) $person->getAttribute('contact_id');
+            $current_po_contact_id = (int) $person->getAttribute('contact_id');
+            if ($current_po_contact_id) {
+                $current_po_contact_ids[$current_po_contact_id] = true;
+            }
         }
 
         // finally, this will tag active PO personal, i.e. tag the new ones and changed ones, also remove the tag from obsolete ones
-        $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
-        $this->synchronizeTag($po_tag_id, $current_po_contact_ids);
-
+        $this->synchronizeTag($po_tag_id, array_keys($current_po_contact_ids));
 
 
         // THAT'S IT, WE'RE DONE
