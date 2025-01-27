@@ -158,11 +158,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
 //        // todo: enable for local testing
-        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
-        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
-        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
-        CRM_Committees_CustomData::flushCashes();
+//        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
+//        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
+//        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
+//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
+//        CRM_Committees_CustomData::flushCashes();
 
         if (!$this->customFieldExists(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD)) {
             $field_key = CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD;
@@ -255,6 +255,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->extractCurrentContacts($model, $present_model, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
         [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'gender_id', 'prefix_id', 'suffix_id', 'job_title_key', 'country_id']);
 
+        $this->log("Processing " . count($new_persons) . " new persons.");
         foreach ($new_persons as $new_person) {
             /** @var CRM_Committees_Model_Person $new_person */
             $person_data                 = $new_person->getDataWithout(['id']);
@@ -264,8 +265,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // convert job title
             $job_title = $person_data['job_title_key'] ?? null;
-//            $person_data[self::CONTACT_JOB_TITLE_KEY_FIELD] =
-//                    $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
+            $person_data[self::CONTACT_JOB_TITLE_KEY_FIELD] =
+                    $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
             try {
                 CRM_Committees_CustomData::resolveCustomFields($person_data);
                 unset($person_data['job_title_key'], $person_data['tag_id']);
@@ -301,6 +302,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
 
         // apply changes to existing contacts
+        $this->log("Processing " . count($changed_persons) . " updated persons.");
         foreach ($changed_persons as $changed_person) {
             /** @var CRM_Committees_Model_Person $changed_person */
             $contact_id = $changed_person->getAttribute('contact_id');
@@ -322,8 +324,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
                 if ($contact_id) {
                     $this->tagContact($contact_id, $former_po_tag_id, 'ehemaliger Pfarrer*in');
-//                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
-//                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
+                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
+                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
                 } else {
                     $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
                 }
@@ -332,7 +334,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // sync the tags
         // this is a new tag, so this will just newly tag all contacts in that list
-        $all_contacts_in_file = $new_contact_ids_in_file + $known_contact_ids_in_file;
+        $all_contacts_in_file = array_merge($new_contact_ids_in_file, $known_contact_ids_in_file);
         $this->synchronizeTag($import_tag_id, $all_contacts_in_file);
 
         // this will tag active PO personal, i.e. tag the new ones and changed ones, also remove the tag from obsolete ones
