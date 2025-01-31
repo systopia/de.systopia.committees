@@ -27,7 +27,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     use CRM_Committees_Tools_ModelExtractionTrait;
     use CRM_Committees_Tools_ContactTagTrait;
 
-    const RUN_LOCALLY = true; // todo: change
+    /** @var boolean enable this if you want local testing  */
+    const RUN_LOCALLY = false;
+
     const CONTACT_TRACKER_TYPE = 'personal_office';
     const CONTACT_TRACKER_PREFIX = 'PO-';
     const CONTACT_CONTACT_TYPE_NAME = 'Pfarrer_in';
@@ -96,7 +98,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "name" => "gmv_data",
                     "title" => "EKIR Strukturdaten",
                     "extends" => "Organization",
-                    // todo: put back: "extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit],
+                    "extends_entity_column_value" => (self::RUN_LOCALLY ? [] : ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit"]),
                     "style" => "Tab",
                     "weight" => "12",
                     "is_active" => "1",
@@ -135,9 +137,11 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $db_schema_changed = true;
         }
 
-        // todo: create 'Kirchenkreis' / 'Kirchengemeinde'
-        $this->createContactTypeIfNotExists(self::XCM_DIVISION_CONTACT_TYPE, self::XCM_DIVISION_CONTACT_TYPE, 'Organization');
-        $this->createContactTypeIfNotExists(self::XCM_PARISH_CONTACT_TYPE, self::XCM_PARISH_CONTACT_TYPE, 'Organization');
+        // create 'Kirchenkreis' / 'Kirchengemeinde'
+        if (self::RUN_LOCALLY) {
+            $this->createContactTypeIfNotExists(self::XCM_DIVISION_CONTACT_TYPE, self::XCM_DIVISION_CONTACT_TYPE, 'Organization');
+            $this->createContactTypeIfNotExists(self::XCM_PARISH_CONTACT_TYPE, self::XCM_PARISH_CONTACT_TYPE, 'Organization');
+        }
 
         if ($db_schema_changed && !self::RUN_LOCALLY) {
             throw new Exception("New custom fields created, please run the import process again.");
@@ -164,9 +168,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
-//        // todo: enable for local testing
-        if (!self::RUN_LOCALLY) {
-            $this->log("WARNING! CustomData synchronisation still active!", 'warning');
+        if (self::RUN_LOCALLY) {
+            $this->log("WARNING! CustomData synchronisation active!", 'warning');
             $customData = new CRM_Committees_CustomData(E::LONG_NAME);
             $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
             $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
@@ -641,7 +644,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // map job_title_key field
             if (isset($data['job_title_key']) && isset(self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']])) {
-                // todo: re-enable: $data[self::CONTACT_JOB_TITLE_KEY_FIELD] = self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']];
+                // @note disable for local testing
+                if (!self::RUN_LOCALLY) {
+                    $data[self::CONTACT_JOB_TITLE_KEY_FIELD] = self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']];
+                }
             }
             unset($data['job_title_key']);
 
@@ -735,8 +741,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
             return 'Kirchengemeinde';
         } else {
-            // @todo: return 'Organisationseinheit';
-            return '';
+            // @note disable for local testing, return ''
+            return self::RUN_LOCALLY ? '' : 'Organisationseinheit';
         }
     }
 }
