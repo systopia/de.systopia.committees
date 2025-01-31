@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA Committee Framework                           |
-| Copyright (C) 2021 SYSTOPIA                            |
+| Copyright (C) 2021-2025 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
@@ -18,7 +18,7 @@ use CRM_Committees_ExtensionUtil as E;
 /**
  * Syncer for PersonalOffice (PO) XLS Export
  *
- * @todo migrate to separate extension or leave as example?
+ * @note This is very specific use case, but left in here as an example.
  */
 class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_Plugin_Syncer
 {
@@ -27,11 +27,14 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     use CRM_Committees_Tools_ModelExtractionTrait;
     use CRM_Committees_Tools_ContactTagTrait;
 
+    const RUN_LOCALLY = true; // todo: change
     const CONTACT_TRACKER_TYPE = 'personal_office';
     const CONTACT_TRACKER_PREFIX = 'PO-';
     const CONTACT_CONTACT_TYPE_NAME = 'Pfarrer_in';
     const CONTACT_CONTACT_TYPE_LABEL = 'Pfarrer*in';
     const XCM_PERSON_PROFILE = 'personal_office';
+    const XCM_DIVISION_CONTACT_TYPE = 'Kirchenkreis';
+    const XCM_PARISH_CONTACT_TYPE = 'Kirchengemeinde';
 
     /** @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
     const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
@@ -67,7 +70,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->checkIdTrackerRequirements($this);
 
         // we need the extended contact matcher (XCM)
-        //$this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
+        $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
 
         // check if the employer relationship is there
         try {
@@ -93,7 +96,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "name" => "gmv_data",
                     "title" => "EKIR Strukturdaten",
                     "extends" => "Organization",
-                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit],
+                    // todo: put back: "extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit],
                     "style" => "Tab",
                     "weight" => "12",
                     "is_active" => "1",
@@ -132,9 +135,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $db_schema_changed = true;
         }
 
-//        if ($db_schema_changed) {
-//            throw new Exception("New custom fields created, please run the import process again.");
-//        }
+        // todo: create 'Kirchenkreis' / 'Kirchengemeinde'
+        $this->createContactTypeIfNotExists(self::XCM_DIVISION_CONTACT_TYPE, self::XCM_DIVISION_CONTACT_TYPE, 'Organization');
+        $this->createContactTypeIfNotExists(self::XCM_PARISH_CONTACT_TYPE, self::XCM_PARISH_CONTACT_TYPE, 'Organization');
+
+        if ($db_schema_changed && !self::RUN_LOCALLY) {
+            throw new Exception("New custom fields created, please run the import process again.");
+        }
         return parent::checkRequirements();
     }
 
@@ -158,11 +165,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
 //        // todo: enable for local testing
-//        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
-//        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
-//        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
-//        CRM_Committees_CustomData::flushCashes();
+        if (!self::RUN_LOCALLY) {
+            $this->log("WARNING! CustomData synchronisation still active!", 'warning');
+            $customData = new CRM_Committees_CustomData(E::LONG_NAME);
+            $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
+            $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
+            CRM_Committees_CustomData::flushCashes();
+        }
 
         if (!$this->customFieldExists(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD)) {
             $field_key = CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD;
@@ -322,7 +331,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $all_active_po_contact_ids = [];
         foreach ($model->getAllPersons() as $active_person) {
             $po_id = $active_person->getID();
-            $po_contact_id = $this->getTrackerIDtoContactID($po_id);
+            $po_contact_id = $this->getTrackerIDtoContactID($po_id, self::CONTACT_TRACKER_PREFIX);
             if ($po_contact_id) $all_active_po_contact_ids[] = $po_contact_id;
         }
         $this->synchronizeTag($po_tag_id, $all_active_po_contact_ids);
@@ -714,7 +723,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     }
 
     /**
-     * Try to derive the contact sub type from a given 'externe org. nr'
+     * Try to derive the contact sub type from a given 'external org. nr'
      *
      * @param $org_nummer
      * @return string
@@ -726,8 +735,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
             return 'Kirchengemeinde';
         } else {
-//            return 'Organization';
-            return 'Organisationseinheit';
+            // @todo: return 'Organisationseinheit';
+            return '';
         }
     }
 }

@@ -128,6 +128,9 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
      *
      * @param string $icon_url
      *   contact type icon
+     *
+     * @return boolean
+     *   true
      */
     public function createContactTypeIfNotExists(string $name, string $label, string $parent, string $icon_url = '')
     {
@@ -145,7 +148,11 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
                 'image_URL' => $icon_url,
                 'parent_id' => $parent,
             ]);
+            return true;
+        } else {
+            return $name;
         }
+        return false;
     }
 
 
