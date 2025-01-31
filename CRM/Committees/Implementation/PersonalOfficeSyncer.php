@@ -331,7 +331,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $all_active_po_contact_ids = [];
         foreach ($model->getAllPersons() as $active_person) {
             $po_id = $active_person->getID();
-            $po_contact_id = $this->getTrackerIDtoContactID($po_id, self::CONTACT_TRACKER_PREFIX);
+            $po_contact_id = $this->getIDTContactID($po_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
             if ($po_contact_id) $all_active_po_contact_ids[] = $po_contact_id;
         }
         $this->synchronizeTag($po_tag_id, $all_active_po_contact_ids);
