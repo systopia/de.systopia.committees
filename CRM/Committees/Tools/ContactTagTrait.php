@@ -187,6 +187,8 @@ trait CRM_Committees_Tools_ContactTagTrait
     /**
      * Compare two arrays and return a list of items only in array1 (deletions) and only in array2 (insertions)
      *
+     * @note for comparison, all values will be cast to string
+     *
      * @param array $original_array The 'original' array, for comparison. Items that exist here only are considered to be deleted (deletions).
      * @param array $desired_array The 'new' array. Items that exist here only are considered to be new items (insertions).
      * @param ?array $keysToCompare A list of array key names that should be used for comparison of arrays (ignore all other keys)
@@ -195,6 +197,9 @@ trait CRM_Committees_Tools_ContactTagTrait
      * @note copied from https://gist.github.com/cjthompson/5485005
      */
     public static function arrayDifference(array $original_array, array $desired_array, array $keysToCompare = null) : array {
+        // addition: make sure this is all string
+        $original_array = array_map('strval', $original_array);
+        $desired_array = array_map('strval', $desired_array);
         $serialize = function (&$item, $idx, $keysToCompare) {
             if (is_array($item) && $keysToCompare) {
                 $a = array();
