@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | SYSTOPIA Committee Framework                           |
-| Copyright (C) 2021 SYSTOPIA                            |
+| Copyright (C) 2021-2025 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
@@ -18,19 +18,25 @@ use CRM_Committees_ExtensionUtil as E;
 /**
  * Syncer for PersonalOffice (PO) XLS Export
  *
- * @todo migrate to separate extension or leave as example?
+ * @note This is very specific use case, but left in here as an example.
  */
 class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_Plugin_Syncer
 {
     use CRM_Committees_Tools_IdTrackerTrait;
     use CRM_Committees_Tools_XcmTrait;
     use CRM_Committees_Tools_ModelExtractionTrait;
+    use CRM_Committees_Tools_ContactTagTrait;
+
+    /** @var boolean enable this if you want local testing  */
+    const RUN_LOCALLY = false;
 
     const CONTACT_TRACKER_TYPE = 'personal_office';
     const CONTACT_TRACKER_PREFIX = 'PO-';
     const CONTACT_CONTACT_TYPE_NAME = 'Pfarrer_in';
     const CONTACT_CONTACT_TYPE_LABEL = 'Pfarrer*in';
     const XCM_PERSON_PROFILE = 'personal_office';
+    const XCM_DIVISION_CONTACT_TYPE = 'Kirchenkreis';
+    const XCM_PARISH_CONTACT_TYPE = 'Kirchengemeinde';
 
     /** @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
     const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
@@ -66,7 +72,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->checkIdTrackerRequirements($this);
 
         // we need the extended contact matcher (XCM)
-        //$this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
+        $this->checkXCMRequirements($this, [self::XCM_PERSON_PROFILE]);
 
         // check if the employer relationship is there
         try {
@@ -92,7 +98,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     "name" => "gmv_data",
                     "title" => "EKIR Strukturdaten",
                     "extends" => "Organization",
-                    //"extends_entity_column_value" => ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit],
+                    "extends_entity_column_value" => (self::RUN_LOCALLY ? [] : ["Kirchenkreis", "Kirchengemeinde", "Pfarrstelle", "Organisationseinheit"]),
                     "style" => "Tab",
                     "weight" => "12",
                     "is_active" => "1",
@@ -131,9 +137,15 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
             $db_schema_changed = true;
         }
 
-//        if ($db_schema_changed) {
-//            throw new Exception("New custom fields created, please run the import process again.");
-//        }
+        // create 'Kirchenkreis' / 'Kirchengemeinde'
+        if (self::RUN_LOCALLY) {
+            $this->createContactTypeIfNotExists(self::XCM_DIVISION_CONTACT_TYPE, self::XCM_DIVISION_CONTACT_TYPE, 'Organization');
+            $this->createContactTypeIfNotExists(self::XCM_PARISH_CONTACT_TYPE, self::XCM_PARISH_CONTACT_TYPE, 'Organization');
+        }
+
+        if ($db_schema_changed && !self::RUN_LOCALLY) {
+            throw new Exception("New custom fields created, please run the import process again.");
+        }
         return parent::checkRequirements();
     }
 
@@ -156,13 +168,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         // make sure Pfarrer*in contact sub type exists
         $this->createContactTypeIfNotExists(self::CONTACT_CONTACT_TYPE_NAME, self::CONTACT_CONTACT_TYPE_LABEL, 'Individual');
 
-//        // todo: enable for local testing
-//        $this->log("WARNING! CustomData synchronisation still active!", 'warning');
-//        $customData = new CRM_Committees_CustomData(E::LONG_NAME);
-//        $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
-//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_pfarrer_innen.json'));
-//        $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
-//        CRM_Committees_CustomData::flushCashes();
+        if (self::RUN_LOCALLY) {
+            $this->log("WARNING! CustomData synchronisation active!", 'warning');
+            $customData = new CRM_Committees_CustomData(E::LONG_NAME);
+            $customData->syncOptionGroup(E::path('resources/PersonalOffice/option_group_pfarrer_innen.json'));
+            $customData->syncCustomGroup(E::path('resources/PersonalOffice/custom_group_gmv_data.json'));
+            CRM_Committees_CustomData::flushCashes();
+        }
 
         if (!$this->customFieldExists(CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD)) {
             $field_key = CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD;
@@ -236,6 +248,9 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **           SYNC BASE CONTACTS            **
          **********************************************/
         $this->log("Syncing " . count($model->getAllPersons()) . " data sets...");
+        $import_tag_name = 'PO-' . date('Y-m-d-H-i-s');
+        $import_tag_id = $this->getOrCreateTagId($import_tag_name);
+        $this->log("Created import tag " . $import_tag_name);
 
         // join addresses, emails
         $model->joinAddressesToPersons();
@@ -245,12 +260,13 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         $this->extractCurrentContacts($model, $present_model, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
         [$new_persons, $changed_persons, $obsolete_persons] = $present_model->diffPersons($model, ['contact_id', 'formal_title', 'prefix', 'street_address', 'house_number', 'postal_code', 'city', 'email', 'supplemental_address_1', 'gender_id', 'prefix_id', 'suffix_id', 'job_title_key', 'country_id']);
 
+        $this->log("Processing " . count($new_persons) . " new persons.");
         foreach ($new_persons as $new_person) {
             /** @var CRM_Committees_Model_Person $new_person */
             $person_data                 = $new_person->getDataWithout(['id']);
             $person_data['contact_type'] = 'Individual';
             $person_data['source']       = 'PO Import ' . date('Y-m-d');
-            $person_data['tag_id']       = 'Personal Office';
+            //$person_data['tag_id']       = 'Personal Office';
 
             // convert job title
             $job_title = $person_data['job_title_key'] ?? null;
@@ -258,6 +274,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     $this->getOrCreateOptionValue(['label' => $job_title], 'pfarrer_innen_job_title_key')['value'] ?? '';
             try {
                 CRM_Committees_CustomData::resolveCustomFields($person_data);
+                unset($person_data['job_title_key'], $person_data['tag_id']);
                 $result = $this->callApi3('Contact', 'create', $person_data);
                 $this->setIDTContactID(
                         $new_person->getID(),
@@ -282,6 +299,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
 
         // apply changes to existing contacts
+        $this->log("Processing " . count($changed_persons) . " updated persons.");
         foreach ($changed_persons as $changed_person) {
             /** @var CRM_Committees_Model_Person $changed_person */
             $contact_id = $changed_person->getAttribute('contact_id');
@@ -294,20 +312,35 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
         // note obsolete contacts
         if (!empty($obsolete_persons)) {
+            $former_po_tag_id = $this->getOrCreateTagId('po_former', 'ehemaliger Pfarrer*in');
             $obsolete_person_count = count($obsolete_persons);
             $this->log("There are {$obsolete_person_count} relevant persons in CiviCRM that are not listed in the new data set. However, those will *not* be deleted.");
 
-//            foreach ($obsolete_persons as $obsolete_person) {
-//                /** @var CRM_Committees_Model_Person $obsolete_person */
-//                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-//                if ($contact_id) {
-//                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
-//                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
-//                } else {
-//                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
-//                }
-//            }
+            foreach ($obsolete_persons as $obsolete_person) {
+                /** @var CRM_Committees_Model_Person $obsolete_person */
+                $contact_id = $this->getIDTContactID($obsolete_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+                if ($contact_id) {
+                    $this->tagContact($contact_id, $former_po_tag_id, 'ehemaliger Pfarrer*in');
+                    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $contact_id, 'return' => 'id,display_name']);
+                    $this->log("Not deleting obsolete contact [#{$contact['id']}]: " . $this->obfuscate($contact['display_name']));
+                } else {
+                    $this->log("Couldn't find person [{$obsolete_person->getID()}], so not deleting.");
+                }
+            }
         }
+
+        // finally tag all contacts in the list with the 'import' and the active_po tag
+        $po_tag_id = $this->getOrCreateTagId('po_aktuell', 'aktuelle Pfarrer*in');
+        $all_active_po_contact_ids = [];
+        foreach ($model->getAllPersons() as $active_person) {
+            $po_id = $active_person->getID();
+            $po_contact_id = $this->getIDTContactID($po_id, self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
+            if ($po_contact_id) $all_active_po_contact_ids[] = $po_contact_id;
+        }
+        $this->synchronizeTag($po_tag_id, $all_active_po_contact_ids);
+        $this->synchronizeTag($import_tag_id, $all_active_po_contact_ids);
+
+
 
         /**********************************************
          **           SYNC CONTACT EMAILS            **
@@ -396,31 +429,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
          **        SYNC COMMITTEE MEMBERSHIPS        **
          **           (read: 'employments')          **
          **********************************************/
-
         // extract current memberships
         $this->extractCurrentMemberships($model, $present_model);
         $this->log(count($present_model->getAllMemberships()) . " existing employments identified in CiviCRM.");
         $this->log(count($model->getAllMemberships()) . " employments provided by input data.");
-
-//        // debugging data
-//        $counter = 1;
-//        $this->log("Showing some requested memberships for debugging...");
-//        /** @var CRM_Committees_Model_Membership $membership */
-//        foreach ($model->getAllMemberships() as $membership) {
-//            $person = $membership->getPerson();
-//            $organisation = $membership->getCommittee();
-//            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
-//            if ($counter++ > 20) break;
-//        }
-//        $counter = 1;
-//        $this->log("Showing some identified memberships currently in CiviCRM...");
-//        /** @var CRM_Committees_Model_Membership $membership */
-//        foreach ($present_model->getAllMemberships() as $membership) {
-//            $person = $membership->getPerson();
-//            $organisation = $membership->getCommittee();
-//            $this->log("Example membership {$counter}: Person CiviCRM ID: {$person->getAttribute('contact_id')}, Organisation membership ID  {$organisation->getAttribute('contact_id')}");
-//            if ($counter++ > 20) break;
-//        }
 
         // run diff
         $ignore_attributes = ['relationship_id', 'relationship_type_id', 'start_date', 'committee_name', 'description', 'represents', 'employee_contact_id', 'employer_contact_id']; // todo: fine-tune
@@ -488,6 +500,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         }
         $new_count = count($new_memberships);
         $this->log("{$new_count} new committee memberships created.");
+
 
         // THAT'S IT, WE'RE DONE
         if ($transaction) {
@@ -631,7 +644,10 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
 
             // map job_title_key field
             if (isset($data['job_title_key']) && isset(self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']])) {
-                $data[self::CONTACT_JOB_TITLE_KEY_FIELD] = self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']];
+                // @note disable for local testing
+                if (!self::RUN_LOCALLY) {
+                    $data[self::CONTACT_JOB_TITLE_KEY_FIELD] = self::$CONTACT_JOB_TITLE_KEY_MAPPING[$data['job_title_key']];
+                }
             }
             unset($data['job_title_key']);
 
@@ -713,7 +729,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     }
 
     /**
-     * Try to derive the contact sub type from a given 'externe org. nr'
+     * Try to derive the contact sub type from a given 'external org. nr'
      *
      * @param $org_nummer
      * @return string
@@ -725,7 +741,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         } elseif (preg_match("/^[0-9]{8}$/", $org_nummer)) {
             return 'Kirchengemeinde';
         } else {
-            return 'Organisationseinheit';
+            // @note disable for local testing, return ''
+            return self::RUN_LOCALLY ? '' : 'Organisationseinheit';
         }
     }
 }

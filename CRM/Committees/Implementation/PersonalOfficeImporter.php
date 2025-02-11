@@ -217,7 +217,11 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         foreach ($col2field as $column_number => $field_name) {
             /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
             $cell = $sheet->getCellByColumnAndRow($column_number, $row_number, false);
-            $record[$field_name] = trim($cell->getValue());
+            $value = $cell->getValue();
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+            $record[$field_name] = $value;
         }
         return $record;
     }

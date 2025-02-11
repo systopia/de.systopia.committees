@@ -481,6 +481,8 @@ class CRM_Committees_Model_Model
      *      entities changed (with additional attribute 'differing_attributes'),
      *      entities missing (only in this model)
      *  ]
+     *
+     * @warning this does NOT contain *unchanged* persons
      */
     public function diffPersons(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
     {
