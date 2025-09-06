@@ -14,7 +14,7 @@
 +--------------------------------------------------------*/
 
 
-namespace Civi;
+namespace Civi\Committees;
 
 use Civi\Core\Event\GenericHookEvent as Event;
 

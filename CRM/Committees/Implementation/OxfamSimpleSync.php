@@ -119,7 +119,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // first: apply custom adjustments to the committees
         foreach ($model->getAllCommittees() as $committee) {
             if ($committee->getAttribute('type') == self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
-                $new_committee_name = $this->getFraktionName($committee->getAttribute('name'));
+                $new_committee_name = $this->getFraktionName($committee->getAttribute('name'), $model);
                 $committee->setAttribute('name', $new_committee_name);
             }
         }
@@ -246,7 +246,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_emails as $email) {
             /** @var CRM_Committees_Model_Email $email */
             $email_data = $email->getData();
-            $email_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $email_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT);
             $email_data['is_primary'] = 1;
             $person = $email->getContact($present_model);
             if ($person) {
@@ -295,7 +295,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         if ($obsolete_urls) {
             foreach ($obsolete_urls as $obsolete_url) {
                 $shortened_url_data = $this->obfuscate($obsolete_url->getAttribute('url'), 7, 5);
-                $this->log("Won't remove obsolete url '{$shortened_url_data}' from contact [{$obsolete_url->getAttribute('contact_id')}]");
+                $this->log("Won't remove obsolete url '{$shortened_url_data}' from contact [KUE-{$obsolete_url->getAttribute('contact_id')}]");
             }
         }
 
@@ -307,7 +307,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_phones as $phone) {
             /** @var CRM_Committees_Model_Phone $phone */
             $phone_data = $phone->getData();
-            $phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $phone_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT);
             $phone_data['is_primary'] = 1;
             $phone_data['phone_type_id'] = $this->getPhoneTypeId($phone_data);
             $person = $phone->getContact($present_model);
@@ -336,7 +336,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // first: apply custom adjustments to the addresses
         foreach ($model->getAllAddresses() as $address) {
             /** @var CRM_Committees_Model_Address $address */
-            if ($address->getAttribute('location_type') != CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+            if ($address->getAttribute('location_type') != CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT) {
                 $address->removeFromModel();
             }
         }
@@ -347,7 +347,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         foreach ($new_addresses as $address) {
             /** @var \CRM_Committees_Model_Address $address */
             $address_data = $address->getData();
-            $address_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG);
+            $address_data['location_type_id'] = $this->getAddressLocationType(CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT);
             $address_data['is_primary'] = 1;
             $address_data['master_id'] = $this->getParliamentAddressID($model);
             $person = $address->getContact($present_model);
@@ -469,12 +469,13 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     break;
             }
             $committee_id = $this->getIDTContactID($new_membership->getCommittee()->getID(), self::ID_TRACKER_TYPE, $tracker_prefix);
+
             $this->callApi3('Relationship', 'create', [
                 'contact_id_a' => $person_civicrm_id,
                 'contact_id_b' => $committee_id,
                 'relationship_type_id' => $new_membership->getAttribute('relationship_type_id'),
                 'is_active' => 1,
-                'description' => substr($new_membership->getAttribute('description'), 0, 255),
+                'description' => substr($new_membership->getAttribute('description') ?? '', 0, 255),
                 $political_functions_field => $political_functions,
             ]);
             $this->log("Added new committee membership [{$person_civicrm_id}]<->[{$committee_id}].");
@@ -697,7 +698,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     protected function extractCurrentContacts($requested_model, $present_model)
     {
         // add existing contacts
-        $existing_contacts = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        $all_existing_kuerschner_contacts = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
+        $existing_contacts = $this->restrictExistingContactsToThisParliament($all_existing_kuerschner_contacts);
         $person_custom_field_mapping = $this->getPersonCustomFieldMapping($requested_model);
         if ($existing_contacts) {
             $contacts_found = $this->callApi3('Contact', 'get', [
@@ -979,7 +981,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             foreach ($model->getAllAddresses() as $address) {
                 /** @var \CRM_Committees_Model_Address $address */
                 $location_type = $address->getAttribute('location_type');
-                if ($location_type == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+                if ($location_type == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT) {
                     $potential_parliament_name = $address->getAttribute('organization_name');
                     if (!empty($potential_parliament_name)) {
                         $parliament_name = $potential_parliament_name;
@@ -1053,7 +1055,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 foreach ($model->getAllAddresses() as $address) {
                     /** @var CRM_Committees_Model_Address $address */
                     if ($address->getAttribute('location_type')
-                        == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG) {
+                        == CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT) {
                         // this should be the parliament's address
                         $parliament_address_data = [
                             'location_type_id' => 'Work',
@@ -1088,7 +1090,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     protected function getAddressLocationType($kuerschner_location_type)
     {
         switch ($kuerschner_location_type) {
-            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_BUNDESTAG:
+            case CRM_Committees_Implementation_KuerschnerCsvImporter::LOCATION_TYPE_PARLIAMENT:
                 return 'Work';
 
             default:
@@ -1163,6 +1165,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
      *
      * @return string
      *   the subtype name or null/empty string
+     *
+     * @note ONLY return subtypes, returning contact types (like 'Organization' will cause an error)
      */
     protected function getCommitteeSubType()
     {
@@ -1298,6 +1302,18 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                 ""
             );
 
+            $speaker_member_relationship = $this->createRelationshipTypeIfNotExists(
+                    'is_speaker_of',
+                    'has_speaker',
+                    "Sprecher*in von",
+                    "Sprecher*in ist",
+                    'Individual',
+                    'Organization',
+                    null,
+                    null,
+                    ""
+            );
+
             // compile role mapping:
             $role2relationship_type['stellv. Mitglied'] = $deputy_member_relationship['id'];
             $role2relationship_type['Mitglied'] = $member_relationship['id'];
@@ -1309,6 +1325,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
             $role2relationship_type['stellv. Vorsitzender'] = $deputy_chairperson_relationship['id'];
             $role2relationship_type['stellv. Vorsitzende'] = $deputy_chairperson_relationship['id'];
             $role2relationship_type['beratendes Mitglied'] = $consulting_member_relationship['id'];
+            $role2relationship_type['beratendes Mitglied'] = $consulting_member_relationship['id'];
+            $role2relationship_type['Sprecherin'] = $speaker_member_relationship['id'];
+            $role2relationship_type['Sprecher'] = $speaker_member_relationship['id'];
         }
         return $role2relationship_type;
     }
@@ -1316,13 +1335,15 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
     /**
      * Generate a name for the Fraktion based on the party
      *
-     * @param $party_name
+     * @param string $party_name
+     *    name of the party
      *
      * @return string
      */
-    public function getFraktionName($party_name)
+    public function getFraktionName($party_name, $model)
     {
-        return E::ts("Fraktion %1 im Deutschen Bundestag", [1 => $party_name]);
+        $parliament_name = $this->getParliamentName($model);
+        return E::ts("Fraktion %1 im %2", [1 => $party_name, 2 => $parliament_name]);
     }
 
     /**
@@ -1486,5 +1507,41 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         }
 
         return trim($function);
+    }
+
+    /**
+     * Takes a list of contacts (tracker ID => contact ID) and removes the ones
+     *  that do not belong to the current parliament
+     *
+     * @return array
+     */
+    public function restrictExistingContactsToThisParliament($existing_contacts)
+    {
+        $existing_contact_count = count($existing_contacts);
+        if (empty($existing_contacts)) return $existing_contacts;
+
+        $this->log("Found {$existing_contact_count} contacts with KUE prefix. Will restrict to members of the current parliament...");
+        $parliament_id = $this->getParliamentContactID();
+        $role2relationship_type = $this->getRoleToRelationshipTypeIdMapping();
+        $relationship_type_id = $role2relationship_type['Mitglied'];
+
+        // remove all of those contacts that are linked to the current parliament
+        $remaining_contacts = civicrm_api3('Relationship', 'get', [
+                'option.limit' => 0,
+                'relationship_type_id' => $relationship_type_id,
+                'contact_id_a' => ['IN' => array_keys($existing_contacts)],
+                'contact_id_b' => $parliament_id,
+                'return' => 'contact_id_a'
+        ]);
+
+        // copy all of them to a new array
+        $restricted_contacts = [];
+        foreach ($remaining_contacts['values'] as $remaining_contact) {
+            $contact_id = $remaining_contact['contact_id_a'];
+            $restricted_contacts[$contact_id] = $existing_contacts[$contact_id];
+        }
+
+        $this->log("Contacts restricted to this parliament are: " . count($restricted_contacts));
+        return $restricted_contacts;
     }
 }

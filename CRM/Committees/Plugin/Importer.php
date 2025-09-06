@@ -13,8 +13,8 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
+use Civi\Committees\CommitteeModuleSurvey;
 use CRM_Committees_ExtensionUtil as E;
-use Civi\CommitteeModuleSurvey;
 
 /**
  * Base for all importers. Importers are able to
@@ -59,9 +59,9 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
         $importer_survey->registerImporterModule(
             'de.oxfam.kuerschner',
             'CRM_Committees_Implementation_KuerschnerCsvImporter',
-            E::ts("Kürschner Liste Bundestag (CSV)"),
+            E::ts("Kürschner Liste Parlament (CSV)"),
             null, // todo
-            E::ts("Importiert Kürschner Liste Bundestag (CSV)")
+            E::ts("Importiert Kürschner Liste Parlament (CSV)")
         );
         $importer_survey->registerImporterModule(
             'de.ekir.po.importer',
@@ -136,12 +136,20 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
      * @return array
      *   list of datasets (array), one per row
      */
-    protected function readCSV($input_stream, $encoding = 'UTF-8', $separator = ';', $column_mapping = null, $cap = null, $headers = null)
+    protected function readCSV($input_stream, $encoding = 'UTF-8', $separator = ';', $column_mapping = null, $cap = null, $headers = null, $header_case = null)
     {
         // read headers
         if (!isset($headers)) {
             $headers = fgetcsv($input_stream, 0, $separator);
         }
+
+        // apply case transformation, if requested
+        if ($header_case === CASE_LOWER) {
+            $headers = array_map('strtolower', $headers);
+        } elseif ($header_case === CASE_UPPER) {
+            $headers = array_map('strtoupper', $headers);
+        }
+
         $indices = [];
         foreach ($headers as $index => $header) {
             $indices[$index] = $header;
@@ -225,5 +233,16 @@ abstract class CRM_Committees_Plugin_Importer extends CRM_Committees_Plugin_Base
             }
         }
         return null;
+    }
+
+    /**
+     * Make sure all keys are upper case in this nested data set
+     *
+     * @param array $data_set
+     * @return void
+     */
+    public function makeKeysUpperCase(&$data_set)
+    {
+        $data_set = array_change_key_case($data_set, CASE_UPPER);
     }
 }
