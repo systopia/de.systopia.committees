@@ -16,7 +16,7 @@
 use CRM_Committees_ExtensionUtil as E;
 
 /**
- * Syncer for KuerschnerCsvImporter parliamentary committe model
+ * Syncer for KuerschnerCsvImporter parliamentary committee model
  */
 class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugin_Syncer
 {
