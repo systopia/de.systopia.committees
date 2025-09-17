@@ -376,9 +376,9 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         // import "FRAKTIONEN"
         $parliamentary_groups_list = [];
         foreach ($data_set as $record) {
-            $parliamentary_group_value = trim($record['Fraktion']);
+            $parliamentary_group_value = trim($record['Fraktion'] ?? '');
             if (!empty($parliamentary_group_value)) {
-                $parliamentary_group_name = $record['Fraktion'];
+                $parliamentary_group_name = $parliamentary_group_value;
             } else {
                 $parliamentary_group_name = E::ts('no parliamentary group');
             }
