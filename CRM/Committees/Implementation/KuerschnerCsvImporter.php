@@ -462,7 +462,10 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      */
     protected function unpackCommittees($packed_committee_string)
     {
-        $committee2function = [];
+        // extracting the functions
+        $committee_and_function = [];
+
+        // split/explode the string
         if (str_contains($packed_committee_string, '),')) {
             // this is the old notation
             $entries = explode('),', $packed_committee_string);
@@ -470,16 +473,26 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             // this is the new notation
             $entries = explode('; ', $packed_committee_string);
         }
+
+
+        // parse the content of the committee participation
         foreach ($entries as $entry) {
-            //if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) \(([a-zA-ZäöüÄÖÜß \.]+)$/', $entry, $match)) {
-            //if (preg_match('/^([^\(]+) \(([^\(]+)$/', $entry, $match)) {
-            //    $committee2function[] = [trim($match[1]), trim($match[2], " \t\n\r\0\x0B)")];
-            //} else
-            if (preg_match('/^([^\(]+) \[([^\(]+)$/', $entry, $match)) {
-                $committee2function[] = [trim($match[1]), trim($match[2], " ]\t\n\r\0\x0B)")];
+            $entry = trim($entry);
+
+            // try to find the right parser for this entry:
+            if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) +\(([a-zA-ZäöüÄÖÜß \.]+)\) \[([a-zA-ZäöüÄÖÜß \.]+)\]$/', $entry, $match)) {
+                // this is the latest notation:
+                $committee_and_function[] = [
+                        trim($match[1] . '('. trim($match[2]) . ')'), // committee name
+                        trim($match[3])                                     // committee function (e.g. member)
+                ];
+
+            } elseif (preg_match('/^([^\(]+) \[([^\(]+)$/', $entry, $match)) {
+                // this is a previous notation
+                $committee_and_function[] = [trim($match[1]), trim($match[2], " ]\t\n\r\0\x0B)")];
             }
         }
-        return $committee2function;
+        return $committee_and_function;
     }
 
     /**
