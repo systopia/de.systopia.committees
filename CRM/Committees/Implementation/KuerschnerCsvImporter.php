@@ -483,8 +483,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) +\(([a-zA-ZäöüÄÖÜß \.]+)\) \[([a-zA-ZäöüÄÖÜß \.]+)\]$/', $entry, $match)) {
                 // this is the latest notation:
                 $committee_and_function[] = [
-                        trim($match[1] . '('. trim($match[2]) . ')'), // committee name
-                        trim($match[3])                                     // committee function (e.g. member)
+                        trim($match[1] . ' ('. trim($match[2]) . ')'), // committee name
+                        trim($match[3])                                      // committee function (e.g. member)
                 ];
 
             } elseif (preg_match('/^([^\(]+) \[([^\(]+)$/', $entry, $match)) {
