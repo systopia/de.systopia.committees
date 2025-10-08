@@ -51,7 +51,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
             TRUE
         );
 
-        $max_size = CRM_Utils_Number::formatUnitSize('8M', TRUE);
+        $max_size = ini_parse_quantity('8M');
         $this->setMaxFileSize($max_size);
 
         // default values:
