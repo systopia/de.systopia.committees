@@ -704,7 +704,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ];
                 CRM_Committees_CustomData::resolveCustomFields($ekir_field_query);
                 $employer_contact = civicrm_api3('Contact', 'getsingle', $ekir_field_query);
-            } catch (CiviCRM_API3_Exception $ex) {
+            } catch (CRM_Core_Exception $ex) {
                 $this->log("EKIR entity [{$employer_ekir_id}] is listed as employer, but wasn't not found in the system.");
                 continue;
             }
@@ -719,7 +719,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                         //                    'description' => $employment->getAttribute('title'),
                 ]);
                 $employments_imported++;
-            } catch (CiviCRM_API3_Exception $ex) {
+            } catch (CRM_Core_Exception $ex) {
                 $this->log("Couldn't create EKIR employment of [{$employee_id}] with [{$employer_contact['id']}]: " . $ex->getMessage());
                 continue;
             }

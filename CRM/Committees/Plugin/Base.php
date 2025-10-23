@@ -435,7 +435,7 @@ abstract class CRM_Committees_Plugin_Base
                 }
             }
             return civicrm_api3($entity, $action, $params);
-        } catch (CiviCRM_API3_Exception $ex) {
+        } catch (CRM_Core_Exception $ex) {
             $this->logException($ex);
             return civicrm_api3_create_error("Error: " . $ex->getMessage());
         }
