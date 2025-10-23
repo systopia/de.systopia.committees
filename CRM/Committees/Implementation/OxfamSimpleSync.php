@@ -990,7 +990,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     }
                 }
             }
-            throw new CiviCRM_API3_Exception("Couldn't identify parliament name!");
+            throw new CRM_Core_Exception("Couldn't identify parliament name!");
         }
         return $parliament_name;
     }

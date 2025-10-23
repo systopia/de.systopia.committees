@@ -721,7 +721,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                     'description' => $membership->getAttribute('title'),
                 ];
                 civicrm_api3('Relationship', 'create', $relationship_params);
-            } catch (CiviCRM_API3_Exception $exception) {
+            } catch (CRM_Core_Exception $exception) {
                 $this->logException($exception, "Relationship between person [{$person->getID()}] and committee [{$gremium->getID()}] could not be created. Error was " . $exception->getMessage());
             }
         }
