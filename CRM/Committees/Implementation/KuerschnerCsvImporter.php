@@ -146,7 +146,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 foreach (self::CSV_MAPPING as $original_column_name => $mapped_column_name)
                 {
                     if (!isset($first_record[$original_column_name])) {
-                        $this->logError(E::ts("Column '{$original_column_name}' missing from input file."));
+                        $this->logError(E::ts("Column '%1' missing from input file.", [1 => $original_column_name]));
                         return false;
                     }
                 }
