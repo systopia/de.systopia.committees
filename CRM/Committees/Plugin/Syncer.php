@@ -113,7 +113,7 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
                     'name_a_b' => $relationship_type_name_ab,
                     'return' => 'id'
                 ]);
-            } catch (CiviCRM_API3_Exception $ex) {
+            } catch (CRM_Core_Exception $ex) {
                 $this->logError("RelationshipType '{$relationship_type_name_ab}' not found.");
                 return null;
             }
