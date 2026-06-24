@@ -31,6 +31,10 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
         callAPISuccess as protected traitCallAPISuccess;
     }
 
+    use CRM_Committees_Tools_IdTrackerTrait {
+        clearCaches as idTrackerTraitClearCaches;
+    }
+
     /** @var CRM_Core_Transaction current transaction */
     protected $transaction = null;
 
@@ -45,17 +49,15 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
     }
 
 
-    public function setUp()
-    {
+    public function setUp(): void {
         parent::setUp();
     }
 
-    public function tearDown()
-    {
+    public function tearDown(): void {
         CRM_Committees_CustomData::flushCashes();
         $this->deleteAllContacts();
         $this->clearIdTracker();
-        CRM_Committees_Tools_IdTrackerTrait::clearCaches();
+        self::idTrackerTraitClearCaches();
         Civi::cache()->clear();
         parent::tearDown();
     }
@@ -80,21 +82,23 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
      *
      * @return array
      */
-    public function sync(string $syncer_id, string $importer_id, string $import_file = null, $fail_on_errors = true, $clear_caches = true)
+    public function sync(string $syncer_id, string $importer_id, string $import_file = NULL, $fail_on_errors = TRUE, $clear_caches = TRUE)
     {
         // clear caches
         if ($clear_caches) {
-            CRM_Committees_Tools_IdTrackerTrait::clearCaches();
+          self::idTrackerTraitClearCaches();
         }
 
         // check importer
         $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
-        $this->assertArrayHasKey($importer_id, $importers, "Importer {$importer_id} not available.");
+        self::assertArrayHasKey($importer_id, $importers, "Importer {$importer_id} not available.");
+        /** @phpstan-var CRM_Committees_Plugin_Importer $importer */
         $importer = new $importers[$importer_id]['class']();
 
         // check syncer exists
         $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
-        $this->assertArrayHasKey($syncer_id, $syncers, "Syncer {$syncer_id} not available.");
+        self::assertArrayHasKey($syncer_id, $syncers, "Syncer {$syncer_id} not available.");
+        /** @phpstan-var CRM_Committees_Plugin_Syncer $syncer */
         $syncer = new $syncers[$syncer_id]['class']();
 
         // run
@@ -104,8 +108,8 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
 
         // check for errors
         if ($fail_on_errors) {
-            $this->assertEmpty($importer->getErrors(), "Importer 'de.oxfam.kuerschner' reports errors: " . implode(', ', $importer->getErrorMessages(true)));
-            $this->assertEmpty($syncer->getErrors(), "Syncer 'de.oxfam.kuerschner.syncer.bund' reports errors: " . implode(', ', $syncer->getErrorMessages(true)));
+            self::assertEmpty($importer->getErrors(), "Importer 'de.oxfam.kuerschner' reports errors: " . implode(', ', $importer->getErrorMessages(true)));
+            self::assertEmpty($syncer->getErrors(), "Syncer 'de.oxfam.kuerschner.syncer.bund' reports errors: " . implode(', ', $syncer->getErrorMessages(true)));
         }
 
         return [$importer, $syncer];
@@ -123,8 +127,8 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
     public function assertProperties(array $expected, array $actual)
     {
         foreach ($expected as $property => $value) {
-            $this->assertArrayHasKey($property, $actual, "Expected property '{$property}' not found.");
-            $this->assertEquals($value, $actual[$property]);
+            self::assertArrayHasKey($property, $actual, "Expected property '{$property}' not found.");
+            self::assertEquals($value, $actual[$property]);
         }
     }
 

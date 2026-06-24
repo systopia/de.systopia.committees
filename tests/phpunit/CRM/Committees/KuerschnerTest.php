@@ -30,6 +30,8 @@ const FILE_WITHOUT_MOP =  'tests/resources/kuerschner/bundestag-05-02.csv';
  *  because there seems to be some issues with contact subtypes
  *
  * @group headless
+ * @covers \CRM_Committees_Implementation_KuerschnerCsvImporter
+ * @covers \CRM_Committees_Implementation_OxfamSimpleSync
  */
 class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
 {
@@ -37,13 +39,11 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
         callAPISuccess as protected traitCallAPISuccess;
     }
 
-    public function setUp()
-    {
+    public function setUp(): void {
         parent::setUp();
     }
 
-    public function tearDown()
-    {
+    public function tearDown(): void {
         parent::tearDown();
         // bring out the big guns:
         CRM_Core_DAO::executeQuery("TRUNCATE TABLE civicrm_value_lobby_infos;");
@@ -80,10 +80,10 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
                 'return' => [$mop_salutation_field, $mop_staff_field]]
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
-        $this->assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
-        $this->assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
+        self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
+        self::assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
+        self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
+        self::assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
     }
 
     /**
@@ -117,10 +117,10 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
                 'return' => [$mop_salutation_field, $mop_staff_field]]
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation field');
-        $this->assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff field');
-        $this->assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
+        self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation field');
+        self::assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
+        self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff field');
+        self::assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
     }
 
     /**
@@ -160,10 +160,10 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
             ]
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
-        $this->assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
-        $this->assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
+        self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
+        self::assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
+        self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
+        self::assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
 
 
         // IMPORT THE SECOND FILE (without staff)
@@ -189,10 +189,10 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
             ]
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation key');
-        $this->assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff key');
-        $this->assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
+        self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation key');
+        self::assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
+        self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff key');
+        self::assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
 
     }
 
@@ -235,9 +235,9 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
         );
 
         $current_salutation_value = $mop[$mop_salutation_field] ?? '';
-        $this->assertNotEmpty($current_salutation_value, "This MOP should have a title.");
+        self::assertNotEmpty($current_salutation_value, "This MOP should have a title.");
         $current_staff_value = $mop[$mop_staff_field] ?? '';
-        $this->assertNotEmpty($current_staff_value, "This MOP should have staff.");
+        self::assertNotEmpty($current_staff_value, "This MOP should have staff.");
 
 
         // IMPORT THE SECOND FILE, DISABLE THEM (not there)
@@ -265,9 +265,9 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
         );
 
         $current_salutation_value = $mop[$mop_salutation_field] ?? '';
-        $this->assertEmpty($current_salutation_value, "This the salutation should've been cleared after the member left the parliament.");
+        self::assertEmpty($current_salutation_value, "This the salutation should've been cleared after the member left the parliament.");
         $current_staff_value = $mop[$mop_staff_field] ?? '';
-        $this->assertEmpty($current_staff_value, "This the staff should've been cleared after the member left the parliament.");
+        self::assertEmpty($current_staff_value, "This the staff should've been cleared after the member left the parliament.");
     }
 
     /**
@@ -298,7 +298,7 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
 
         // get the parliament ID
         $parliament_id = $syncer->getParliamentContactID($importer->getModel());
-        $this->assertNotEmpty($parliament_id, "Couldn't identifiy the parliament contact.");
+        self::assertNotEmpty($parliament_id, "Couldn't identifiy the parliament contact.");
 
         // get the relationship
         $relationship_type_ids = array_values($syncer->getRoleToRelationshipTypeIdMapping());
@@ -312,7 +312,7 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
                 'is_active' => 1,
             ]
         );
-        $this->assertNotEmpty($relationships['values'], "There should be an active relationship to the parliament");
+        self::assertNotEmpty($relationships['values'], "There should be an active relationship to the parliament");
 
 
         // IMPORT THE SECOND FILE, MOP should leave
@@ -335,7 +335,7 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
                 'is_active' => 1,
             ]
         );
-        $this->assertEmpty($relationships['values'], "There should NOT be an active relationship to the parliament");
+        self::assertEmpty($relationships['values'], "There should NOT be an active relationship to the parliament");
 
         // IMPORT THE FIRST FILE AGAIN (active MOP again)
         [$importer, $syncer] =
@@ -358,6 +358,6 @@ class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
                 'is_active' => 1,
             ]
         );
-        $this->assertNotEmpty($relationships['values'], "There should be an active relationship to the parliament again");
+        self::assertNotEmpty($relationships['values'], "There should be an active relationship to the parliament again");
     }
 }

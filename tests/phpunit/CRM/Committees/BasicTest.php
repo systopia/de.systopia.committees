@@ -22,6 +22,8 @@ use CRM_Committees_ExtensionUtil as E;
  * First simple tests about the committee extension
  *
  * @group headless
+ * @covers \CRM_Committees_Implementation_KuerschnerCsvImporter
+ * @covers \CRM_Committees_Implementation_OxfamSimpleSync
  */
 class CRM_Committees_BasicTest extends CRM_Committees_TestBase
 {
@@ -29,13 +31,11 @@ class CRM_Committees_BasicTest extends CRM_Committees_TestBase
         callAPISuccess as protected traitCallAPISuccess;
     }
 
-    public function setUp()
-    {
+    public function setUp(): void {
         parent::setUp();
     }
 
-    public function tearDown()
-    {
+    public function tearDown(): void {
         parent::tearDown();
     }
 
