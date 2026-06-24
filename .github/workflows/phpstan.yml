@@ -62,6 +62,9 @@ jobs:
             export COMPOSER_NO_SECURITY_BLOCKING=1
           fi
 
+          git clone --depth=1 https://github.com/systopia/de.systopia.identitytracker.git ../de.systopia.identitytracker
+          git clone --depth=1 https://github.com/systopia/de.systopia.xcm.git ../de.systopia.xcm
+
           composer config --no-plugins allow-plugins.civicrm/composer-compile-plugin false
           composer config --no-plugins allow-plugins.civicrm/composer-downloads-plugin true
           composer config --no-plugins allow-plugins.composer/installers true
