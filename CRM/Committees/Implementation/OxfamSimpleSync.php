@@ -442,6 +442,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     $this->log("Disabled obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
                 }
             } catch (Exception $ex) {
+                // @ignoreException
                 $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
             }
         }
@@ -513,6 +514,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // THAT'S IT, WE'RE DONE
         $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
         // THAT'S IT, WE'RE DONE
+        return TRUE;
     }
 
 
@@ -550,15 +552,24 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // get the current mop contacts
         $all_mop_ids = array_keys($this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX));
 
-        // get the current memberships of these committees
-        $committee_query = civicrm_api3('Relationship', 'get', [
-            'option.limit' => 0,
-            'relationship_type_id' => ['IN' => $relationship_type_ids],
-            //'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
-            'contact_id_a' => ['IN' => $all_mop_ids],
-            'contact_id_b' => ['IN' => $all_committee_ids],
-        ]);
+        $apiParams = [
+          'option.limit' => 0,
+          'relationship_type_id' => ['IN' => $relationship_type_ids],
+          //'is_active' => 1, // also find inactive ones, otherwise we get issues with duplicates
+          'contact_id_a' => ['IN' => $all_mop_ids],
+          'contact_id_b' => ['IN' => $all_committee_ids],
+        ];
 
+        // get the current memberships of these committees
+        try {
+          $committee_query = civicrm_api3('Relationship', 'get', $apiParams);
+        } catch (Exception $ex) {
+
+          // @ignoreException
+          $apiParamsStr = var_export($apiParams, TRUE);
+          $this->log("Warning: Couldn't obtain committee relationsships: error [{$ex->getMessage()}]; query params [{$apiParamsStr}]");
+          return  $present_model;
+        }
         // extract existing committee memberships
         $contactID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX);
         $committee_committee_ID_2_trackerIDs = $this->getContactIDtoTids(self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX_COMMITTEE);
@@ -1210,6 +1221,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
                     $person_id = $membership->getPerson()->getID();
                     $this->log("Warning: Couldn't map role '{$role}' of person [{$person_id}] to relationship type! Using member...");
                 } catch (Exception $ex) {
+                    // @ignoreException
                     $this->log("Warning: Couldn't map role '{$role}' to relationship type! Using member...");
                 }
             }
@@ -1362,7 +1374,6 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
         // check if they are present anywhere
         $known_properties = ['mop_staff', 'mop_salutation'];
         $known_properties_present = false;
-        /** @var CRM_Committees_Model_Model $model*/
         foreach ($known_properties as $known_property) {
             foreach ($model->getAllPersons() as $person) {
                 /** @var CRM_Committees_Model_Person $person*/

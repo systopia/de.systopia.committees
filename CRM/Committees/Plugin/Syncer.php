@@ -156,8 +156,6 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
                 'parent_id' => $parent,
             ]);
             return true;
-        } else {
-            return $name;
         }
         return false;
     }
@@ -245,13 +243,12 @@ abstract class CRM_Committees_Plugin_Syncer extends CRM_Committees_Plugin_Base
         $specs = explode('.', $field_name);
         if (count($specs) != 2) {
             $this->logError("Field name '{$field_name}' is not in the <custom_group_name>.<custom_field_name> format.");
-            return false;
+            return FALSE;
         }
-        try {
-            $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
-        } catch (Exception $ex) {
+        $custom_field = CRM_Committees_CustomData::getCustomField($specs[0], $specs[1]);
+        if (NULL === $custom_field) {
             $this->log("Custom Group '{$specs[0]}' doesn't exist.");
-            return false;
+            return FALSE;
         }
         return !empty($custom_field);
     }

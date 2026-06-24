@@ -23,7 +23,7 @@ use CRM_Committees_ExtensionUtil as E;
  */
 trait CRM_Committees_Tools_IdTrackerTrait
 {
-    /** @var array static ID cache */
+    /** @var null|array static ID cache */
     protected static $idt_trackerID2contactIDbyPrefix = null;
 
     /**
@@ -45,6 +45,7 @@ trait CRM_Committees_Tools_IdTrackerTrait
         // load all tracker IDs via SQL (once)
         if (!isset(self::$idt_trackerID2contactIDbyPrefix[$prefix])) {
             self::$idt_trackerID2contactIDbyPrefix[$prefix] = [];
+            /** @phpstan-var DB_DataObject $id_record */
             $id_record = CRM_Core_DAO::executeQuery(
                 "
                 SELECT
@@ -63,6 +64,7 @@ trait CRM_Committees_Tools_IdTrackerTrait
                 ]
             );
             while ($id_record->fetch()) {
+                /** @phpstan-ignore property.notFound, property.notFound */
                 self::$idt_trackerID2contactIDbyPrefix[$prefix][$id_record->tracker_id] = $id_record->contact_id;
             }
         }
@@ -208,56 +210,14 @@ trait CRM_Committees_Tools_IdTrackerTrait
             default:
                 // more than one exists: that's not good!
                 throw new Exception("There are already multiple identity tracker types '$key'.");
-                break;
         }
     }
-
-    /**
-     * Extract the currently imported contacts from CiviCRM via ID Tracker
-     *   and add them to the 'present model'
-     *
-     * @param CRM_Committees_Model_Model $requested_model
-     *   the model to be synced to this CiviCRM
-     *
-     * @param CRM_Committees_Model_Model $present_model
-     *   a model to add the current contacts to, as extracted from the DB
-     */
-    protected function extractCurrentContacts($requested_model, $present_model, $tracker_type, $tracker_prefix = '')
-    {
-        // add existing contacts
-        $existing_contacts = $this->getContactIDtoTids($tracker_type, $tracker_prefix);
-        //$person_custom_field_mapping = $this->getPersonCustomFieldMapping($requested_model);
-        if ($existing_contacts) {
-            $contacts_found = $this->callApi3('Contact', 'get', [
-                    'contact_type' => 'Individual',
-                    'id' => ['IN' => array_keys($existing_contacts)],
-                    'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id',
-                    'option.limit' => 0,
-            ]);
-            foreach ($contacts_found['values'] as $contact_found) {
-                $present_contact_id = $existing_contacts[$contact_found['id']][0];
-                $existing_person = [
-                        'id'           => substr($present_contact_id, strlen($tracker_prefix)),
-                        'contact_id'   => $contact_found['id'],
-                        'first_name'   => $contact_found['first_name'],
-                        'last_name'    => $contact_found['last_name'],
-                        'gender_id'    => $contact_found['gender_id'],
-                        'prefix_id'    => $contact_found['prefix_id'],
-                ];
-//                foreach ($person_custom_field_mapping as $person_property => $custom_field) {
-//                    $existing_person[$person_property] = $contact_found[$custom_field];
-//                }
-                $present_model->addPerson($existing_person);
-            }
-        }
-    }
-
 
     /**
      * Clears internal caches. Careful...this is implemented to facilitate unit-test, and should not be used in regular workflows
      */
     public static function clearCaches()
     {
-        CRM_Committees_Tools_IdTrackerTrait::$idt_trackerID2contactIDbyPrefix = null;
+        self::$idt_trackerID2contactIDbyPrefix = NULL;
     }
 }

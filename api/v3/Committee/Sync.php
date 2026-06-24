@@ -19,10 +19,12 @@
 function civicrm_api3_committee_sync($params) {
     // get importer
     $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
+    /** @phpstan-var CRM_Committees_Plugin_Importer $importer */
     $importer = new $importers[$params['importer_id']]['class']();
 
     // get syncer
     $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
+    /** @phpstan-var CRM_Committees_Plugin_Syncer $syncer */
     $syncer = new $syncers[$params['syncer_id']]['class']();
 
     // run

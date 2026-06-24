@@ -44,8 +44,8 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         //19 => 'dienststnr.',
     ];
 
-    /** @var array our sheets extracted from the file */
-    private $main_sheet = null;
+    /** @var null|PhpOffice\PhpSpreadsheet\Worksheet\Worksheet our sheets extracted from the file */
+    private $main_sheet = NULL;
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -83,21 +83,18 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      *   the local path to the file
      *
      * @return boolean
-     *   true iff the file can be processed
+     *   true if the file can be processed
      */
     public function probeFile($file_path) : bool
     {
         if ($this->checkRequirements()) {
-            try {
-                $main_sheet = $this->getMainSheet($file_path);
-                // todo: probe sheet? column names?
-            } catch (Exception $ex) {
-                $this->logException($ex);
-                return false;
-            }
-            return true;
+          $main_sheet = $this->getMainSheet($file_path);
+          // todo: probe sheet? column names?
+          if (NULL !== $main_sheet) {
+            return TRUE;
+          }
         }
-        return false; // requirements not met
+        return FALSE; // requirements not met
     }
 
     /**
@@ -105,10 +102,11 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      *
      * @param string $file_path
      *   path to the xlsx file
+     * @return null|PhpOffice\PhpSpreadsheet\Worksheet\Worksheet
      */
     protected function getMainSheet($file_path)
     {
-        if ($this->main_sheet === null) {
+        if (NULL === $this->main_sheet) {
             try {
                 $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
                 $spreadsheet = $xls_reader->load($file_path);
@@ -133,6 +131,11 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
     {
         $this->log("Opening source file");
         $main_sheet = $this->getMainSheet($file_path);
+
+        if (NULL === $main_sheet) {
+          return FALSE;
+        }
+
         $row_count = $main_sheet->getHighestRow();
         $this->log("Start importing {$row_count} rows");
         $duplicate_contact_count = 0;
@@ -195,7 +198,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         $this->log(count($this->model->getAllCommittees()) . " divisions referenced in input.");
         $this->log(count($this->model->getAllMemberships()) . " employments referenced in input.");
 
-        return true;
+        return TRUE;
     }
 
     /**

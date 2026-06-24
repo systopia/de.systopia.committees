@@ -34,7 +34,7 @@ class CRM_Committees_Model_Url extends CRM_Committees_Model_Entity
      */
     public function __construct($model, $data)
     {
-        return parent::__construct($model, $data);
+        parent::__construct($model, $data);
     }
 
     /**

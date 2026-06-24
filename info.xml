@@ -21,6 +21,10 @@
     <ver>5.76</ver>
   </compatibility>
   <comments>Initially funded by OXFAM Germany</comments>
+  <requires>
+    <ext>de.systopia.identitytracker</ext>
+    <ext>de.systopia.xcm</ext>
+  </requires>
   <classloader>
     <psr4 prefix="Civi\" path="Civi"/>
     <psr0 prefix="CRM_" path="."/>

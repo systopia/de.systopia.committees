@@ -33,8 +33,10 @@ trait CRM_Committees_Tools_ContactGroupTrait
     protected function initGroupCache($group_id) {
         if (!isset($this->trait_group_members[$group_id])) {
             $group_id = (int) $group_id;
+            /** @phpstan-var DB_DataObject $query */
             $query = CRM_Core_DAO::executeQuery("SELECT contact_id FROM civicrm_group_contact WHERE group_id = {$group_id} AND status = 'Added';");
             while ($query->fetch()) {
+                /** @phpstan-ignore property.notFound, property.notFound */
                 $this->trait_group_members[$group_id][$query->contact_id] = $query->contact_id;
             }
         }

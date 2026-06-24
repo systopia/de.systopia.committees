@@ -152,6 +152,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 }
 
             } catch (Exception $ex) {
+                // @ignoreException
                 $this->logException($ex);
                 return false;
             }

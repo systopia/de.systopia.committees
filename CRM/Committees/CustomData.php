@@ -229,7 +229,8 @@ class CRM_Committees_CustomData {
         'options'    => array('limit' => 2));
 
     foreach ($data['_lookup'] as $lookup_key) {
-      $lookup_query[$lookup_key] = CRM_Utils_Array::value($lookup_key, $data, '');
+      $lookup_query[$lookup_key] = $data[$lookup_key] ?? '';
+
     }
 
     $this->log(self::CUSTOM_DATA_HELPER_LOG_DEBUG, "LOOKUP {$entity_type}: " . json_encode($lookup_query));
@@ -458,7 +459,7 @@ class CRM_Committees_CustomData {
           continue;
         }
 
-        if (empty($customgroups) || in_array($match['group_name'], $customgroups)) {
+        if (empty($customgroups) || in_array($match['group_name'], $customgroups, TRUE)) {
           $customgroups_used[$match['group_name']] = 1;
         }
       }
@@ -470,7 +471,7 @@ class CRM_Committees_CustomData {
     // now: replace stuff
     foreach (array_keys($data) as $key) {
       if (preg_match('/^(?P<group_name>\w+)[.](?P<field_name>\w+)$/', $key, $match)) {
-        if (empty($customgroups) || in_array($match['group_name'], $customgroups)) {
+        if (empty($customgroups) || in_array($match['group_name'], $customgroups, TRUE)) {
           if (isset(self::$custom_group_cache[$match['group_name']][$match['field_name']])) {
             $custom_field = self::$custom_group_cache[$match['group_name']][$match['field_name']];
             $custom_key = 'custom_' . $custom_field['id'];
@@ -560,7 +561,7 @@ class CRM_Committees_CustomData {
    */
   public static function cacheCustomGroupSpecs($custom_group_ids) {
     // first: check if they are already cached
-    $fields_to_load = [];
+    $groups_to_load = [];
     foreach ($custom_group_ids as $group_id) {
       if (!array_key_exists($group_id, self::$custom_group_spec_cache)) {
         $groups_to_load[] = $group_id;
@@ -794,12 +795,12 @@ class CRM_Committees_CustomData {
       $group_specs = self::getGroupSpecs($field_specs['custom_group_id']);
       return               [
           'value'           => $value,
-          'type'            => CRM_Utils_Array::value('data_type', $field_specs, 'String'),
+          'type'            => $field_specs['data_type'] ?? 'String',
           'custom_field_id' => $field_id,
           'custom_group_id' => $field_specs['custom_group_id'] ?? NULL,
           'table_name'      => $group_specs['table_name'] ?? NULL,
           'column_name'     => $field_specs['column_name'] ?? NULL,
-          'is_multiple'     => CRM_Utils_Array::value('is_multiple', $group_specs, 0),
+          'is_multiple'     => $group_specs['is_multiple'] ?? 0,
       ];
     } else {
       return NULL;
@@ -828,7 +829,7 @@ class CRM_Committees_CustomData {
    * This function was specifically introduced as 1:1 replacement
    *  for the deprecated CRM_Core_OptionGroup::getValue function
    *
-   * @param string $groupName
+   * @param string $group_name
    *   name of the group
    *
    * @param $label

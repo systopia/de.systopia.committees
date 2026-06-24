@@ -100,7 +100,7 @@ abstract class CRM_Committees_Model_Entity
      *
      * @param string $attribute_name
      *
-     * @return string value
+     * @return null|string value
      */
     public function getAttribute($attribute_name)
     {
@@ -132,8 +132,7 @@ abstract class CRM_Committees_Model_Entity
     /**
      * Get the list of fields that the entity currently has
      *
-     * @param bool $include_id
-     *   should the id field be included?
+     * @return array<string>
      */
     public function getFields()
     {
@@ -143,17 +142,17 @@ abstract class CRM_Committees_Model_Entity
     /**
      * Diff the attributes of this entity against another one
      *
-     * @param $entity CRM_Committees_Model_Entity
+     * @param CRM_Committees_Model_Entity $entity
      *   an entity
      *
-     * @param $ignore_attributes array
+     * @param array<string> $ignore_attributes
      *   list of entities to be ignored
      *
-     * @return array
+     * @return array<string>
      *  [attribute => [this entity value, other entity value]
      *
      */
-    public function diff(CRM_Committees_Model_Entity $entity, array $ignore_attributes = [])
+    public function diff(CRM_Committees_Model_Entity $entity, $ignore_attributes = [])
     {
         $diff = [];
         $this_entity_data = $this->getData();

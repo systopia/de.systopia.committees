@@ -327,10 +327,10 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
-     * @param array $id_properties
+     * @param array<string> $id_properties
      *   list of entity attributes used to define equality
      *   default is ['committee_id', 'contact_id']
      *
@@ -341,12 +341,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffMemberships(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
+    public function diffMemberships(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
     {
-        if (!$id_properties) {
+        if (0 === count($id_properties)) {
             $id_properties = ['contact_id', 'committee_id', 'relationship_type_id'];
         }
-        return $this->diffEntities($model, 'memberships', $id_properties, $ignore_attributes);
+        return $this->diffEntities($model, ['memberships'], $id_properties, $ignore_attributes);
     }
 
     /**
@@ -356,10 +356,10 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
-     * @param array $id_properties
+     * @param array<string> $id_properties
      *   list of entity attributes used to define equality
      *   default is ['email', 'contact_id']
      *
@@ -370,12 +370,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffEmails(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
+    public function diffEmails(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
     {
-        if (!$id_properties) {
+        if (0 === count($id_properties)) {
             $id_properties = ['email', 'contact_id'];
         }
-        return $this->diffEntities($model, 'emails', $id_properties, $ignore_attributes);
+        return $this->diffEntities($model, ['emails'], $id_properties, $ignore_attributes);
     }
 
     /**
@@ -385,10 +385,10 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
-     * @param array $id_properties
+     * @param array<string> $id_properties
      *   list of entity attributes used to define equality
      *   default is ['url', 'contact_id']
      *
@@ -399,12 +399,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffUrls(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
+    public function diffUrls(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
     {
-        if (!$id_properties) {
+        if (0 === count($id_properties)) {
             $id_properties = ['url', 'contact_id'];
         }
-        return $this->diffEntities($model, 'urls', $id_properties, $ignore_attributes);
+        return $this->diffEntities($model, ['urls'], $id_properties, $ignore_attributes);
     }
 
     /**
@@ -414,10 +414,10 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
-     * @param array $id_properties
+     * @param array<string> $id_properties
      *   list of entity attributes used to define equality
      *   default is ['phone', 'contact_id']
      *
@@ -428,12 +428,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffPhones(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
+    public function diffPhones(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
     {
-        if (!$id_properties) {
+        if (0 === count($id_properties)) {
             $id_properties = ['phone_numeric', 'contact_id'];
         }
-        return $this->diffEntities($model, 'phones', $id_properties, $ignore_attributes);
+        return $this->diffEntities($model, ['phones'], $id_properties, $ignore_attributes);
     }
 
     /**
@@ -443,10 +443,10 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
-     * @param array $id_properties
+     * @param array<string> $id_properties
      *   list of entity attributes used to define equality
      *   default is ['contact_id', 'postal_code', 'city', 'street_address']
      *
@@ -457,12 +457,12 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffAddresses(CRM_Committees_Model_Model $model, array $ignore_attributes = [], array $id_properties = null)
+    public function diffAddresses(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
     {
-        if (!$id_properties) {
+        if (0 === count($id_properties)) {
             $id_properties = ['contact_id', 'postal_code', 'city', 'street_address'];
         }
-        return $this->diffEntities($model, 'addresses', $id_properties, $ignore_attributes);
+        return $this->diffEntities($model, ['addresses'], $id_properties, $ignore_attributes);
     }
 
     /**
@@ -472,7 +472,7 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
      * @return array of arrays:
@@ -484,9 +484,9 @@ class CRM_Committees_Model_Model
      *
      * @warning this does NOT contain *unchanged* persons
      */
-    public function diffPersons(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    public function diffPersons(CRM_Committees_Model_Model $model, $ignore_attributes = [])
     {
-        return $this->diffEntities($model, 'persons', ['id'], $ignore_attributes);
+        return $this->diffEntities($model, ['persons'], ['id'], $ignore_attributes);
     }
 
     /**
@@ -496,7 +496,7 @@ class CRM_Committees_Model_Model
      * @param $model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
      * @return array of arrays:
@@ -506,9 +506,9 @@ class CRM_Committees_Model_Model
      *      entities missing (only in this model)
      *  ]
      */
-    public function diffCommittees(CRM_Committees_Model_Model $model, array $ignore_attributes = [])
+    public function diffCommittees(CRM_Committees_Model_Model $model, $ignore_attributes = [])
     {
-        return $this->diffEntities($model, 'committees', ['id'], $ignore_attributes);
+        return $this->diffEntities($model, ['committees'], ['id'], $ignore_attributes);
     }
 
     /**
@@ -663,7 +663,7 @@ class CRM_Committees_Model_Model
      * @param CRM_Committees_Model_Entity $entity
      *   the entity to generate the key for
      *
-     * @param string|array $identifiers
+     * @param string|array<string> $identifiers
      *   the identifier(s) used to generate the (private) key
      *
      * @param string $separator
@@ -687,10 +687,10 @@ class CRM_Committees_Model_Model
     /**
      * Get a list of the identifiers indexed by the given identifier(s)
      *
-     * @param array $entity_list
+     * @param array<string> $entityList
      *   list of CRM_Committees_Model_Entity objects
      *
-     * @param string|array $identifier
+     * @param array<string> $identifiers
      *   the identifier(s) used to generate the (private) key
      *
      * @param string $separator
@@ -698,15 +698,45 @@ class CRM_Committees_Model_Model
      *
      * @return array
      */
-    protected function getIndexedEntities(array $entity_list, $identifiers = 'id', string $separator = self::DEFAULT_KEY_SEPARATOR) : array
-    {
-        $indexed_entities = [];
-        foreach ($entity_list as $entity) {
-            /** @var CRM_Committees_Model_Entity $entity */
-            $key = $this->renderIdentifier($entity, $identifiers, $separator);
-            $indexed_entities[$key] = $entity;
+    public function getIndexedEntities(
+      $entityList,
+      $identifiers = ['id'],
+      $separator = self::DEFAULT_KEY_SEPARATOR
+    ): array {
+      $indexedEntities = [];
+      $selectedEntityList = [];
+
+      foreach ($entityList as $entityName) {
+        switch ($entityName) {
+          case 'person':
+            $selectedEntityList = &$this->persons;
+            break;
+          case 'address':
+            $selectedEntityList = &$this->addresses;
+            break;
+          case 'email':
+            $selectedEntityList = &$this->emails;
+            break;
+          case 'phone':
+            $selectedEntityList = &$this->phones;
+            break;
+          case 'committee':
+            $selectedEntityList = &$this->committees;
+            break;
+          case 'membership':
+            $selectedEntityList = &$this->memberships;
+            break;
+          default:
+            Civi::log()->warning("Entity [{$entityName}] not supported. No entities do exist of that type.");
         }
-        return $indexed_entities;
+
+        /** @var CRM_Committees_Model_Entity $entity */
+        foreach ($selectedEntityList as $entity) {
+          $key = $this->renderIdentifier($entity, $identifiers, $separator);
+          $indexedEntities[$key] = $entity;
+        }
+      }
+      return $indexedEntities;
     }
 
     /**
@@ -716,13 +746,13 @@ class CRM_Committees_Model_Model
      * @param $other_model CRM_Committees_Model_Model
      *   the model to compare with
      *
-     * @param string $entity_list_property
+     * @param array<string> $entity_list
      *   name of the property of the model to hold the entities
      *
-     * @param array $identifiers
+     * @param array<string> $identifiers
      *   list of identifiers to identify the entity
      *
-     * @param array $ignore_attributes
+     * @param array<string> $ignore_attributes
      *   list of entity attributes to ignore
      *
      * @return array of arrays:
@@ -734,17 +764,17 @@ class CRM_Committees_Model_Model
      */
     public function diffEntities(
         CRM_Committees_Model_Model $other_model,
-        string $entity_list_property = 'persons',
-        array $identifiers = ['id'],
-        array $ignore_attributes = [])
+        $entity_list = ['persons'],
+        $identifiers = ['id'],
+        $ignore_attributes = [])
     {
         $new_entities = [];
         $changed_entities = [];
         $missing_entities = [];
 
         // todo: validate $entity_list_property to prevent crashes or mischief
-        $our_entities = $this->getIndexedEntities($this->$entity_list_property, $identifiers);
-        $other_entities = $this->getIndexedEntities($other_model->$entity_list_property, $identifiers);
+        $our_entities = $this->getIndexedEntities($entity_list, $identifiers);
+        $other_entities = $other_model->getIndexedEntities($entity_list, $identifiers);
 
         // first go through the first list...
         foreach ($our_entities as $our_entity_key => $our_entity) {

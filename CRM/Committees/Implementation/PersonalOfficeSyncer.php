@@ -44,7 +44,6 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     /** @var string  custom field id (group_name.field_name) for the job title custom field */
     const CONTACT_JOB_TITLE_KEY_FIELD = 'pfarrer_innen.pfarrer_innen_job_title_key';
 
-
     /** @var array mapping for the job_key fields */
     static $CONTACT_JOB_TITLE_KEY_MAPPING = [
         'KK-Ebene:Angest.Pfarrer'      => 1,
@@ -78,6 +77,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         try {
             $this->getRelationshipTypeID('Employee of');
         } catch (Exception $ex) {
+            // @ignoreException
             $this->registerMissingRequirement(
                     'employee_relationship',
                     "'Employee of' relationship doesn't exist or is not active.",
@@ -229,6 +229,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $new_division->setAttribute('is_new', true);
                 $this->log("Created new division [#{$result['id']}]: '{$new_division->getAttribute('name')}'");
             } catch (Exception $ex) {
+                // @ignoreException
                 $this->log("Couldn't create division [{$new_division->getID()}]: '{$new_division->getAttribute('name')}' - error was: '{$ex->getMessage()}'", 'warning');
             }
         }
@@ -289,6 +290,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 $present_model->addPerson($new_person->getData());
                 $this->log("PO Contact [{$new_person->getID()}] created with CiviCRM-ID [#{$result['id']}].");
             } catch (Exception $exception) {
+                // @ignoreException
                 $this->logError("Exception when trying to create new contact [{$new_person->getID()}]: " . $exception->getMessage());
             }
         }
@@ -462,7 +464,8 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                     $this->log("Ended employment (CiviCRM relationship) [#{$relationship_id}] between CiviCRM individual [{$person_civicrm_id}] and CiviCRM organisation [{$committee_civicrm_id}].");
                 }
             } catch (Exception $ex) {
-                $this->log("Exception while ending employment [{$relationship_id}].");
+              // @ignoreException  
+              $this->log("Exception while ending employment [{$relationship_id}].");
             }
         }
 
@@ -510,13 +513,45 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
         return true;
     }
 
-
-
-
-
-
-
-
+    /**
+     * Extract the currently imported contacts from CiviCRM via ID Tracker
+     *   and add them to the 'present model'
+     *
+     * @param CRM_Committees_Model_Model $requested_model
+     *   the model to be synced to this CiviCRM
+     *
+     * @param CRM_Committees_Model_Model $present_model
+     *   a model to add the current contacts to, as extracted from the DB
+     */
+    protected function extractCurrentContacts($requested_model, $present_model, $tracker_type, $tracker_prefix = '')
+    {
+        // add existing contacts
+        $existing_contacts = $this->getContactIDtoTids($tracker_type, $tracker_prefix);
+        //$person_custom_field_mapping = $this->getPersonCustomFieldMapping($requested_model);
+        if ($existing_contacts) {
+            $contacts_found = $this->callApi3('Contact', 'get', [
+                    'contact_type' => 'Individual',
+                    'id' => ['IN' => array_keys($existing_contacts)],
+                    'return' => 'id,contact_id,first_name,last_name,gender_id,prefix_id',
+                    'option.limit' => 0,
+            ]);
+            foreach ($contacts_found['values'] as $contact_found) {
+                $present_contact_id = $existing_contacts[$contact_found['id']][0];
+                $existing_person = [
+                        'id'           => substr($present_contact_id, strlen($tracker_prefix)),
+                        'contact_id'   => $contact_found['id'],
+                        'first_name'   => $contact_found['first_name'],
+                        'last_name'    => $contact_found['last_name'],
+                        'gender_id'    => $contact_found['gender_id'],
+                        'prefix_id'    => $contact_found['prefix_id'],
+                ];
+//                foreach ($person_custom_field_mapping as $person_property => $custom_field) {
+//                    $existing_person[$person_property] = $contact_found[$custom_field];
+//                }
+                $present_model->addPerson($existing_person);
+            }
+        }
+    }
 
     /**
      * Get the current membership (read: employments)
@@ -705,6 +740,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 CRM_Committees_CustomData::resolveCustomFields($ekir_field_query);
                 $employer_contact = civicrm_api3('Contact', 'getsingle', $ekir_field_query);
             } catch (CRM_Core_Exception $ex) {
+                // @ignoreException 
                 $this->log("EKIR entity [{$employer_ekir_id}] is listed as employer, but wasn't not found in the system.");
                 continue;
             }
@@ -720,6 +756,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
                 ]);
                 $employments_imported++;
             } catch (CRM_Core_Exception $ex) {
+                // @ignoreException
                 $this->log("Couldn't create EKIR employment of [{$employee_id}] with [{$employer_contact['id']}]: " . $ex->getMessage());
                 continue;
             }

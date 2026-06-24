@@ -38,7 +38,7 @@ class CRM_Committees_Model_Email extends CRM_Committees_Model_Entity
                 $data['email'] = strtolower($data['email']);
             }
         }
-        return parent::__construct($model, $data);
+        parent::__construct($model, $data);
     }
 
     /**

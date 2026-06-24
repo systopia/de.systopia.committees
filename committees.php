@@ -21,6 +21,12 @@ use CRM_Committees_ExtensionUtil as E;
 
 // phpcs:enable
 
+function _committees_composer_autoload(): void {
+
+  if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+  }
+}
 
 /**
  * Implements hook_civicrm_config().

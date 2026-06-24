@@ -227,7 +227,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             $phone_data = $phone->getData();
             $phone_data['contact_id'] = $person->getAttribute('contact_id');
             $person_id = $person->getID();
-            if (in_array($person_id, $new_person_ids)) {
+            if (in_array($person_id, $new_person_ids, TRUE)) {
                 // this is a new person's phone -> create phone
                 $phone_data['is_primary'] = 1;
                 $this->callApi3('Phone', 'create', $phone_data);
@@ -266,7 +266,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
             if (!empty($address_data['city'])) $address_string .= "|{$address_data['city']}";
 
             $person_id = $person->getID();
-            if (in_array($person_id, $new_person_ids)) {
+            if (in_array($person_id, $new_person_ids, TRUE)) {
                 // newly created contact, add address
                 $address_data['contact_id'] = $person->getAttribute('contact_id');
                 $this->callApi3('Address', 'create', $address_data);
@@ -349,6 +349,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
                     $this->log("Ended committee membership [{$person_civicrm_id}]<->[{$committee_id}] (ID:[{$membership->getAttribute('relationship_id')}]): {$end_date_remark}");
                 }
             } catch (Exception $ex) {
+                // @ignoreException
                 $this->log("Exception while disabling obsolete committee membership [{$membership->getAttribute('relationship_id')}].");
             }
         }
@@ -385,6 +386,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
         $this->log("{$new_count} new committee memberships created.");
 
         // THAT'S IT, WE'RE DONE
+        return TRUE;
     }
 
 

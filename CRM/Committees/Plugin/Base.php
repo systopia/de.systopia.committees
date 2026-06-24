@@ -31,22 +31,22 @@ abstract class CRM_Committees_Plugin_Base
     protected $errors = [];
 
     /** @var string short module name, see getModuleName */
-    protected $_module_name = null;
+    protected $_module_name = "";
 
-    /** @var resource the current logger, see getLogResource()  */
-    static private $progress_logger = null;
+    /** @var null|false|resource the current logger, see getLogResource()  */
+    static private $progress_logger = NULL;
 
-    /** @var string the current logger key  */
-    static private $progress_logger_key = null;
+    /** @var null|string the current logger key  */
+    static private $progress_logger_key = NULL;
 
-    /** @var string the current logger timestamp */
-    static private $progress_logger_timestamp = null;
+    /** @var null|string the current logger timestamp */
+    static private $progress_logger_timestamp = NULL;
 
-    /** @var string $current_log_file (full path) */
-    protected $current_log_file = null;
+    /** @var null|string $current_log_file (full path) */
+    protected $current_log_file = NULL;
 
-    /** @var string $current_log_file (full path) */
-    protected $current_log_datestring = null;
+    /** @var null|string $current_log_file (full path) */
+    protected $current_log_datestring = NULL;
 
     /**
      * Create a new instance of this module with the given config
@@ -104,7 +104,7 @@ abstract class CRM_Committees_Plugin_Base
      * @param string $issue_description
      *   localised issue description (html), ideally with pointers to how to fix it
      */
-    protected function registerMissingRequirement($issue_id, $issue_label, $issue_description)
+    public function registerMissingRequirement($issue_id, $issue_label, $issue_description)
     {
         $this->missing_requirements[$issue_id] = [
             'id' => $issue_id,
@@ -178,7 +178,7 @@ abstract class CRM_Committees_Plugin_Base
      */
     protected function getModuleName()
     {
-        if ($this->_module_name === null) {
+        if ("" === $this->_module_name) {
             $class_name_tokens = explode('_', get_class($this));
             $this->_module_name = end($class_name_tokens);
         }
@@ -219,7 +219,7 @@ abstract class CRM_Committees_Plugin_Base
             case 'debug':
             case 'info':
             case 'warning':
-                $this->log2file($message, $level);
+                $this->log2file($message);
                 if ($this->isUnitTest()) {
                     // also log to console during unit tests
                     print_r($message . "\n");
@@ -227,7 +227,7 @@ abstract class CRM_Committees_Plugin_Base
                 break;
 
             case 'error':
-                $this->log2file($message, $level);
+                $this->log2file($message);
                 Civi::log()->error($message);
                 if ($this->isUnitTest()) {
                     // also log to console during unit tests
@@ -282,18 +282,34 @@ abstract class CRM_Committees_Plugin_Base
     /**
      * Get the current process log file
      *
-     * @return resource
+     * @return resource|false
      *   the logger file
      */
     public function getLogResource()
     {
-        if (self::$progress_logger === null) {
+        if (NULL === self::$progress_logger) {
             $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
             self::$progress_logger_key = bin2hex(openssl_random_pseudo_bytes(8));
             self::$progress_logger_timestamp = date('YmdHis');
-            $this->current_log_file = $log_folder . DIRECTORY_SEPARATOR . 'Committees-' . self::$progress_logger_key . '.' . self::$progress_logger_timestamp . '.log';
+            $this->current_log_file =
+              $log_folder . DIRECTORY_SEPARATOR . 'Committees-'
+              . self::$progress_logger_key . '.'
+              . self::$progress_logger_timestamp . '.log';
+            if (!is_dir($log_folder)) {
+              Civi::log()->debug("log-folder [{log_folder}] does not exist. try to create it.");
+              $ok = mkdir($log_folder, 0777, TRUE);
+              if ($ok) {
+                Civi::log()->debug("created log-folder [{log_folder}].");
+              } else {
+                Civi::log()->debug("could not create log-folder [{log_folder}].");
+              }
+            }
             self::$progress_logger = fopen($this->current_log_file, 'w');
-            Civi::log()->debug("Committee importer started, log file is '{$this->current_log_file}");
+            if (FALSE === self::$progress_logger) {
+              Civi::log()->debug("Committee importer started, with logging to log-file disabled.");
+            } else {
+              Civi::log()->debug("Committee importer started, log file is [{$this->current_log_file}]");
+            }
         }
         return self::$progress_logger;
     }
@@ -306,7 +322,7 @@ abstract class CRM_Committees_Plugin_Base
      */
     public function getDownloadLink()
     {
-        if (self::$progress_logger != null && self::$progress_logger_key != null) {
+        if (NULL !== self::$progress_logger && NULL !== self::$progress_logger_key) {
             $key = self::$progress_logger_key;
             $date = self::$progress_logger_timestamp;
             return CRM_Utils_System::url('civicrm/committees/logfile', "key={$key}&date={$date}");
@@ -363,7 +379,12 @@ abstract class CRM_Committees_Plugin_Base
         if (!preg_match('/^[0-9a-z]{16}$/', $key)) {
             throw new Exception(E::ts("Illegal key"));
         }
+        /** phpstan-var false|string $log_folder */
         $log_folder = Civi::paths()->getPath('[civicrm.files]/ConfigAndLog');
+        if (FALSE === $log_folder) {
+            throw new Exception("Log dir doesn't exist (any more).");
+        }
+        /** @phpstan-ignore binaryOp.invalid */
         $filepath = $log_folder . DIRECTORY_SEPARATOR . self::getLogFileName($datestring, $key);
         if (!file_exists($filepath)) {
             throw new Exception("Log file doesn't exist (any more).");
@@ -411,6 +432,9 @@ abstract class CRM_Committees_Plugin_Base
     public function log2file($message)
     {
         $logger = $this->getLogResource();
+        if (FALSE === $logger) {
+          return;
+        }
         fputs($logger, $message);
         fputs($logger, "\n");
     }

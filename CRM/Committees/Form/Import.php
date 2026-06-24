@@ -91,6 +91,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
             $this->_errors['importer'] = E::ts("Class not found");
         } else {
             // check requirements
+            /** @phpstan-var CRM_Committees_Plugin_Importer $importer */
             $importer = new $importers[$importer_key]['class']();
             $missing_requirements = $importer->getMissingRequirements();
             if (!empty($missing_requirements)) {
@@ -108,6 +109,7 @@ class CRM_Committees_Form_Import extends CRM_Core_Form
             $this->_errors['syncer'] = E::ts("Class not found");
         } else {
             // check requirements
+            /** @phpstan-var CRM_Committees_Plugin_Syncer $syncer */
             $syncer = new $syncers[$syncer_key]['class']();
             $missing_requirements = $syncer->getMissingRequirements();
             if (!empty($missing_requirements)) {

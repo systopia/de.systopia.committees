@@ -97,8 +97,8 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             7 => 'laenddat',
     ];
 
-    /** @var array our sheets extracted from the file */
-    private $our_sheets = null;
+    /** @var array<PhpOffice\PhpSpreadsheet\Worksheet\Worksheet> our sheets extracted from the file */
+    private $our_sheets = [];
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -143,7 +143,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      *   the local path to the file
      *
      * @return boolean
-     *   true iff the file can be processed
+     *   true if the file can be processed
      */
     public function probeFile($file_path) : bool
     {
@@ -160,6 +160,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                     }
                 }
             } catch (Exception $ex) {
+                // @ignoreException
                 $this->logException($ex);
                 return false;
             }
@@ -173,16 +174,18 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      *
      * @param string $file_path
      *   path to the xlsx file
+     * @return array<PhpOffice\PhpSpreadsheet\Worksheet\Worksheet>
      */
     protected function getRequiredSheets($file_path)
     {
-        if ($this->our_sheets === null) {
+        if ([] === $this->our_sheets) {
             $this->log("Opening spreadsheet...");
             $this->our_sheets = [];
             $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
             $spreadsheet = $xls_reader->load($file_path);
 
             // check if all spreadsheets are there
+            // @phhpstan-var array<Worksheet> $all_sheets
             $all_sheets = $spreadsheet->getAllSheets();
             foreach (self::REQUIRED_SHEETS as $required_sheet) {
                 // find sheet
@@ -251,11 +254,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record = $this->readRow($details_sheet, $row_nr, self::ROW_MAPPING_EMAIL);
             if (!empty($record['email'])) {
                 $record['email'] = strtolower($record['email']);
-                try {
-                    $this->model->addEmail($record);
-                } catch (CRM_Committees_Model_ValidationException $ex) {
-                    $this->log("Email '{$record['email']}' is not a valid email address.");
-                }
+                $this->model->addEmail($record);
             }
         }
         $this->log(count($this->model->getAllEmails()) . " emails read.");

@@ -21,10 +21,10 @@ use CRM_Committees_ExtensionUtil as E;
 class CRM_Committees_Implementation_BoellSimpleSync extends CRM_Committees_Implementation_OxfamSimpleSync
 {
 
-    public function syncModel($model, $transaction = false)
+    public function syncModel($model, $transaction = false): bool
     {
         // anything custom to do here?
-        parent::syncModel($model, $transaction);
+        return parent::syncModel($model, $transaction);
     }
 
     /**
