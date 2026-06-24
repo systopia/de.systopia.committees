@@ -15,7 +15,6 @@
 
 
 use Civi\Test\Api3TestTrait;
-use Civi\Test\TransactionalInterface;
 use CRM_Committees_ExtensionUtil as E;
 
 /**
@@ -28,80 +27,76 @@ use CRM_Committees_ExtensionUtil as E;
  * @covers \CRM_Committees_Implementation_KuerschnerCsvImporter
  * @covers \CRM_Committees_Implementation_OxfamSimpleSync
  */
-class CRM_Committees_MultirunTest extends CRM_Committees_TestBase
-{
-    use Api3TestTrait {
-        callAPISuccess as protected traitCallAPISuccess;
-    }
+class CRM_Committees_MultirunTest extends CRM_Committees_TestBase {
+  use Api3TestTrait {
+    callAPISuccess as protected traitCallAPISuccess;
+  }
 
-    public function setUp(): void {
-        parent::setUp();
-    }
+  public function setUp(): void {
+    parent::setUp();
+  }
 
-    public function tearDown(): void {
-        parent::tearDown();
-    }
+  public function tearDown(): void {
+    parent::tearDown();
+  }
 
-    /**
-     * Test the basic file format described in the docs
-     */
-    public function testFileFormat01()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+  /**
+   * Test the basic file format described in the docs
+   */
+  public function testFileFormat01() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
 
-        // run the importer
-        list($importer, $syncer) =
+    // run the importer
+    list($importer, $syncer) =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path('tests/resources/kuerschner/bundestag-02.csv')
-            );
-    }
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path('tests/resources/kuerschner/bundestag-02.csv')
+        );
+  }
 
-    /**
-     * Test the file format with the functions and staff fields
-     *
-     * @see https://projekte.systopia.de/issues/18225
-     */
-    public function testFileFormat02()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+  /**
+   * Test the file format with the functions and staff fields
+   *
+   * @see https://projekte.systopia.de/issues/18225
+   */
+  public function testFileFormat02() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
 
-        // run the importer
-        list($importer, $syncer) =
+    // run the importer
+    list($importer, $syncer) =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path('tests/resources/kuerschner/bundestag-03_extd.csv')
-            );
-    }
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path('tests/resources/kuerschner/bundestag-03_extd.csv')
+        );
+  }
 
-    /**
-     * Just load a minimal import file and check if the data is present
-     */
-    public function testUpdateFileImport()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+  /**
+   * Just load a minimal import file and check if the data is present
+   */
+  public function testUpdateFileImport() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
 
-        // run the importer
-        list($importer, $syncer) =
+    // run the importer
+    list($importer, $syncer) =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path('tests/resources/kuerschner/bundestag-01.csv')
-            );
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path('tests/resources/kuerschner/bundestag-01.csv')
+        );
 
-        // run the update
-        list($importer, $syncer) =
+    // run the update
+    list($importer, $syncer) =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path('tests/resources/kuerschner/bundestag-02.csv')
-            );
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path('tests/resources/kuerschner/bundestag-02.csv')
+        );
 
+  }
 
-    }
 }

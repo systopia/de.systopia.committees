@@ -23,118 +23,116 @@ use Civi\Core\Event\GenericHookEvent as Event;
  *
  * Abstract event class to provide some basic functions
  */
-class CommitteeModuleSurvey extends Event
-{
-    /** Symfony event name for the module registration */
-    const EVENT_NAME = 'civi.committees.register_modules';
+class CommitteeModuleSurvey extends Event {
+  /**
+ * Symfony event name for the module registration */
+  const EVENT_NAME = 'civi.committees.register_modules';
 
-    /** @var array list of importer module metadata */
-    protected $importer_modules = [];
+  /**
+   * @var array list of importer module metadata */
+  protected $importer_modules = [];
 
-    /** @var array list of syncer module metadata */
-    protected $syncer_modules = [];
+  /**
+   * @var array list of syncer module metadata */
+  protected $syncer_modules = [];
 
-    /**
-     * Register a new importer module with the system
-     *
-     * @param string $module_key
-     *   the unique module key. If it is already registered, the previous registration will be overwritten
-     *
-     * @param string $module_class
-     *   the module's implementation class. A subclass of CRM_Committees_Plugin_Importer
-     *
-     * @param string $display_name
-     *   the module's name as presented to the user (optional)
-     *
-     * @param string $config_link
-     *   url of the module's configuration page (optional)
-     *
-     * @param string $help_text
-     *   html help text to be presented to the user
-     *
-     * @return void
-     */
-    public function registerImporterModule($module_key, $module_class, $display_name = null, $config_link = null, $help_text = null, $params = null)
-    {
-        $this->importer_modules[$module_key] = [
-            'key' => $module_key,
-            'class' => $module_class,
-            'display_name' => $display_name,
-            'config_link' => $config_link,
-            'help_text' => $help_text,
-            'params' => $params,
-        ];
+  /**
+   * Register a new importer module with the system
+   *
+   * @param string $module_key
+   *   the unique module key. If it is already registered, the previous registration will be overwritten
+   *
+   * @param string $module_class
+   *   the module's implementation class. A subclass of CRM_Committees_Plugin_Importer
+   *
+   * @param string $display_name
+   *   the module's name as presented to the user (optional)
+   *
+   * @param string $config_link
+   *   url of the module's configuration page (optional)
+   *
+   * @param string $help_text
+   *   html help text to be presented to the user
+   *
+   * @return void
+   */
+  public function registerImporterModule($module_key, $module_class, $display_name = NULL, $config_link = NULL, $help_text = NULL, $params = NULL) {
+    $this->importer_modules[$module_key] = [
+      'key' => $module_key,
+      'class' => $module_class,
+      'display_name' => $display_name,
+      'config_link' => $config_link,
+      'help_text' => $help_text,
+      'params' => $params,
+    ];
+  }
+
+  /**
+   * Get the list of all currently registered import modules
+   *
+   * @return array
+   *   a list of arrays with the modules' metadata
+   */
+  public function getRegisteredImporterModules() {
+    return $this->importer_modules;
+  }
+
+  /**
+   * Get the importer module instance represented by the key
+   *
+   * @param string $key
+   *   the module key
+   *
+   * @return
+   *   module specs
+   */
+  public function getImportModule($key) {
+    if (isset($this->importer_modules[$key])) {
+      $specs = $this->importer_modules[$key];
+      return new $specs['class']($specs['config']);
     }
+    return NULL;
+  }
 
-    /**
-     * Get the list of all currently registered import modules
-     *
-     * @return array
-     *    a list of arrays with the modules' metadata
-     */
-    public function getRegisteredImporterModules()
-    {
-        return $this->importer_modules;
-    }
+  /**
+   * Register a new syncer module with the system
+   *
+   * @param string $module_key
+   *   the unique module key. If it is already registered, the previous registration will be overwritten
+   *
+   * @param string $module_class
+   *   the module's implementation class. A subclass of CRM_Committees_Plugin_Syncer
+   *
+   * @param string $display_name
+   *   the module's name as presented to the user (optional)
+   *
+   * @param string $config_link
+   *   url of the module's configuration page (optional)
+   *
+   * @param string $help_text
+   *   html help text to be presented to the user
+   *
+   * @return void
+   */
+  public function registerSyncerModule($module_key, $module_class, $display_name = NULL, $config_link = NULL, $help_text = NULL, $params = NULL) {
+    $this->syncer_modules[$module_key] = [
+      'key' => $module_key,
+      'class' => $module_class,
+      'display_name' => $display_name,
+      'config_link' => $config_link,
+      'help_text' => $help_text,
+      'params' => $params,
+    ];
+  }
 
-    /**
-     * Get the importer module instance represented by the key
-     *
-     * @param string $key
-     *   the module key
-     *
-     * @return
-     *    module specs
-     */
-    public function getImportModule($key)
-    {
-        if (isset($this->importer_modules[$key])) {
-            $specs = $this->importer_modules[$key];
-            return new $specs['class']($specs['config']);
-        }
-        return null;
-    }
+  /**
+   * Get the list of all currently registered import modules
+   *
+   * @return array
+   *   a list of arrays with the modules' metadata
+   */
+  public function getRegisteredSyncerModules() {
+    return $this->syncer_modules;
+  }
 
-    /**
-     * Register a new syncer module with the system
-     *
-     * @param string $module_key
-     *   the unique module key. If it is already registered, the previous registration will be overwritten
-     *
-     * @param string $module_class
-     *   the module's implementation class. A subclass of CRM_Committees_Plugin_Syncer
-     *
-     * @param string $display_name
-     *   the module's name as presented to the user (optional)
-     *
-     * @param string $config_link
-     *   url of the module's configuration page (optional)
-     *
-     * @param string $help_text
-     *   html help text to be presented to the user
-     *
-     * @return void
-     */
-    public function registerSyncerModule($module_key, $module_class, $display_name = null, $config_link = null, $help_text = null, $params = null)
-    {
-        $this->syncer_modules[$module_key] = [
-            'key' => $module_key,
-            'class' => $module_class,
-            'display_name' => $display_name,
-            'config_link' => $config_link,
-            'help_text' => $help_text,
-            'params' => $params
-        ];
-    }
-
-    /**
-     * Get the list of all currently registered import modules
-     *
-     * @return array
-     *    a list of arrays with the modules' metadata
-     */
-    public function getRegisteredSyncerModules()
-    {
-        return $this->syncer_modules;
-    }
 }

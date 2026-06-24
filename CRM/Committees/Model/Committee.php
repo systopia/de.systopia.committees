@@ -17,7 +17,6 @@
  * The committee entity represents a committee, that's constituted
  *   through
  */
-class CRM_Committees_Model_Committee extends CRM_Committees_Model_Entity
-{
+class CRM_Committees_Model_Committee extends CRM_Committees_Model_Entity {
 
 }

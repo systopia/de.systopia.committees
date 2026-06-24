@@ -33,16 +33,15 @@ function _committees_composer_autoload(): void {
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config/
  */
-function committees_civicrm_config(&$config)
-{
-    _committees_civix_civicrm_config($config);
+function committees_civicrm_config(&$config) {
+  _committees_civix_civicrm_config($config);
 
-    // register for Committees.register_modules event
-    Civi::dispatcher()->addListener(
+  // register for Committees.register_modules event
+  Civi::dispatcher()->addListener(
         'civi.committees.register_modules',
         ['CRM_Committees_Plugin_Importer', 'registerBuiltInImporters']
     );
-    Civi::dispatcher()->addListener(
+  Civi::dispatcher()->addListener(
         'civi.committees.register_modules',
         ['CRM_Committees_Plugin_Syncer', 'registerBuiltInSyncers']
     );
@@ -53,9 +52,8 @@ function committees_civicrm_config(&$config)
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_install
  */
-function committees_civicrm_install()
-{
-    _committees_civix_civicrm_install();
+function committees_civicrm_install() {
+  _committees_civix_civicrm_install();
 }
 
 /**
@@ -63,9 +61,8 @@ function committees_civicrm_install()
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_enable
  */
-function committees_civicrm_enable()
-{
-    _committees_civix_civicrm_enable();
+function committees_civicrm_enable() {
+  _committees_civix_civicrm_enable();
 }
 
 /**
@@ -73,15 +70,14 @@ function committees_civicrm_enable()
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
  */
-function committees_civicrm_navigationMenu(&$menu)
-{
-    _committees_civix_insert_navigation_menu($menu, 'Contacts', [
-        'label' => E::ts('Import/Synchronise Committees'),
-        'name' => 'sync_committees',
-        'url' => 'civicrm/committees/upload',
-        'permission' => 'import contacts',
-        'operator' => 'OR',
-        'separator' => 0,
-    ]);
-    _committees_civix_navigationMenu($menu);
+function committees_civicrm_navigationMenu(&$menu) {
+  _committees_civix_insert_navigation_menu($menu, 'Contacts', [
+    'label' => E::ts('Import/Synchronise Committees'),
+    'name' => 'sync_committees',
+    'url' => 'civicrm/committees/upload',
+    'permission' => 'import contacts',
+    'operator' => 'OR',
+    'separator' => 0,
+  ]);
+  _committees_civix_navigationMenu($menu);
 }

@@ -20,83 +20,83 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * Careful: the caching only works if all group_contact operations are performed through this trait
  */
-trait CRM_Committees_Tools_ContactGroupTrait
-{
-    /** @var array list of contact ids indexed by group_id */
-    protected $trait_group_members = [];
+trait CRM_Committees_Tools_ContactGroupTrait {
+  /**
+   * @var array list of contact ids indexed by group_id */
+  protected $trait_group_members = [];
 
-    /**
-     * Init the group cache for the give group ID
-     *
-     * @param integer $group_id
-     */
-    protected function initGroupCache($group_id) {
-        if (!isset($this->trait_group_members[$group_id])) {
-            $group_id = (int) $group_id;
-            /** @phpstan-var DB_DataObject $query */
-            $query = CRM_Core_DAO::executeQuery("SELECT contact_id FROM civicrm_group_contact WHERE group_id = {$group_id} AND status = 'Added';");
-            while ($query->fetch()) {
-                /** @phpstan-ignore property.notFound, property.notFound */
-                $this->trait_group_members[$group_id][$query->contact_id] = $query->contact_id;
-            }
-        }
+  /**
+   * Init the group cache for the give group ID
+   *
+   * @param integer $group_id
+   */
+  protected function initGroupCache($group_id) {
+    if (!isset($this->trait_group_members[$group_id])) {
+      $group_id = (int) $group_id;
+      /** @phpstan-var DB_DataObject $query */
+      $query = CRM_Core_DAO::executeQuery("SELECT contact_id FROM civicrm_group_contact WHERE group_id = {$group_id} AND status = 'Added';");
+      while ($query->fetch()) {
+        /** @phpstan-ignore property.notFound, property.notFound */
+        $this->trait_group_members[$group_id][$query->contact_id] = $query->contact_id;
+      }
+    }
+  }
+
+  /**
+   * Add contact to the group
+   *
+   * @param integer $contact_id
+   * @param integer $group_id
+   * @param boolean $cached
+   *   if caching is used, the adding an already existing contact will be cheaper
+   *
+   * @return void
+   */
+  public function addContactToGroup($contact_id, $group_id, $cached = FALSE) {
+    if ($cached) {
+      $this->initGroupCache($group_id);
+      if (isset($this->trait_group_members[$group_id][$contact_id])) {
+        // already a member
+        return;
+      }
     }
 
-    /**
-     * Add contact to the group
-     *
-     * @param integer $contact_id
-     * @param integer $group_id
-     * @param boolean $cached
-     *   if caching is used, the adding an already existing contact will be cheaper
-     *
-     * @return void
-     */
-    public function addContactToGroup($contact_id, $group_id, $cached = false)
-    {
-        if ($cached) {
-            $this->initGroupCache($group_id);
-            if (isset($this->trait_group_members[$group_id][$contact_id])) {
-                return; // already a member
-            }
-        }
+    $this->callApi3('GroupContact', 'create', [
+      'contact_id' => $contact_id,
+      'group_id'  => $group_id,
+    ]);
 
-        $this->callApi3('GroupContact', 'create', [
-            'contact_id' => $contact_id,
-            'group_id'  => $group_id
-        ]);
-
-        if ($cached) {
-            $this->trait_group_members[$group_id][$contact_id] = $contact_id;
-        }
+    if ($cached) {
+      $this->trait_group_members[$group_id][$contact_id] = $contact_id;
     }
+  }
 
-    /**
-     * Get or create a contact group.
-     *
-     * @param $attributes
-     *   attributes the group should be identified by,
-     *    or created by when not found
-     *
-     * @return integer
-     *   ID of the contact group
-     */
-    public function getOrCreateContactGroup($attributes)
-    {
-        $result = $this->callApi3('Group', 'get', $attributes + ['option.limit' => 0]);
-        switch ($result['count']) {
-            case 1:
-                return $result['id'];
+  /**
+   * Get or create a contact group.
+   *
+   * @param $attributes
+   *   attributes the group should be identified by,
+   *    or created by when not found
+   *
+   * @return integer
+   *   ID of the contact group
+   */
+  public function getOrCreateContactGroup($attributes) {
+    $result = $this->callApi3('Group', 'get', $attributes + ['option.limit' => 0]);
+    switch ($result['count']) {
+      case 1:
+        return $result['id'];
 
-            case 0:
-                $result = $this->callApi3('Group', 'create', $attributes);
-                return $result['id'];
+      case 0:
+        $result = $this->callApi3('Group', 'create', $attributes);
+        return $result['id'];
 
-            default:
-                // more the one group found
-                $this->logError("Group identified by " . json_encode($attributes) . "is not unique, selecting one.");
-                $first_entry = reset($result['values']);
-                return $first_entry['id'];
-        }
+      default:
+        // more the one group found
+        $this->logError('Group identified by ' . json_encode($attributes) . 'is not unique, selecting one.');
+        $first_entry = reset($result['values']);
+        return $first_entry['id'];
     }
+  }
+
 }

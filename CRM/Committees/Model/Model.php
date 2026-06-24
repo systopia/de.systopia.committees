@@ -16,859 +16,850 @@
 /**
  * The model containing all entities
  */
-class CRM_Committees_Model_Model
-{
-    /** @var string default separated to be used for compound keys */
-    const DEFAULT_KEY_SEPARATOR = '::';
+class CRM_Committees_Model_Model {
+  /**
+ * @var string default separated to be used for compound keys */
+  const DEFAULT_KEY_SEPARATOR = '::';
 
-    /** @var string default separated to be used for compound keys */
-    const CORRESPONDING_ENTITY_ID_KEY = '_corresponding_entity_id';
+  /**
+ * @var string default separated to be used for compound keys */
+  const CORRESPONDING_ENTITY_ID_KEY = '_corresponding_entity_id';
 
-    /** @var array model properties */
-    protected $model_properties = [];
+  /**
+   * @var array model properties */
+  protected $model_properties = [];
 
-    /** @var array list of committees, indexed by its ID */
-    protected $committees = [];
+  /**
+   * @var array list of committees, indexed by its ID */
+  protected $committees = [];
 
-    /** @var array list of persons, indexed by its ID */
-    protected $persons = [];
+  /**
+   * @var array list of persons, indexed by its ID */
+  protected $persons = [];
 
-    /** @var array list of committee memberships, indexed by its ID */
-    protected $memberships = [];
+  /**
+   * @var array list of committee memberships, indexed by its ID */
+  protected $memberships = [];
 
-    /** @var array list of addresses, indexed by its ID */
-    protected $addresses = [];
+  /**
+   * @var array list of addresses, indexed by its ID */
+  protected $addresses = [];
 
-    /** @var array list of phones, indexed by its ID */
-    protected $phones = [];
+  /**
+   * @var array list of phones, indexed by its ID */
+  protected $phones = [];
 
-    /** @var array list of emails, indexed by its ID */
-    protected $emails = [];
+  /**
+   * @var array list of emails, indexed by its ID */
+  protected $emails = [];
 
-    /** @var array list of urls, indexed by its ID */
-    protected $urls = [];
+  /**
+   * @var array list of urls, indexed by its ID */
+  protected $urls = [];
 
-    /** @var array additional context data, not processed */
-    protected $context_data = [];
+  /**
+   * @var array additional context data, not processed */
+  protected $context_data = [];
 
-    /**
-     * Get a property from the given model
-     *
-     * @param string $property_name
-     *
-     * @return string|int|boolean
-     */
-    public function getProperty($property_name)
-    {
-        return $this->model_properties[$property_name] ?? null;
+  /**
+   * Get a property from the given model
+   *
+   * @param string $property_name
+   *
+   * @return string|int|boolean
+   */
+  public function getProperty($property_name) {
+    return $this->model_properties[$property_name] ?? NULL;
+  }
+
+  /**
+   * Get a property from the given model
+   *
+   * @param string $property_name
+   * @param string|int|boolean $value
+   */
+  public function setProperty(string $property_name, $value) {
+    $this->model_properties[$property_name] = $value;
+  }
+
+  /**
+   * Add a new person to the model
+   *
+   * Possible attributes:
+   *  'id'           => committee ID
+   *  'first_name'   => full name of the committee
+   *  'last_name'    => short name of the committee
+   *  'formal_title' => short handle, external ID
+   *
+   * @param array|CRM_Committees_Model_Person $data
+   *    the committee data
+   *
+   * @return CRM_Committees_Model_Person
+   */
+  public function addPerson($data) {
+    // todo: validation?
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Person($this, $data);
+    }
+    $this->persons[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Add a new committee as a data record.
+   * Possible attributes:
+   *  'id'         => committee ID
+   *  'name'       => full name of the committee
+   *  'name_short' => short name of the committee
+   *  'handle'     => short handle, external ID
+   *  'start_date' => date when the committee was/will be created
+   *  'end_date'   => date when the committee was/will be terminated
+   * @param array|CRM_Committees_Model_Committee $data
+   *    the committee data
+   *
+   * @return CRM_Committees_Model_Committee
+   */
+  public function addCommittee($data) {
+    // todo: validation
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Committee($this, $data);
+    }
+    // todo: validation?
+    $this->committees[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Add a new address to the model
+   *
+   * Possible attributes:
+   *  'id'              => address ID
+   *  'street_address'  => street address
+   *  'postal_code'     => postal code
+   *  'city'            => city
+   *
+   * @param array|CRM_Committees_Model_Address $data
+   */
+  public function addAddress($data) {
+    // todo: validation
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Address($this, $data);
+    }
+    // todo: validation?
+    $this->addresses[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Add a new email address to the model
+   *
+   * Possible attributes:
+   *  'id'              => email ID
+   *  'contact_id'      => person or organisation ID
+   *  'email'           => email address
+   *  'type'            => email type
+   *
+   * @param array|CRM_Committees_Model_Email $data
+   */
+  public function addEmail($data) {
+    // todo: validation
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Email($this, $data);
+    }
+    // todo: validation?
+    $this->emails[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Add a new url to the model
+   *
+   * Possible attributes:
+   *  'id'              => url ID
+   *  'contact_id'      => person or organisation ID
+   *  'url'             => the url
+   *  'type'            => url type
+   *
+   * @param array|CRM_Committees_Model_Url $data
+   */
+  public function addUrl($data) {
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Url($this, $data);
+    }
+    $this->urls[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Add a new phone number to the model
+   *
+   * Possible attributes:
+   *  'id'              => email ID
+   *  'contact_id'      => person or organisation ID
+   *  'phone'           => phone number
+   *  'type'            => email type
+   *
+   * @param array|CRM_Committees_Model_Phone $data
+   */
+  public function addPhone($data) {
+    // todo: validation
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Phone($this, $data);
+    }
+    // todo: validation?
+    $this->phones[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Add a new committee membership as to the model
+   *
+   * Possible attributes:
+   *
+   *  'id'              => email ID
+   *  'contact_id'      => person or organisation ID
+   *  'committee_id'    => id of a committee
+   *  'title'           => membership title
+   *  'represents'      => Organisation name?
+   *  'start_date'      => when did the membership start?
+   *  'end_date'        => when did the membership end?
+   *
+   * @param array|CRM_Committees_Model_Membership $data
+   */
+  public function addCommitteeMembership($data) {
+    // todo: validation
+    if (is_array($data)) {
+      $data = new CRM_Committees_Model_Membership($this, $data);
+    }
+    $data->validate();
+    $this->memberships[$data->getID()] = $data;
+    return $data;
+  }
+
+  /**
+   * Get a membership with the given ID
+   *
+   * @param string $id
+   *   the ID
+   *
+   * @return CRM_Committees_Model_Membership $data
+   */
+  public function getCommitteeMembership($id) {
+    return $this->memberships[$id] ?? NULL;
+  }
+
+  /**
+   * Get a committee with the given ID
+   *
+   * @param string $id
+   *   the ID
+   *
+   * @return CRM_Committees_Model_Committee $data
+   */
+  public function getCommittee($id) {
+    return $this->committees[$id] ?? NULL;
+  }
+
+  /**
+   * Get a person with the given ID
+   *
+   * @param string $id
+   *   the ID
+   *
+   * @return CRM_Committees_Model_Person $data
+   */
+  public function getPerson($id) {
+    return $this->persons[$id] ?? NULL;
+  }
+
+  /**
+   * Get a list of all committees
+   *
+   * @return array
+   */
+  public function getAllCommittees() {
+    return $this->committees;
+  }
+
+  /**
+   * Get a list of all committees
+   *
+   * @return array
+   */
+  public function getAllPersons() {
+    return $this->persons;
+  }
+
+  /**
+   * Get a list of all committees
+   *
+   * @return array
+   */
+  public function getAllMemberships() {
+    return $this->memberships;
+  }
+
+  /**
+   * Generate a list of all membership, indexed by person
+   *
+   * @return array
+   */
+  public function getAllMembershipsByPersonId() {
+    $membership_by_person_id = [];
+    foreach ($this->memberships as $membership) {
+      /** @var CRM_Committees_Model_Membership $membership */
+      $membership_by_person_id[$membership->getPerson()->getID()][] = $membership;
+    }
+    return $membership_by_person_id;
+  }
+
+  /**
+   * Diff the memberships of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @param array<string> $id_properties
+   *   list of entity attributes used to define equality
+   *   default is ['committee_id', 'contact_id']
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffMemberships(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = []) {
+    if (0 === count($id_properties)) {
+      $id_properties = ['contact_id', 'committee_id', 'relationship_type_id'];
+    }
+    return $this->diffEntities($model, ['memberships'], $id_properties, $ignore_attributes);
+  }
+
+  /**
+   * Diff the emails of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @param array<string> $id_properties
+   *   list of entity attributes used to define equality
+   *   default is ['email', 'contact_id']
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffEmails(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = []) {
+    if (0 === count($id_properties)) {
+      $id_properties = ['email', 'contact_id'];
+    }
+    return $this->diffEntities($model, ['emails'], $id_properties, $ignore_attributes);
+  }
+
+  /**
+   * Diff the urls of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @param array<string> $id_properties
+   *   list of entity attributes used to define equality
+   *   default is ['url', 'contact_id']
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffUrls(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = []) {
+    if (0 === count($id_properties)) {
+      $id_properties = ['url', 'contact_id'];
+    }
+    return $this->diffEntities($model, ['urls'], $id_properties, $ignore_attributes);
+  }
+
+  /**
+   * Diff the phones of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @param array<string> $id_properties
+   *   list of entity attributes used to define equality
+   *   default is ['phone', 'contact_id']
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffPhones(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = []) {
+    if (0 === count($id_properties)) {
+      $id_properties = ['phone_numeric', 'contact_id'];
+    }
+    return $this->diffEntities($model, ['phones'], $id_properties, $ignore_attributes);
+  }
+
+  /**
+   * Diff the addresses of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @param array<string> $id_properties
+   *   list of entity attributes used to define equality
+   *   default is ['contact_id', 'postal_code', 'city', 'street_address']
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffAddresses(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = []) {
+    if (0 === count($id_properties)) {
+      $id_properties = ['contact_id', 'postal_code', 'city', 'street_address'];
+    }
+    return $this->diffEntities($model, ['addresses'], $id_properties, $ignore_attributes);
+  }
+
+  /**
+   * Diff the persons of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   *
+   * @warning this does NOT contain *unchanged* persons
+   */
+  public function diffPersons(CRM_Committees_Model_Model $model, $ignore_attributes = []) {
+    return $this->diffEntities($model, ['persons'], ['id'], $ignore_attributes);
+  }
+
+  /**
+   * Diff the memberships of this model against another i.e. identify the ones:
+   *   that are new, that have been changed, that ore obsolete
+   *
+   * @param $model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffCommittees(CRM_Committees_Model_Model $model, $ignore_attributes = []) {
+    return $this->diffEntities($model, ['committees'], ['id'], $ignore_attributes);
+  }
+
+  /**
+   * Get a list of all addresses
+   *
+   * @return array
+   */
+  public function getAllAddresses() {
+    return $this->addresses;
+  }
+
+  /**
+   * Get a list of all address by 'id'
+   *
+   * @return array
+   *   'id' => [entities]
+   */
+  public function getEntitiesByID($entities, $id_field = 'id') {
+    $result = [];
+    foreach ($entities as $entity) {
+      /** @var $entity CRM_Committees_Model_Entity */
+      $key = $id_field == 'id' ? $entity->getID() : $entity->getAttribute($id_field);
+      $result[$key][] = $entity;
+    }
+    return $result;
+  }
+
+  /**
+   * Get a list of all emails
+   *
+   * @return array
+   */
+  public function getAllEmails() {
+    return $this->emails;
+  }
+
+  /**
+   * Get a list of all urls
+   *
+   * @return array
+   */
+  public function getAllUrls() {
+    return $this->urls;
+  }
+
+  /**
+   * Get a list of all phones
+   *
+   * @return array
+   */
+  public function getAllPhones() {
+    return $this->phones;
+  }
+
+  /**
+   * Join the data of the 'other_entities' into the 'entities' on the two fields
+   *
+   * @param array $entities
+   *   the entities that should be extended, i.e. will be added
+   *
+   * @param array $other_entities
+   *    the other entities where the data is taken from
+   *
+   * @param string $other_id_field
+   *    the field the carries the ID to be joined
+   *
+   * @param string $entity_id_field
+   *    the field the carries the other ID to be joined
+   *
+   * @param array $fields
+   *    list of fields to be copied. default is all (except pre-existing ones)
+   */
+  public function join(&$entities, $other_entities, $other_id_field = 'contact_id', $entity_id_field = 'id', $fields = NULL) {
+    // create an index of the other entities
+    $other_entities_indexed = [];
+    foreach ($other_entities as $other_entity) {
+      /** @var CRM_Committees_Model_Entity $other_entity */
+      $other_entity_link = $other_entity->getAttribute($other_id_field);
+      if (isset($other_entities_indexed[$other_entity_link])) {
+        throw new Exception("Key field {$other_id_field} is not unique");
+      }
+      else {
+        $other_entities_indexed[$other_entity_link] = $other_entity;
+      }
     }
 
-    /**
-     * Get a property from the given model
-     *
-     * @param string $property_name
-     * @param string|int|boolean $value
-     */
-    public function setProperty(string $property_name, $value)
-    {
-        $this->model_properties[$property_name] = $value;
-    }
+    // now join the data
+    foreach ($entities as &$entity) {
+      /** @var CRM_Committees_Model_Entity $entity */
+      $key = $entity->getAttribute($entity_id_field);
+      if (!isset($key)) {
+        throw new Exception("Key field {$entity_id_field} is empty");
+      }
 
-    /**
-     * Add a new person to the model
-     *
-     * Possible attributes:
-     *  'id'           => committee ID
-     *  'first_name'   => full name of the committee
-     *  'last_name'    => short name of the committee
-     *  'formal_title' => short handle, external ID
-     *
-     * @param array|CRM_Committees_Model_Person $data
-     *    the committee data
-     *
-     * @return CRM_Committees_Model_Person
-     */
-    public function addPerson($data)
-    {
-        // todo: validation?
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Person($this, $data);
-        }
-        $this->persons[$data->getID()] = $data;
-        return $data;
-    }
-
-    /**
-     * Add a new committee as a data record.
-     * Possible attributes:
-     *  'id'         => committee ID
-     *  'name'       => full name of the committee
-     *  'name_short' => short name of the committee
-     *  'handle'     => short handle, external ID
-     *  'start_date' => date when the committee was/will be created
-     *  'end_date'   => date when the committee was/will be terminated
-     * @param array|CRM_Committees_Model_Committee $data
-     *    the committee data
-     *
-     * @return CRM_Committees_Model_Committee
-     */
-    public function addCommittee($data)
-    {
-        // todo: validation
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Committee($this, $data);
-        }
-        // todo: validation?
-        $this->committees[$data->getID()] = $data;
-        return $data;
-    }
-
-    /**
-     * Add a new address to the model
-     *
-     * Possible attributes:
-     *  'id'              => address ID
-     *  'street_address'  => street address
-     *  'postal_code'     => postal code
-     *  'city'            => city
-     *
-     * @param array|CRM_Committees_Model_Address $data
-     */
-    public function addAddress($data)
-    {
-        // todo: validation
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Address($this, $data);
-        }
-        // todo: validation?
-        $this->addresses[$data->getID()] = $data;
-        return $data;
-    }
-
-    /**
-     * Add a new email address to the model
-     *
-     * Possible attributes:
-     *  'id'              => email ID
-     *  'contact_id'      => person or organisation ID
-     *  'email'           => email address
-     *  'type'            => email type
-     *
-     * @param array|CRM_Committees_Model_Email $data
-     */
-    public function addEmail($data)
-    {
-        // todo: validation
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Email($this, $data);
-        }
-        // todo: validation?
-        $this->emails[$data->getID()] = $data;
-        return $data;
-    }
-
-    /**
-     * Add a new url to the model
-     *
-     * Possible attributes:
-     *  'id'              => url ID
-     *  'contact_id'      => person or organisation ID
-     *  'url'             => the url
-     *  'type'            => url type
-     *
-     * @param array|CRM_Committees_Model_Url $data
-     */
-    public function addUrl($data)
-    {
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Url($this, $data);
-        }
-        $this->urls[$data->getID()] = $data;
-        return $data;
-    }
-
-    /**
-     * Add a new phone number to the model
-     *
-     * Possible attributes:
-     *  'id'              => email ID
-     *  'contact_id'      => person or organisation ID
-     *  'phone'           => phone number
-     *  'type'            => email type
-     *
-     * @param array|CRM_Committees_Model_Phone $data
-     */
-    public function addPhone($data)
-    {
-        // todo: validation
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Phone($this, $data);
-        }
-        // todo: validation?
-        $this->phones[$data->getID()] = $data;
-        return $data;
-    }
-
-    /**
-     * Add a new committee membership as to the model
-     *
-     * Possible attributes:
-     *
-     *  'id'              => email ID
-     *  'contact_id'      => person or organisation ID
-     *  'committee_id'    => id of a committee
-     *  'title'           => membership title
-     *  'represents'      => Organisation name?
-     *  'start_date'      => when did the membership start?
-     *  'end_date'        => when did the membership end?
-     *
-     * @param array|CRM_Committees_Model_Membership $data
-     */
-    public function addCommitteeMembership($data)
-    {
-        // todo: validation
-        if (is_array($data)) {
-            $data = new CRM_Committees_Model_Membership($this, $data);
-        }
-        $data->validate();
-        $this->memberships[$data->getID()] = $data;
-        return $data;
-    }
-
-
-    /**
-     * Get a membership with the given ID
-     *
-     * @param string $id
-     *   the ID
-     *
-     * @return CRM_Committees_Model_Membership $data
-     */
-    public function getCommitteeMembership($id)
-    {
-        return $this->memberships[$id] ?? null;
-    }
-
-    /**
-     * Get a committee with the given ID
-     *
-     * @param string $id
-     *   the ID
-     *
-     * @return CRM_Committees_Model_Committee $data
-     */
-    public function getCommittee($id)
-    {
-        return $this->committees[$id] ?? null;
-    }
-
-    /**
-     * Get a person with the given ID
-     *
-     * @param string $id
-     *   the ID
-     *
-     * @return CRM_Committees_Model_Person $data
-     */
-    public function getPerson($id)
-    {
-        return $this->persons[$id] ?? null;
-    }
-
-    /**
-     * Get a list of all committees
-     *
-     * @return array
-     */
-    public function getAllCommittees()
-    {
-        return $this->committees;
-    }
-
-    /**
-     * Get a list of all committees
-     *
-     * @return array
-     */
-    public function getAllPersons()
-    {
-        return $this->persons;
-    }
-
-    /**
-     * Get a list of all committees
-     *
-     * @return array
-     */
-    public function getAllMemberships()
-    {
-        return $this->memberships;
-    }
-
-    /**
-     * Generate a list of all membership, indexed by person
-     *
-     * @return array
-     */
-    public function getAllMembershipsByPersonId()
-    {
-        $membership_by_person_id = [];
-        foreach ($this->memberships as $membership) {
-            /** @var CRM_Committees_Model_Membership $membership */
-            $membership_by_person_id[$membership->getPerson()->getID()][] = $membership;
-        }
-        return $membership_by_person_id;
-    }
-
-    /**
-     * Diff the memberships of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @param array<string> $id_properties
-     *   list of entity attributes used to define equality
-     *   default is ['committee_id', 'contact_id']
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffMemberships(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
-    {
-        if (0 === count($id_properties)) {
-            $id_properties = ['contact_id', 'committee_id', 'relationship_type_id'];
-        }
-        return $this->diffEntities($model, ['memberships'], $id_properties, $ignore_attributes);
-    }
-
-    /**
-     * Diff the emails of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @param array<string> $id_properties
-     *   list of entity attributes used to define equality
-     *   default is ['email', 'contact_id']
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffEmails(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
-    {
-        if (0 === count($id_properties)) {
-            $id_properties = ['email', 'contact_id'];
-        }
-        return $this->diffEntities($model, ['emails'], $id_properties, $ignore_attributes);
-    }
-
-    /**
-     * Diff the urls of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @param array<string> $id_properties
-     *   list of entity attributes used to define equality
-     *   default is ['url', 'contact_id']
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffUrls(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
-    {
-        if (0 === count($id_properties)) {
-            $id_properties = ['url', 'contact_id'];
-        }
-        return $this->diffEntities($model, ['urls'], $id_properties, $ignore_attributes);
-    }
-
-    /**
-     * Diff the phones of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @param array<string> $id_properties
-     *   list of entity attributes used to define equality
-     *   default is ['phone', 'contact_id']
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffPhones(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
-    {
-        if (0 === count($id_properties)) {
-            $id_properties = ['phone_numeric', 'contact_id'];
-        }
-        return $this->diffEntities($model, ['phones'], $id_properties, $ignore_attributes);
-    }
-
-    /**
-     * Diff the addresses of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @param array<string> $id_properties
-     *   list of entity attributes used to define equality
-     *   default is ['contact_id', 'postal_code', 'city', 'street_address']
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffAddresses(CRM_Committees_Model_Model $model, $ignore_attributes = [], $id_properties = [])
-    {
-        if (0 === count($id_properties)) {
-            $id_properties = ['contact_id', 'postal_code', 'city', 'street_address'];
-        }
-        return $this->diffEntities($model, ['addresses'], $id_properties, $ignore_attributes);
-    }
-
-    /**
-     * Diff the persons of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     *
-     * @warning this does NOT contain *unchanged* persons
-     */
-    public function diffPersons(CRM_Committees_Model_Model $model, $ignore_attributes = [])
-    {
-        return $this->diffEntities($model, ['persons'], ['id'], $ignore_attributes);
-    }
-
-    /**
-     * Diff the memberships of this model against another i.e. identify the ones:
-     *   that are new, that have been changed, that ore obsolete
-     *
-     * @param $model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffCommittees(CRM_Committees_Model_Model $model, $ignore_attributes = [])
-    {
-        return $this->diffEntities($model, ['committees'], ['id'], $ignore_attributes);
-    }
-
-    /**
-     * Get a list of all addresses
-     *
-     * @return array
-     */
-    public function getAllAddresses()
-    {
-        return $this->addresses;
-    }
-
-    /**
-     * Get a list of all address by 'id'
-     *
-     * @return array
-     *  'id' => [entities]
-     */
-    public function getEntitiesByID($entities, $id_field = 'id')
-    {
-        $result = [];
-        foreach ($entities as $entity) {
-            /** @var $entity CRM_Committees_Model_Entity */
-            $key = $id_field == 'id' ? $entity->getID() : $entity->getAttribute($id_field);
-            $result[$key][] = $entity;
-        }
-        return $result;
-    }
-
-    /**
-     * Get a list of all emails
-     *
-     * @return array
-     */
-    public function getAllEmails()
-    {
-        return $this->emails;
-    }
-
-    /**
-     * Get a list of all urls
-     *
-     * @return array
-     */
-    public function getAllUrls()
-    {
-        return $this->urls;
-    }
-
-    /**
-     * Get a list of all phones
-     *
-     * @return array
-     */
-    public function getAllPhones()
-    {
-        return $this->phones;
-    }
-
-    /**
-     * Join the data of the 'other_entities' into the 'entities' on the two fields
-     *
-     * @param array $entities
-     *   the entities that should be extended, i.e. will be added
-     *
-     * @param array $other_entities
-     *    the other entities where the data is taken from
-     *
-     * @param string $other_id_field
-     *    the field the carries the ID to be joined
-     *
-     * @param string $entity_id_field
-     *    the field the carries the other ID to be joined
-     *
-     * @param array $fields
-     *    list of fields to be copied. default is all (except pre-existing ones)
-     */
-    public function join(&$entities, $other_entities, $other_id_field = 'contact_id', $entity_id_field = 'id', $fields = null)
-    {
-        // create an index of the other entities
-        $other_entities_indexed = [];
-        foreach ($other_entities as $other_entity)
-        {
-            /** @var CRM_Committees_Model_Entity $other_entity */
-            $other_entity_link = $other_entity->getAttribute($other_id_field);
-            if (isset($other_entities_indexed[$other_entity_link])) {
-                throw new Exception("Key field {$other_id_field} is not unique");
-            } else {
-                $other_entities_indexed[$other_entity_link] = $other_entity;
+      if (isset($other_entities_indexed[$key])) {
+        /** @var CRM_Committees_Model_Entity $other_entity */
+        $other_entity = $other_entities_indexed[$key];
+        $attributes = $fields ?? $other_entity->getFields();
+        foreach ($attributes as $attribute) {
+          if ($attribute != $entity_id_field && $attribute != $other_id_field) {
+            $new_value = $other_entity->getAttribute($attribute);
+            if ($new_value === NULL) {
+              Civi::log()->debug("Join on {$entity_id_field}:{$other_id_field} missing an entry for {$attribute}.");
             }
-        }
-
-        // now join the data
-        foreach ($entities as &$entity) {
-            /** @var CRM_Committees_Model_Entity $entity */
-            $key = $entity->getAttribute($entity_id_field);
-            if (!isset($key)) {
-                throw new Exception("Key field {$entity_id_field} is empty");
+            else {
+              $entity->setAttribute($attribute, $new_value);
             }
-
-            if (isset($other_entities_indexed[$key])) {
-                /** @var CRM_Committees_Model_Entity $other_entity */
-                $other_entity = $other_entities_indexed[$key];
-                $attributes = $fields ?? $other_entity->getFields();
-                foreach ($attributes as $attribute) {
-                    if ($attribute != $entity_id_field && $attribute != $other_id_field) {
-                        $new_value = $other_entity->getAttribute($attribute);
-                        if ($new_value === null) {
-                            Civi::log()->debug("Join on {$entity_id_field}:{$other_id_field} missing an entry for {$attribute}.");
-                        } else {
-                            $entity->setAttribute($attribute, $new_value);
-                        }
-                    }
-                }
-            }
+          }
         }
+      }
+    }
+  }
+
+  /**
+   * Join all the address data to the persons via the contact_id attribute
+   *
+   * @throws \Exception
+   */
+  public function joinAddressesToPersons() {
+    $this->join($this->persons, $this->addresses, 'contact_id', 'id');
+  }
+
+  /**
+   * Join all the email data to the persons via the contact_id attribute
+   *
+   * @throws \Exception
+   */
+  public function joinEmailsToPersons() {
+    $this->join($this->persons, $this->emails, 'contact_id', 'id', ['email']);
+  }
+
+  /**
+   * Join all the phone data to the persons via the contact_id attribute
+   *
+   * @throws \Exception
+   */
+  public function joinPhonesToPersons() {
+    $this->join($this->persons, $this->phones, 'contact_id', 'id', ['phone']);
+  }
+
+  /**
+   * Generate an identifier for the given entity
+   *
+   * @param CRM_Committees_Model_Entity $entity
+   *   the entity to generate the key for
+   *
+   * @param string|array<string> $identifiers
+   *   the identifier(s) used to generate the (private) key
+   *
+   * @param string $separator
+   *   the separator to be used to separate the key components (if multiple)
+   *
+   * @return string
+   *   the generated identifier
+   */
+  protected function renderIdentifier(CRM_Committees_Model_Entity $entity, $identifiers = 'id', string $separator = self::DEFAULT_KEY_SEPARATOR) : string {
+    if (!is_array($identifiers)) {
+      $identifiers = [$identifiers];
     }
 
-    /**
-     * Join all the address data to the persons via the contact_id attribute
-     *
-     * @throws \Exception
-     */
-    public function joinAddressesToPersons()
-    {
-        $this->join($this->persons, $this->addresses, 'contact_id', 'id');
+    // generate key
+    $key_components = [];
+    foreach ($identifiers as $identifier_attribute) {
+      $key_components[] = $entity->getAttribute($identifier_attribute);
     }
+    return implode($separator, $key_components);
+  }
 
-    /**
-     * Join all the email data to the persons via the contact_id attribute
-     *
-     * @throws \Exception
-     */
-    public function joinEmailsToPersons()
-    {
-        $this->join($this->persons, $this->emails, 'contact_id', 'id', ['email']);
-    }
-
-    /**
-     * Join all the phone data to the persons via the contact_id attribute
-     *
-     * @throws \Exception
-     */
-    public function joinPhonesToPersons()
-    {
-        $this->join($this->persons, $this->phones, 'contact_id', 'id', ['phone']);
-    }
-
-    /**
-     * Generate an identifier for the given entity
-     *
-     * @param CRM_Committees_Model_Entity $entity
-     *   the entity to generate the key for
-     *
-     * @param string|array<string> $identifiers
-     *   the identifier(s) used to generate the (private) key
-     *
-     * @param string $separator
-     *   the separator to be used to separate the key components (if multiple)
-     *
-     * @return string
-     *   the generated identifier
-     */
-    protected function renderIdentifier(CRM_Committees_Model_Entity $entity, $identifiers = 'id', string $separator = self::DEFAULT_KEY_SEPARATOR) : string
-    {
-        if (!is_array($identifiers)) $identifiers = [$identifiers];
-
-        // generate key
-        $key_components = [];
-        foreach ($identifiers as $identifier_attribute) {
-            $key_components[] = $entity->getAttribute($identifier_attribute);
-        }
-        return implode($separator, $key_components);
-    }
-
-    /**
-     * Get a list of the identifiers indexed by the given identifier(s)
-     *
-     * @param array<string> $entityList
-     *   list of CRM_Committees_Model_Entity objects
-     *
-     * @param array<string> $identifiers
-     *   the identifier(s) used to generate the (private) key
-     *
-     * @param string $separator
-     *   separator used to generate the key. Default is '::'
-     *
-     * @return array
-     */
-    public function getIndexedEntities(
+  /**
+   * Get a list of the identifiers indexed by the given identifier(s)
+   *
+   * @param array<string> $entityList
+   *   list of CRM_Committees_Model_Entity objects
+   *
+   * @param array<string> $identifiers
+   *   the identifier(s) used to generate the (private) key
+   *
+   * @param string $separator
+   *   separator used to generate the key. Default is '::'
+   *
+   * @return array
+   */
+  public function getIndexedEntities(
       $entityList,
       $identifiers = ['id'],
       $separator = self::DEFAULT_KEY_SEPARATOR
     ): array {
-      $indexedEntities = [];
-      $selectedEntityList = [];
+    $indexedEntities = [];
+    $selectedEntityList = [];
 
-      foreach ($entityList as $entityName) {
-        switch ($entityName) {
-          case 'person':
-            $selectedEntityList = &$this->persons;
-            break;
-          case 'address':
-            $selectedEntityList = &$this->addresses;
-            break;
-          case 'email':
-            $selectedEntityList = &$this->emails;
-            break;
-          case 'phone':
-            $selectedEntityList = &$this->phones;
-            break;
-          case 'committee':
-            $selectedEntityList = &$this->committees;
-            break;
-          case 'membership':
-            $selectedEntityList = &$this->memberships;
-            break;
-          default:
-            Civi::log()->warning("Entity [{$entityName}] not supported. No entities do exist of that type.");
-        }
+    foreach ($entityList as $entityName) {
+      switch ($entityName) {
+        case 'person':
+          $selectedEntityList = &$this->persons;
+          break;
 
-        /** @var CRM_Committees_Model_Entity $entity */
-        foreach ($selectedEntityList as $entity) {
-          $key = $this->renderIdentifier($entity, $identifiers, $separator);
-          $indexedEntities[$key] = $entity;
-        }
+        case 'address':
+          $selectedEntityList = &$this->addresses;
+          break;
+
+        case 'email':
+          $selectedEntityList = &$this->emails;
+          break;
+
+        case 'phone':
+          $selectedEntityList = &$this->phones;
+          break;
+
+        case 'committee':
+          $selectedEntityList = &$this->committees;
+          break;
+
+        case 'membership':
+          $selectedEntityList = &$this->memberships;
+          break;
+
+        default:
+          Civi::log()->warning("Entity [{$entityName}] not supported. No entities do exist of that type.");
       }
-      return $indexedEntities;
-    }
 
-    /**
-     * Diff the entities of this model against another i.e. identify the ones:
-     *   that are new -
-     *
-     * @param $other_model CRM_Committees_Model_Model
-     *   the model to compare with
-     *
-     * @param array<string> $entity_list
-     *   name of the property of the model to hold the entities
-     *
-     * @param array<string> $identifiers
-     *   list of identifiers to identify the entity
-     *
-     * @param array<string> $ignore_attributes
-     *   list of entity attributes to ignore
-     *
-     * @return array of arrays:
-     *  [
-     *      new entities (only in other model),
-     *      entities changed (with additional attribute 'differing_attributes'),
-     *      entities missing (only in this model)
-     *  ]
-     */
-    public function diffEntities(
+      /** @var CRM_Committees_Model_Entity $entity */
+      foreach ($selectedEntityList as $entity) {
+        $key = $this->renderIdentifier($entity, $identifiers, $separator);
+        $indexedEntities[$key] = $entity;
+      }
+    }
+    return $indexedEntities;
+  }
+
+  /**
+   * Diff the entities of this model against another i.e. identify the ones:
+   *   that are new -
+   *
+   * @param $other_model CRM_Committees_Model_Model
+   *   the model to compare with
+   *
+   * @param array<string> $entity_list
+   *   name of the property of the model to hold the entities
+   *
+   * @param array<string> $identifiers
+   *   list of identifiers to identify the entity
+   *
+   * @param array<string> $ignore_attributes
+   *   list of entity attributes to ignore
+   *
+   * @return array of arrays:
+   *   [
+   *      new entities (only in other model),
+   *      entities changed (with additional attribute 'differing_attributes'),
+   *      entities missing (only in this model)
+   *   ]
+   */
+  public function diffEntities(
         CRM_Committees_Model_Model $other_model,
         $entity_list = ['persons'],
         $identifiers = ['id'],
-        $ignore_attributes = [])
-    {
-        $new_entities = [];
-        $changed_entities = [];
-        $missing_entities = [];
+        $ignore_attributes = []) {
+    $new_entities = [];
+    $changed_entities = [];
+    $missing_entities = [];
 
-        // todo: validate $entity_list_property to prevent crashes or mischief
-        $our_entities = $this->getIndexedEntities($entity_list, $identifiers);
-        $other_entities = $other_model->getIndexedEntities($entity_list, $identifiers);
+    // todo: validate $entity_list_property to prevent crashes or mischief
+    $our_entities = $this->getIndexedEntities($entity_list, $identifiers);
+    $other_entities = $other_model->getIndexedEntities($entity_list, $identifiers);
 
-        // first go through the first list...
-        foreach ($our_entities as $our_entity_key => $our_entity) {
-            /** @var CRM_Committees_Model_Entity $our_entity */
-            if (isset($other_entities[$our_entity_key])) {
-                // there is another entity with the same id
-                /** @var CRM_Committees_Model_Entity $other_entity */
-                $other_entity = $other_entities[$our_entity_key];
-                $other_entity_id = $other_entity->getID();
-                $diff = $our_entity->diff($other_entity, $ignore_attributes);
-                if (!empty($diff)) {
-                    $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
-                    $our_entity->setAttribute('differing_values', $diff);
-                    $our_entity->setAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY, $other_entity->getID());
-                    $changed_entities[] = $our_entity;
-                }
-                unset($other_entities[$our_entity_key]);
-            } else {
-                // this entity is missing in the other model
-                $missing_entities[] = $our_entity;
-            }
+    // first go through the first list...
+    foreach ($our_entities as $our_entity_key => $our_entity) {
+      /** @var CRM_Committees_Model_Entity $our_entity */
+      if (isset($other_entities[$our_entity_key])) {
+        // there is another entity with the same id
+        /** @var CRM_Committees_Model_Entity $other_entity */
+        $other_entity = $other_entities[$our_entity_key];
+        $other_entity_id = $other_entity->getID();
+        $diff = $our_entity->diff($other_entity, $ignore_attributes);
+        if (!empty($diff)) {
+          $our_entity->setAttribute('differing_attributes', implode(',', array_keys($diff)));
+          $our_entity->setAttribute('differing_values', $diff);
+          $our_entity->setAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY, $other_entity->getID());
+          $changed_entities[] = $our_entity;
         }
-
-        // then go through the (remaining) second list
-        foreach ($other_entities as $other_entity_key => $other_entity) {
-            /** @var CRM_Committees_Model_Entity $other_entity */
-            $new_entities[] = $other_entity;
-        }
-
-        return [$new_entities, $changed_entities, $missing_entities];
+        unset($other_entities[$our_entity_key]);
+      }
+      else {
+        // this entity is missing in the other model
+        $missing_entities[] = $our_entity;
+      }
     }
 
-    /**
-     * Remove the given entity from this model
-     *
-     * @param CRM_Committees_Model_Entity $entity
-     */
-    public function removeEntity(CRM_Committees_Model_Entity $entity)
-    {
-        if ($entity->getModel() !== $this) {
-            throw new Exception("Entity belongs to another model.");
-        }
-
-        if ($entity instanceof CRM_Committees_Model_Person) {
-            unset($this->persons[$entity->getID()]);
-        } elseif ($entity instanceof CRM_Committees_Model_Address) {
-            unset($this->addresses[$entity->getID()]);
-        } elseif ($entity instanceof CRM_Committees_Model_Email) {
-            unset($this->emails[$entity->getID()]);
-        } elseif ($entity instanceof CRM_Committees_Model_Phone) {
-            unset($this->phones[$entity->getID()]);
-        } elseif ($entity instanceof CRM_Committees_Model_Committee) {
-            unset($this->committees[$entity->getID()]);
-        } elseif ($entity instanceof CRM_Committees_Model_Membership) {
-            unset($this->memberships[$entity->getID()]);
-            throw new Exception("removeEntity:Person incomplete, needs to affect depending entities as well");
-        }
+    // then go through the (remaining) second list
+    foreach ($other_entities as $other_entity_key => $other_entity) {
+      /** @var CRM_Committees_Model_Entity $other_entity */
+      $new_entities[] = $other_entity;
     }
 
-    /**
-     * Get the model's context data.
-     *
-     * @param string|null $key
-     *   get the context data with the given key,
-     *   or all, if key is not given
-     *
-     * @param string|null $fallback_value
-     *   the value to be returned if not present
-     *
-     * @return mixed
-     */
-    public function getContextData($key = null, $fallback_value = null) {
-        if (is_null($key)) {
-            return $this->context_data;
-        } else {
-            return $this->context_data[$key] ?? $fallback_value;
-        }
+    return [$new_entities, $changed_entities, $missing_entities];
+  }
+
+  /**
+   * Remove the given entity from this model
+   *
+   * @param CRM_Committees_Model_Entity $entity
+   */
+  public function removeEntity(CRM_Committees_Model_Entity $entity) {
+    if ($entity->getModel() !== $this) {
+      throw new Exception('Entity belongs to another model.');
     }
 
-    /**
-     * Get the model's context data.
-     *
-     * @param string $key
-     *   key to store the value with
-     *
-     * @param mixed $value
-     *   value to store under the key
-     *
-     * @return mixed
-     *   previous value
-     */
-    public function setContextData($key, $value) {
-        $previous_value = $this->context_data[$key] ?? null;
-        $this->context_data[$key] = $value;
-        return $previous_value;
+    if ($entity instanceof CRM_Committees_Model_Person) {
+      unset($this->persons[$entity->getID()]);
     }
+    elseif ($entity instanceof CRM_Committees_Model_Address) {
+      unset($this->addresses[$entity->getID()]);
+    }
+    elseif ($entity instanceof CRM_Committees_Model_Email) {
+      unset($this->emails[$entity->getID()]);
+    }
+    elseif ($entity instanceof CRM_Committees_Model_Phone) {
+      unset($this->phones[$entity->getID()]);
+    }
+    elseif ($entity instanceof CRM_Committees_Model_Committee) {
+      unset($this->committees[$entity->getID()]);
+    }
+    elseif ($entity instanceof CRM_Committees_Model_Membership) {
+      unset($this->memberships[$entity->getID()]);
+      throw new Exception('removeEntity:Person incomplete, needs to affect depending entities as well');
+    }
+  }
+
+  /**
+   * Get the model's context data.
+   *
+   * @param string|null $key
+   *   get the context data with the given key,
+   *   or all, if key is not given
+   *
+   * @param string|null $fallback_value
+   *   the value to be returned if not present
+   *
+   * @return mixed
+   */
+  public function getContextData($key = NULL, $fallback_value = NULL) {
+    if (is_null($key)) {
+      return $this->context_data;
+    }
+    else {
+      return $this->context_data[$key] ?? $fallback_value;
+    }
+  }
+
+  /**
+   * Get the model's context data.
+   *
+   * @param string $key
+   *   key to store the value with
+   *
+   * @param mixed $value
+   *   value to store under the key
+   *
+   * @return mixed
+   *   previous value
+   */
+  public function setContextData($key, $value) {
+    $previous_value = $this->context_data[$key] ?? NULL;
+    $this->context_data[$key] = $value;
+    return $previous_value;
+  }
+
 }

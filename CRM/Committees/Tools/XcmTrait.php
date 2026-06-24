@@ -21,81 +21,80 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @see https://github.com/systopia/de.systopia.xcm
  */
-trait CRM_Committees_Tools_XcmTrait
-{
-    /**
-     * Run the XCM with the given data
-     *
-     * @param array $contact_data
-     *   the contact data to submit
-     *
-     * @param string $profile_name
-     *   name of the XCM profile to use
-     *
-     * @param boolean $strip_id
-     *   remove any 'id' field in the data
-     *
-     * @return integer
-     *   contact ID
-     */
-    public function runXCM($contact_data, $profile_name = null, $strip_id = true)
-    {
-        if (isset($profile_name)) {
-            $contact_data['xcm_profile'] = $profile_name;
-        }
+trait CRM_Committees_Tools_XcmTrait {
 
-        if ($strip_id) {
-            unset($contact_data['id']);
-        }
-
-        // run XCM
-        // todo: error handling
-        $result = civicrm_api3('Contact', 'getorcreate', $contact_data);
-        return $result['id'];
+  /**
+   * Run the XCM with the given data
+   *
+   * @param array $contact_data
+   *   the contact data to submit
+   *
+   * @param string $profile_name
+   *   name of the XCM profile to use
+   *
+   * @param boolean $strip_id
+   *   remove any 'id' field in the data
+   *
+   * @return integer
+   *   contact ID
+   */
+  public function runXCM($contact_data, $profile_name = NULL, $strip_id = TRUE) {
+    if (isset($profile_name)) {
+      $contact_data['xcm_profile'] = $profile_name;
     }
 
-    /**
-     * Check the XCM requirements
-     *
-     * @param CRM_Committees_Plugin_Base $plugin
-     *   the plugin
-     *
-     * @param array XCM profiles required
-     */
-    public function checkXCMRequirements(CRM_Committees_Plugin_Base $plugin, $required_profiles = [])
-    {
-        if (!$plugin->extensionAvailable('de.systopia.xcm')) {
-            // xcm not even installed
-            $plugin->registerMissingRequirement('de.systopia.xcm',
-                  E::ts("Extended Contact Matcher (XCM) extension missing"),
-                  E::ts("Please install the <code>de.systopia.xcm</code> extension from <a href='https://github.com/systopia/de.systopia.xcm'>here</a>.")
-            );
-        } else {
-            // make sure all the profiles are there
-            foreach ($required_profiles as $required_profile) {
-                if (!$this->xcmProfileExists($required_profile)) {
-                    $plugin->registerMissingRequirement(
-                        $required_profile,
-                        E::ts("XCM Profile missing"),
-                        E::ts("Please create a <code>%1</code> profile in the XCM configuration.", [1 => $required_profile])
-                    );
-                }
-            }
-        }
+    if ($strip_id) {
+      unset($contact_data['id']);
     }
 
-    /**
-     * Check if the given XCM profile exists
-     *
-     * @param string $profile_name
-     *    internal profile name
-     *
-     * @return boolean
-     *    true, if profile exists
-     */
-    public function xcmProfileExists($profile_name)
-    {
-        $profile_list = CRM_Xcm_Configuration::getProfileList();
-        return !empty($profile_list[$profile_name]);
+    // run XCM
+    // todo: error handling
+    $result = civicrm_api3('Contact', 'getorcreate', $contact_data);
+    return $result['id'];
+  }
+
+  /**
+   * Check the XCM requirements
+   *
+   * @param CRM_Committees_Plugin_Base $plugin
+   *   the plugin
+   *
+   * @param array XCM profiles required
+   */
+  public function checkXCMRequirements(CRM_Committees_Plugin_Base $plugin, $required_profiles = []) {
+    if (!$plugin->extensionAvailable('de.systopia.xcm')) {
+      // xcm not even installed
+      $plugin->registerMissingRequirement('de.systopia.xcm',
+          E::ts('Extended Contact Matcher (XCM) extension missing'),
+          E::ts("Please install the <code>de.systopia.xcm</code> extension from <a href='https://github.com/systopia/de.systopia.xcm'>here</a>.")
+      );
     }
+    else {
+      // make sure all the profiles are there
+      foreach ($required_profiles as $required_profile) {
+        if (!$this->xcmProfileExists($required_profile)) {
+          $plugin->registerMissingRequirement(
+          $required_profile,
+          E::ts('XCM Profile missing'),
+          E::ts('Please create a <code>%1</code> profile in the XCM configuration.', [1 => $required_profile])
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Check if the given XCM profile exists
+   *
+   * @param string $profile_name
+   *    internal profile name
+   *
+   * @return boolean
+   *   true, if profile exists
+   */
+  public function xcmProfileExists($profile_name) {
+    $profile_list = CRM_Xcm_Configuration::getProfileList();
+    return !empty($profile_list[$profile_name]);
+  }
+
 }
