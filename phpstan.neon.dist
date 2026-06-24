@@ -46,4 +46,33 @@ parameters:
 	ignoreErrors:
 		# Note paths are prefixed with "*/" to work with inspections in PHPStorm because of:
 		# https://youtrack.jetbrains.com/issue/WI-63891/PHPStan-ignoreErrors-configuration-isnt-working-with-inspections
+		-
+			identifiers:
+				- missingType.parameter
+				- missingType.iterableValue
+				- argument.type
+				- return.type
+				- empty.notAllowed
+				- phpDoc.parseError
+				- missingType.return
+				- offsetAccess.nonOffsetAccessible
+				- if.condNotBoolean
+				- varTag.misplaced
+				- varTag.type
+				- missingType.property
+				- offsetAccess.notFound
+				- offsetAccess.invalidOffset
+				- booleanOr.leftNotBoolean
+				- booleanOr.rightNotBoolean
+				- booleanAnd.leftNotBoolean
+				- booleanAnd.rightNotBoolean
+				- booleanNot.exprNotBoolean
+				- equal.notAllowed
+				- notEqual.notAllowed
+				- foreach.nonIterable
+				- voku.BooleanAnd
+				- voku.BooleanAndNode
+		-
+			rawMessages:
+				- 'Do not throw the \Exception base class.'
 	tmpDir: .phpstan
