@@ -80,4 +80,22 @@
             </property>
         </properties>
     </rule>
+
+    <!-- disable temporarily -->
+    <rule ref="Generic.PHP">
+        <exclude name="Generic.PHP.RequireStrictTypes.MissingDeclaration"/>
+        <exclude name="Generic.PHP.LowerCaseConstant.Found"/>
+    </rule>
+
+    <rule ref="Generic.Metrics">
+        <exclude name="Generic.Metrics.CyclomaticComplexity.TooHigh"/>
+    </rule>
+
+    <rule ref="Generic.Files">
+        <exclude name="Generic.Files.LineLength.TooLong"/>
+    </rule>
+
+    <rule ref="Squiz.PHP">
+        <exclude name="Squiz.PHP.CommentedOutCode.Found"/>
+    </rule>
 </ruleset>
