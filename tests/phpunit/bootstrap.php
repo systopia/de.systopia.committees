@@ -11,6 +11,7 @@ if (file_exists(__DIR__ . '/bootstrap.local.php')) {
 }
 
 // phpcs:disable Drupal.Functions.DiscouragedFunctions.Discouraged
+// phpcs:disable Squiz.PHP.Eval.Discouraged
 eval(cv('php:boot --level=classloader', 'phpcode'));
 // phpcs:enable
 
