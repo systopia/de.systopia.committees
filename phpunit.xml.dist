@@ -36,12 +36,4 @@
     </listener>
   </listeners>
 
-  <source ignoreIndirectDeprecations="true" restrictNotices="false" restrictWarnings="false">
-    <include>
-      <directory>api</directory>
-      <directory>CRM</directory>
-      <directory>Civi</directory>
-    </include>
-  </source>
-
 </phpunit>
