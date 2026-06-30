@@ -136,4 +136,4 @@ jobs:
           export PATH="$(realpath ../civicrm-standalone/vendor/bin):$PATH"
           export CV_CONFIG="$HOME/.cv.json"
           cd ../civicrm-standalone/ext/$(basename "$PWD")
-          composer phpunit
+          SYMFONY_DEPRECATIONS_HELPER=disabled composer phpunit
