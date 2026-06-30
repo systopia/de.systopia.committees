@@ -4,7 +4,6 @@
 
 includes:
 	- phpstan.neon.dist
-	- phpstan-baseline.neon
 
 parameters:
 	bootstrapFiles:
