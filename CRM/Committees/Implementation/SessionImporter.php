@@ -338,7 +338,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $record = [];
         foreach ($col2field as $column_number => $field_name) {
             /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
-            $cell = $sheet->getCellByColumnAndRow($column_number, $row_number, false);
+            $cell = $sheet->getCell([$column_number, $row_number]);
             $record[$field_name] = trim($cell->getValue());
         }
         return $record;
