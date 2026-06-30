@@ -687,28 +687,32 @@ class CRM_Committees_Model_Model {
 
     foreach ($entityList as $entityName) {
       switch ($entityName) {
-        case 'person':
+        case 'persons':
           $selectedEntityList = &$this->persons;
           break;
 
-        case 'address':
+        case 'addresses':
           $selectedEntityList = &$this->addresses;
           break;
 
-        case 'email':
+        case 'emails':
           $selectedEntityList = &$this->emails;
           break;
 
-        case 'phone':
+        case 'phones':
           $selectedEntityList = &$this->phones;
           break;
 
-        case 'committee':
+        case 'committees':
           $selectedEntityList = &$this->committees;
           break;
 
-        case 'membership':
+        case 'memberships':
           $selectedEntityList = &$this->memberships;
+          break;
+          
+        case 'urls':
+          $selectedEntityList = &$this->urls;
           break;
 
         default:

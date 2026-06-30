@@ -190,8 +190,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
       $this->model->addPerson($mop);
 
       /**********************************
-             **       PARLIAMENT SECTION     **
-             **********************************/
+      **       PARLIAMENT SECTION     **
+      **********************************/
 
       // extract PARLIAMENT address
       $address = $this->copyAttributes($record, array_keys(self::ADDRESS_PARLIAMENT_ATTRIBUTES), self::ADDRESS_PARLIAMENT_ATTRIBUTES);
@@ -220,8 +220,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
       }
 
       /***********************************
-             **  GOVERNMENT/MINISTRY SECTION  **
-             ***********************************/
+       **  GOVERNMENT/MINISTRY SECTION  **
+       ***********************************/
 
       // extract MINISTRY address
       $address = $this->copyAttributes($record, array_keys(self::ADDRESS_GOVERNMENT_ATTRIBUTES), self::ADDRESS_GOVERNMENT_ATTRIBUTES);
@@ -248,8 +248,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
       }
 
       /**************************************
-             **  CONSTITUENCY / WAHLBÜRO SECTION **
-             **************************************/
+       **  CONSTITUENCY / WAHLBÜRO SECTION **
+       **************************************/
 
       // extract CONSTITUENCY address
       $address = $this->copyAttributes($record, array_keys(self::ADDRESS_CONSTITUENCY_ATTRIBUTES), self::ADDRESS_CONSTITUENCY_ATTRIBUTES);
@@ -271,8 +271,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
       }
 
       /**************************************
-             **       PERSONAL CONTACT DATA      **
-             **************************************/
+       **       PERSONAL CONTACT DATA      **
+       **************************************/
 
       // extract websites
       if (!empty($record['websites'])) {
@@ -331,8 +331,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     $this->log(count($this->model->getAllUrls()) . ' websites/urls extracted.');
 
     /**************************************
-         ** COMMITTEES: Ausschüsse           **
-         **************************************/
+     ** COMMITTEES: Ausschüsse           **
+     **************************************/
 
     // import "AUSSCHüSSE"
     // extract committees: first collect all entries
@@ -376,8 +376,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
     }
 
     /**************************************
-         ** COMMITTEES: Fraktionen           **
-         **************************************/
+     ** COMMITTEES: Fraktionen           **
+     **************************************/
 
     // import "FRAKTIONEN"
     $parliamentary_groups_list = [];
