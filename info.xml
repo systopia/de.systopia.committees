@@ -18,7 +18,7 @@
   <version>1.6.0-dev</version>
   <develStage>dev</develStage>
   <compatibility>
-    <ver>5.76</ver>
+    <ver>6.2</ver>
   </compatibility>
   <comments>Initially funded by OXFAM Germany</comments>
   <requires>
