@@ -434,7 +434,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         $record = [];
         foreach ($col2field as $column_number => $field_name) {
             /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
-            $cell = $sheet->getCellByColumnAndRow($column_number, $row_number, false);
+            $cell = $sheet->getCell([$column_number, $row_number]);
             $record[$field_name] = trim($cell->getValue());
         }
         return $record;
