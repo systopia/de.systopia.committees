@@ -24,11 +24,11 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
   use CRM_Committees_Tools_IdTrackerTrait;
   use CRM_Committees_Tools_XcmTrait;
 
-  const CONTACT_TRACKER_TYPE = 'session';
-  const CONTACT_TRACKER_PREFIX = 'SESSION-';
-  const COMMITTEE_TRACKER_PREFIX = 'GREMIUM-';
-  const XCM_PERSON_PROFILE = 'session_person';
-  const XCM_COMMITTEE_PROFILE = 'session_organisation';
+  protected const CONTACT_TRACKER_TYPE = 'session';
+  protected const CONTACT_TRACKER_PREFIX = 'SESSION-';
+  protected const COMMITTEE_TRACKER_PREFIX = 'GREMIUM-';
+  protected const XCM_PERSON_PROFILE = 'session_person';
+  protected const XCM_COMMITTEE_PROFILE = 'session_organisation';
 
   /**
    * This function will be called *before* the plugin will do it's work.
@@ -99,7 +99,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     // add warnings:
     foreach ($changed_committees as $changed_committee) {
       /* @var CRM_Committees_Model_Committee $changed_committee */
-      $differing_attributes = explode(',', $changed_committee->getAttribute('differing_attributes'));
+      $differing_attributes = explode(',', $changed_committee->getAttribute('differing_attributes') ?? '');
       $differing_values = $changed_committee->getAttribute('differing_values');
       foreach ($differing_attributes as $differing_attribute) {
         $this->log("TODO: Change attribute '{$differing_attribute}' of committee [{$changed_committee->getID()}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
@@ -161,7 +161,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
     foreach ($changed_persons as $changed_person) {
       /** @var CRM_Committees_Model_Person $changed_person */
       $contact_id = $this->getIDTContactID($changed_person->getID(), self::CONTACT_TRACKER_TYPE, self::CONTACT_TRACKER_PREFIX);
-      $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
+      $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes') ?? '');
       $differing_values = $changed_person->getAttribute('differing_values');
       foreach ($differing_attributes as $differing_attribute) {
         $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
@@ -289,7 +289,7 @@ class CRM_Committees_Implementation_SessionSyncer extends CRM_Committees_Plugin_
       $person = $changed_address->getContact($present_model);
       if ($person) {
         $address_contact_id = $person->getAttribute('contact_id');
-        $differing_attributes = explode(',', $changed_address->getAttribute('differing_attributes'));
+        $differing_attributes = explode(',', $changed_address->getAttribute('differing_attributes') ?? '');
         $differing_values = $changed_address->getAttribute('differing_values');
         foreach ($differing_attributes as $differing_attribute) {
           // we don't want to add that to existing address

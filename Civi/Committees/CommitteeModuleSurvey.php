@@ -25,8 +25,8 @@ use Civi\Core\Event\GenericHookEvent as Event;
  */
 class CommitteeModuleSurvey extends Event {
   /**
- * Symfony event name for the module registration */
-  const EVENT_NAME = 'civi.committees.register_modules';
+   * Symfony event name for the module registration */
+  public const EVENT_NAME = 'civi.committees.register_modules';
 
   /**
    * @var array list of importer module metadata */
@@ -83,7 +83,7 @@ class CommitteeModuleSurvey extends Event {
    * @param string $key
    *   the module key
    *
-   * @return
+   * @return null|object
    *   module specs
    */
   public function getImportModule($key) {

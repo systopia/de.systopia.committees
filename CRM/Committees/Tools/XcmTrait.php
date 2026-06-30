@@ -59,7 +59,8 @@ trait CRM_Committees_Tools_XcmTrait {
    * @param CRM_Committees_Plugin_Base $plugin
    *   the plugin
    *
-   * @param array XCM profiles required
+   * @param array $required_profiles
+   *   XCM profiles required
    */
   public function checkXCMRequirements(CRM_Committees_Plugin_Base $plugin, $required_profiles = []) {
     if (!$plugin->extensionAvailable('de.systopia.xcm')) {

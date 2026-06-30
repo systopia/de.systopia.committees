@@ -23,29 +23,30 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
   use CRM_Committees_Tools_ContactGroupTrait;
 
   /**
- * @var string committee.type value for parliamentary committee (Ausschuss) */
-  const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
+   * @var string committee.type value for parliamentary committee (Ausschuss) */
+  protected const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
 
   /**
- * @var string committee.type value for parliamentary group (Fraktion) */
-  const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
+   * @var string committee.type value for parliamentary group (Fraktion) */
+  protected const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
 
   /**
- * @var string committee.type value for parliament */
-  const COMMITTEE_TYPE_PARLIAMENT = 'parliament';
+   * @var string committee.type value for parliament */
+  protected const COMMITTEE_TYPE_PARLIAMENT = 'parliament';
 
-  const ID_TRACKER_TYPE = 'kuerschners';
-  const ID_TRACKER_PREFIX = 'KUE-';
+  public const ID_TRACKER_TYPE = 'kuerschners';
+  public const ID_TRACKER_PREFIX = 'KUE-';
+
   // todo: adjustment needed, if same importer should be used for other parliaments
-  const ID_TRACKER_PREFIX_PARLIAMENT = 'PARLIAMENT-';
+  protected const ID_TRACKER_PREFIX_PARLIAMENT = 'PARLIAMENT-';
   // todo: adjustment needed, if same importer should be used for other parliaments
-  const ID_TRACKER_PREFIX_COMMITTEE = 'BUND-AUSSCHUSS-';
+  protected const ID_TRACKER_PREFIX_COMMITTEE = 'BUND-AUSSCHUSS-';
   // todo: adjustment needed, if same importer should be used for other parliaments
-  const ID_TRACKER_PREFIX_FRAKTION = 'BUND-FRAKTION-';
+  protected const ID_TRACKER_PREFIX_FRAKTION = 'BUND-FRAKTION-';
   // todo: adjustment needed, if same importer should be used for other parliaments
-  const CONTACT_SOURCE = 'kuerschners_MdB_';
-  const COMMITTE_SUBTYPE_NAME = 'Committee';
-  const COMMITTE_SUBTYPE_LABEL = 'Gremium';
+  protected const CONTACT_SOURCE = 'kuerschners_MdB_';
+  protected const COMMITTE_SUBTYPE_NAME = 'Committee';
+  protected const COMMITTE_SUBTYPE_LABEL = 'Gremium';
 
   /**
    * This function will be called *before* the plugin will do it's work.
@@ -214,7 +215,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
       $person_update = [
         'id' => $this->getIDTContactID($current_person->getID(), self::ID_TRACKER_TYPE, self::ID_TRACKER_PREFIX),
       ];
-      $differing_attributes = explode(',', $current_person->getAttribute('differing_attributes'));
+      $differing_attributes = explode(',', $current_person->getAttribute('differing_attributes') ?? '');
       $changed_person = $model->getPerson($current_person->getID());
       foreach ($differing_attributes as $differing_attribute) {
         $person_update[$differing_attribute] = $changed_person->getAttribute($differing_attribute);
@@ -502,7 +503,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
       // update description
       $requested_membership = $model->getCommitteeMembership(
         $changed_membership->getAttribute(CRM_Committees_Model_Model::CORRESPONDING_ENTITY_ID_KEY));
-      $new_description = $requested_membership->getAttribute('description');
+      $new_description = $requested_membership->getAttribute('description') ?? '';
 
       // update functions
       if ($membership_type == CRM_Committees_Implementation_KuerschnerCsvImporter::COMMITTEE_TYPE_PARLIAMENTARY_GROUP) {
@@ -525,8 +526,8 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
   }
 
   /*****************************************************************************
-   * *                        PULL CURRENT DATA FOR SYNC                       **
-   * *         OVERWRITE THESE METHODS TO ADJUST TO YOUR DATA MODEL            **
+   * *                        PULL CURRENT DATA FOR SYNC                      **
+   * *         OVERWRITE THESE METHODS TO ADJUST TO YOUR DATA MODEL           **
    *****************************************************************************/
 
   /**
@@ -1346,7 +1347,7 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
   /**
    * Get the custom field mapping for persons (individuals)
    *
-   * @param CRM_Committees_Model_Model
+   * @param CRM_Committees_Model_Model $model
    *   model to be imported
    *
    * @return array
@@ -1490,11 +1491,9 @@ class CRM_Committees_Implementation_OxfamSimpleSync extends CRM_Committees_Plugi
    *   normalised (e.g. gendered) function name
    */
   public function normalisePoliticalFunction($function) {
-    if (preg_match('/\*(in|r)/', $function)) {
-      // in order to not make it too complicated, we'll assume it's already been normalised when
-      //  '*r' '*in' are already contained. nothing to do here
-    }
-    else {
+    // in order to not make it too complicated, we'll assume it's already been normalised when
+    //  '*r' '*in' are already contained. nothing to do here
+    if (!preg_match('/\*(in|r)/', $function)) {
       // change the known patterns to gender-neutral titles
       $function = preg_replace('/^(.+)(er|e) Sprecher(in)?$/', ' ${1}e*r Sprecher*in', $function);
       $function = preg_replace('/Sprecher(in)? für/', 'Sprecher*in für', $function);

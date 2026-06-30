@@ -18,8 +18,8 @@
  */
 class CRM_Committees_Model_Email extends CRM_Committees_Model_Entity {
   /**
- * @var string model property to force all emails to be lower case */
-  const MODEL_PROPERTY_EMAIL_LOWER_CASE = 'MODEL_PROPERTY_EMAIL_LOWER_CASE';
+   * @var string model property to force all emails to be lower case */
+  public const MODEL_PROPERTY_EMAIL_LOWER_CASE = 'MODEL_PROPERTY_EMAIL_LOWER_CASE';
 
   /**
    * Create a new object with the data

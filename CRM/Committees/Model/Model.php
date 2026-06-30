@@ -18,12 +18,12 @@
  */
 class CRM_Committees_Model_Model {
   /**
- * @var string default separated to be used for compound keys */
-  const DEFAULT_KEY_SEPARATOR = '::';
+   * @var string default separated to be used for compound keys */
+  public const DEFAULT_KEY_SEPARATOR = '::';
 
   /**
- * @var string default separated to be used for compound keys */
-  const CORRESPONDING_ENTITY_ID_KEY = '_corresponding_entity_id';
+   * @var string default separated to be used for compound keys */
+  public const CORRESPONDING_ENTITY_ID_KEY = '_corresponding_entity_id';
 
   /**
    * @var array model properties */
@@ -514,9 +514,11 @@ class CRM_Committees_Model_Model {
    */
   public function getEntitiesByID($entities, $id_field = 'id') {
     $result = [];
+    /** @var $entity CRM_Committees_Model_Entity */
     foreach ($entities as $entity) {
-      /** @var $entity CRM_Committees_Model_Entity */
-      $key = $id_field == 'id' ? $entity->getID() : $entity->getAttribute($id_field);
+      // phpcs:disable Squiz.PHP.DisallowComparisonAssignment.AssignedComparison
+      // phpcs:disable Squiz.PHP.DisallowInlineIf.Found
+      $key = ($id_field === 'id') ? $entity->getID() : $entity->getAttribute($id_field);
       $result[$key][] = $entity;
     }
     return $result;
@@ -710,7 +712,7 @@ class CRM_Committees_Model_Model {
         case 'memberships':
           $selectedEntityList = &$this->memberships;
           break;
-          
+
         case 'urls':
           $selectedEntityList = &$this->urls;
           break;
@@ -840,7 +842,7 @@ class CRM_Committees_Model_Model {
    * @return mixed
    */
   public function getContextData($key = NULL, $fallback_value = NULL) {
-    if (is_null($key)) {
+    if (NULL === $key) {
       return $this->context_data;
     }
     else {

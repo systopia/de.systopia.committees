@@ -16,11 +16,11 @@
  * +--------------------------------------------------------
  */
 class CRM_Committees_CustomData {
-  const CUSTOM_DATA_HELPER_VERSION   = '0.12.0';
-  const CUSTOM_DATA_HELPER_LOG_LEVEL = 0;
-  const CUSTOM_DATA_HELPER_LOG_DEBUG = 1;
-  const CUSTOM_DATA_HELPER_LOG_INFO  = 3;
-  const CUSTOM_DATA_HELPER_LOG_ERROR = 5;
+  protected const CUSTOM_DATA_HELPER_VERSION   = '0.12.0';
+  protected const CUSTOM_DATA_HELPER_LOG_LEVEL = 0;
+  protected const CUSTOM_DATA_HELPER_LOG_DEBUG = 1;
+  protected const CUSTOM_DATA_HELPER_LOG_INFO  = 3;
+  protected const CUSTOM_DATA_HELPER_LOG_ERROR = 5;
 
   /**
    * caches custom field data, indexed by group name */
@@ -321,9 +321,6 @@ class CRM_Committees_CustomData {
         elseif (isset($current_data[$required_field])) {
           $update_query[$required_field] = $current_data[$required_field];
         }
-        else {
-          // nothing we can do...
-        }
       }
 
       $this->log(self::CUSTOM_DATA_HELPER_LOG_INFO, "UPDATE {$entity_type}: " . json_encode($update_query));
@@ -501,9 +498,6 @@ class CRM_Committees_CustomData {
             $custom_key = 'custom_' . $custom_field['id'];
             $data[$custom_key] = $data[$key];
             unset($data[$key]);
-          }
-          else {
-            // TODO: unknown data field $match['group_name'] . $match['field_name']
           }
         }
       }

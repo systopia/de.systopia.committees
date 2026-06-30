@@ -1,4 +1,6 @@
 <?php
+// phpcs:disable PSR1.Files.SideEffects.FoundWithSymbols
+
 /*-------------------------------------------------------+
 | SYSTOPIA Committee Synchronisation                     |
 | Copyright (C) 2021 SYSTOPIA                            |

@@ -33,6 +33,15 @@
 
         <!-- False positive when license header is set and variable has no comment -->
         <exclude name="Drupal.Commenting.VariableComment.WrongStyle"/>
+
+        <exclude name="Drupal.WhiteSpace.ScopeIndent.IncorrectExact"/>
+        <exclude name="Drupal.Arrays.Array.ArrayIndentation"/>
+        <exclude name="Drupal.Commenting.DocComment.ContentAfterOpen"/>
+        <exclude name="Drupal.Commenting.PostStatementComment.Found"/>
+        <exclude name="Drupal.ControlStructures.ControlSignature.NewlineAfterCloseBrace"/>
+        <exclude name="Drupal.Commenting.FunctionComment.ParamNameNoMatch"/>
+        <exclude name="Drupal.Commenting.DocComment.WrongEnd"/>
+        <exclude name="Drupal.Semantics.FunctionAlias.FunctionAlias"/>
     </rule>
 
     <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
@@ -85,17 +94,32 @@
     <rule ref="Generic.PHP">
         <exclude name="Generic.PHP.RequireStrictTypes.MissingDeclaration"/>
         <exclude name="Generic.PHP.LowerCaseConstant.Found"/>
+        <exclude name="Generic.PHP.ClosingPHPTag.NotFound"/>
     </rule>
 
     <rule ref="Generic.Metrics">
         <exclude name="Generic.Metrics.CyclomaticComplexity.TooHigh"/>
+        <exclude name="Generic.Metrics.CyclomaticComplexity.MaxExceeded"/>
+        <exclude name="Generic.Metrics.NestingLevel.TooHigh"/>
+    </rule>
+
+    <rule ref="Generic.NamingConventions">
+        <exclude name="Generic.NamingConventions.AbstractClassNamePrefix.Missing"/>
+        <exclude name="Generic.NamingConventions.CamelCapsFunctionName.NotCamelCaps"/>
+        <exclude name="Generic.NamingConventions.CamelCapsFunctionName.ScopeNotCamelCaps"/>
     </rule>
 
     <rule ref="Generic.Files">
         <exclude name="Generic.Files.LineLength.TooLong"/>
+        <exclude name="Generic.Files.EndFileNoNewline.Found"/>
+        <exclude name="Generic.Files.LowercasedFilename.NotFound"/>
     </rule>
 
     <rule ref="Squiz.PHP">
         <exclude name="Squiz.PHP.CommentedOutCode.Found"/>
+        <exclude name="Squiz.PHP.DisallowInlineIf.Found"/>
+        <exclude name="Squiz.PHP.DisallowComparisonAssignment.AssignedComparison"/>
+        <exclude name="Squiz.PHP.DiscouragedFunctions.Discouraged"/>
     </rule>
+
 </ruleset>

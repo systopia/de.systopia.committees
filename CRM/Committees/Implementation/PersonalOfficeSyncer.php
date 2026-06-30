@@ -27,28 +27,28 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
   use CRM_Committees_Tools_ContactTagTrait;
 
   /**
- * @var boolean enable this if you want local testing  */
-  const RUN_LOCALLY = FALSE;
+   * @var boolean enable this if you want local testing  */
+  protected const RUN_LOCALLY = FALSE;
 
-  const CONTACT_TRACKER_TYPE = 'personal_office';
-  const CONTACT_TRACKER_PREFIX = 'PO-';
-  const CONTACT_CONTACT_TYPE_NAME = 'Pfarrer_in';
-  const CONTACT_CONTACT_TYPE_LABEL = 'Pfarrer*in';
-  const XCM_PERSON_PROFILE = 'personal_office';
-  const XCM_DIVISION_CONTACT_TYPE = 'Kirchenkreis';
-  const XCM_PARISH_CONTACT_TYPE = 'Kirchengemeinde';
-
-  /**
- * @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
-  const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
+  protected const CONTACT_TRACKER_TYPE = 'personal_office';
+  protected const CONTACT_TRACKER_PREFIX = 'PO-';
+  protected const CONTACT_CONTACT_TYPE_NAME = 'Pfarrer_in';
+  protected const CONTACT_CONTACT_TYPE_LABEL = 'Pfarrer*in';
+  protected const XCM_PERSON_PROFILE = 'personal_office';
+  protected const XCM_DIVISION_CONTACT_TYPE = 'Kirchenkreis';
+  protected const XCM_PARISH_CONTACT_TYPE = 'Kirchengemeinde';
 
   /**
- * @var string  custom field id (group_name.field_name) for the job title custom field */
-  const CONTACT_JOB_TITLE_KEY_FIELD = 'pfarrer_innen.pfarrer_innen_job_title_key';
+   * @var string custom field id (group_name.field_name) for the EKIR hierarchical identifier */
+  protected const ORGANISATION_EKIR_ID_FIELD = 'gmv_data.gmv_data_identifier';
+
+  /**
+   * @var string  custom field id (group_name.field_name) for the job title custom field */
+  protected const CONTACT_JOB_TITLE_KEY_FIELD = 'pfarrer_innen.pfarrer_innen_job_title_key';
 
   /**
    * @var array mapping for the job_key fields */
-  static $CONTACT_JOB_TITLE_KEY_MAPPING = [
+  protected static $CONTACT_JOB_TITLE_KEY_MAPPING = [
     'KK-Ebene:Angest.Pfarrer'      => 1,
     'KK-Ebene:Pfarrer'             => 2,
     'LK-Ebene:Angest.Pfarrer'      => 3,
@@ -94,7 +94,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
       // check if the group is missing:
       [$group_name, $field_name] = explode('.', CRM_Committees_Implementation_PersonalOfficeSyncer::ORGANISATION_EKIR_ID_FIELD);
       $custom_groups = (array) CRM_Committees_CustomData::getGroup2Name();
-      if (!in_array($group_name, $custom_groups)) {
+      if (!in_array($group_name, $custom_groups, TRUE)) {
         // create group
         civicrm_api3('CustomGroup', 'create', [
           'name' => 'gmv_data',
@@ -306,7 +306,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
     foreach ($changed_persons as $changed_person) {
       /** @var CRM_Committees_Model_Person $changed_person */
       $contact_id = $changed_person->getAttribute('contact_id');
-      $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes'));
+      $differing_attributes = explode(',', $changed_person->getAttribute('differing_attributes') ?? '');
       $differing_values = $changed_person->getAttribute('differing_values');
       foreach ($differing_attributes as $differing_attribute) {
         $this->log("TODO: Change attribute '{$differing_attribute}' of person with CiviCRM-ID [#{$contact_id}] from '{$differing_values[$differing_attribute][0]}' to '{$differing_values[$differing_attribute][1]}'?");
@@ -424,7 +424,7 @@ class CRM_Committees_Implementation_PersonalOfficeSyncer extends CRM_Committees_
       $person = $changed_address->getContact($present_model);
       if ($person) {
         $address_contact_id = $person->getAttribute('contact_id');
-        $differing_attributes = explode(',', $changed_address->getAttribute('differing_attributes'));
+        $differing_attributes = explode(',', $changed_address->getAttribute('differing_attributes') ?? '');
         $differing_values = $changed_address->getAttribute('differing_values');
         foreach ($differing_attributes as $differing_attribute) {
           // we don't want to add that to existing address

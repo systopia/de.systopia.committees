@@ -17,10 +17,10 @@
  * The url entity represents any URL based link or reference
  */
 class CRM_Committees_Model_Url extends CRM_Committees_Model_Entity {
-  const URL_TYPE_WEBSITE      = 'website';
-  const URL_TYPE_SM_TWITTER   = 'twitter';
-  const URL_TYPE_SM_FACBOOK   = 'facebook';
-  const URL_TYPE_SM_INSTAGRAM = 'instagram';
+  public const URL_TYPE_WEBSITE      = 'website';
+  public const URL_TYPE_SM_TWITTER   = 'twitter';
+  public const URL_TYPE_SM_FACBOOK   = 'facebook';
+  public const URL_TYPE_SM_INSTAGRAM = 'instagram';
 
   /**
    * Create a new object with the data
