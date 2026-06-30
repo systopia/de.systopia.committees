@@ -20,15 +20,15 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @todo migrate to separate extension
  */
-class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees_Plugin_Importer
-{
+class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees_Plugin_Importer {
+
     /** @var string committee.type value for parliamentary committee (Ausschuss) */
-    const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
+    public const COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE = 'parliamentary_committee';
 
     /** @var string committee.type value for parliamentary group (Fraktion) */
-    const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
+    public const COMMITTEE_TYPE_PARLIAMENTARY_GROUP = 'parliamentary_group';
 
-    const CSV_MAPPING = [
+    protected const CSV_MAPPING = [
         'LFDNR' => 'id',
         'TITEL' => 'formal_title',
         //'NAMENSZEILE' => 'NOT USED',
@@ -74,34 +74,34 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         'POSANREDE' => 'mop_salutation',
     ];
 
-    const OPTIONAL_VALUES = [
+    protected const OPTIONAL_VALUES = [
             'NETZWERKE' => 'NETZWERKE',
             'INTERNET' => 'INTERNET',
             'FACEBOOK' => 'FACEBOOK',
             'TWITTER' => 'TWITTER',
-            'INSTAGRAM' => 'INSTAGRAM'
+            'INSTAGRAM' => 'INSTAGRAM',
     ];
 
     // todo: extract parliament from sources, instead of leaving this to the importer? is that possible?
 
 
     // location types
-    const LOCATION_TYPE_PARLIAMENT = 'Parlament'; // parliament
-    const LOCATION_TYPE_REGIERUNG  = 'Regierung'; // government
-    const LOCATION_TYPE_WAHLKREIS  = 'Wahlkreis'; // constituency
+    public const LOCATION_TYPE_PARLIAMENT = 'Parlament'; // parliament
+    public const LOCATION_TYPE_REGIERUNG  = 'Regierung'; // government
+    public const LOCATION_TYPE_WAHLKREIS  = 'Wahlkreis'; // constituency
 
     // attribute mapping
-    const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via', 'mop_staff', 'mop_salutation'];
-    const ADDRESS_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_name' => 'organization_name', 'parliament_street_address' => 'street_address', 'parliament_postal_code' => 'postal_code', 'parliament_city' => 'city', 'parliament_address_1' => 'supplemental_address_1'];
-    const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
-    const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];
-    const ADDRESS_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_street_address' => 'street_address', 'government_postal_code' => 'postal_code', 'government_city' => 'city', 'government_address_1' => 'supplemental_address_1', 'government_address_2' => 'supplemental_address_2', 'government_address_3' => 'supplemental_address_3', 'government_address_4' => 'supplemental_address_4'];
-    const PHONE_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_phone_prefix' => 'phone_prefix', 'government_phone' => 'phone'];
-    const ADDRESS_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_street_address' => 'street_address', 'constituency_postal_code' => 'postal_code', 'constituency_city' => 'city', 'constituency_address_1' => 'supplemental_address_1'];
-    const PHONE_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_phone_prefix' => 'phone_prefix', 'constituency_phone' => 'phone'];
+    protected const CONTACT_ATTRIBUTES = ['id', 'formal_title', 'gender_id', 'first_name', 'last_name', 'last_name_prefix', 'prefix_id', 'elected_via', 'mop_staff', 'mop_salutation'];
+    protected const ADDRESS_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_name' => 'organization_name', 'parliament_street_address' => 'street_address', 'parliament_postal_code' => 'postal_code', 'parliament_city' => 'city', 'parliament_address_1' => 'supplemental_address_1'];
+    protected const PHONE_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'parliament_phone_prefix' => 'phone_prefix', 'parliament_phone' => 'phone'];
+    protected const EMAIL_PARLIAMENT_ATTRIBUTES = ['id' => 'contact_id', 'email' => 'email'];
+    protected const ADDRESS_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_street_address' => 'street_address', 'government_postal_code' => 'postal_code', 'government_city' => 'city', 'government_address_1' => 'supplemental_address_1', 'government_address_2' => 'supplemental_address_2', 'government_address_3' => 'supplemental_address_3', 'government_address_4' => 'supplemental_address_4'];
+    protected const PHONE_GOVERNMENT_ATTRIBUTES = ['id' => 'contact_id', 'government_phone_prefix' => 'phone_prefix', 'government_phone' => 'phone'];
+    protected const ADDRESS_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_street_address' => 'street_address', 'constituency_postal_code' => 'postal_code', 'constituency_city' => 'city', 'constituency_address_1' => 'supplemental_address_1'];
+    protected const PHONE_CONSTITUENCY_ATTRIBUTES = ['id' => 'contact_id', 'constituency_phone_prefix' => 'phone_prefix', 'constituency_phone' => 'phone'];
 
     /** @var array our sheets extracted from the file */
-    private $raw_data = null;
+    private $raw_data = NULL;
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -110,8 +110,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      *  register those with the registerMissingRequirement function.
      *
      */
-    public function checkRequirements(): bool
-    {
+    public function checkRequirements(): bool {
         return parent::checkRequirements();
     }
 
@@ -124,40 +123,37 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      * @return boolean
      *   true iff the file can be processed
      */
-    public function probeFile($file_path) : bool
-    {
+    public function probeFile($file_path) : bool {
         if ($this->checkRequirements()) {
             try {
                 // open file and check encoding
                 $encoding = $this->getFileEncoding($file_path);
-                if (!in_array($encoding, ['iso-8859-1'])) {
-                    $this->logError(E::ts("Unexpected File Encoding"), 'error', E::ts("The importer expects an ISO-8859-1 encoded CSV file!"));
-                    return false;
+                if (!in_array($encoding, ['iso-8859-1'], TRUE)) {
+                    $this->logError(E::ts('Unexpected File Encoding'), 'error', E::ts('The importer expects an ISO-8859-1 encoded CSV file!'));
+                    return FALSE;
                 }
-
                 // open and try to process file
                 $file_handle = fopen($file_path, 'rb');
-                $data = $this->readCSV($file_handle, $encoding, ';', null, 10, null, CASE_UPPER);
+                $data = $this->readCSV($file_handle, $encoding, ';', NULL, 10, NULL, CASE_UPPER);
                 if (empty($data)) {
                     $this->logError(E::ts("File doesn't contain data"));
-                    return false;
+                    return FALSE;
                 }
                 $first_record = reset($data);
-                foreach (self::CSV_MAPPING as $original_column_name => $mapped_column_name)
-                {
+                foreach (self::CSV_MAPPING as $original_column_name => $mapped_column_name) {
                     if (!isset($first_record[$original_column_name])) {
                         $this->logError(E::ts("Column '%1' missing from input file.", [1 => $original_column_name]));
-                        return false;
+                        return FALSE;
                     }
                 }
-
             } catch (Exception $ex) {
-                $this->logException($ex);
-                return false;
+              // @ignoreException
+              $this->logException($ex);
+              return FALSE;
             }
-            return true;
+            return TRUE;
         }
-        return false; // requirements not met
+        return TRUE; // requirements not met
     }
 
     /**
@@ -169,15 +165,14 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      * @return boolean
      *   true iff the file was successfully importer
      */
-    public function importModel($file_path) : bool
-    {
+    public function importModel($file_path) : bool {
         // configure model to enforce lower case emails
-        $this->model->setProperty(CRM_Committees_Model_Email::MODEL_PROPERTY_EMAIL_LOWER_CASE, true);
+        $this->model->setProperty(CRM_Committees_Model_Email::MODEL_PROPERTY_EMAIL_LOWER_CASE, TRUE);
 
         // open file, and look for important values
         $file_handle = fopen($file_path, 'rb');
-        $data_set = $this->readCSV($file_handle, 'Windows-1252', ';', self::CSV_MAPPING + self::OPTIONAL_VALUES, null, null, CASE_UPPER);
-        $this->log(count($data_set) . " data sets read.");
+        $data_set = $this->readCSV($file_handle, 'Windows-1252', ';', self::CSV_MAPPING + self::OPTIONAL_VALUES, NULL, NULL, CASE_UPPER);
+        $this->log(count($data_set) . ' data sets read.');
         foreach ($data_set as $record) {
             // extract member's of parliament (MOP)
             $mop = $this->copyAttributes($record, self::CONTACT_ATTRIBUTES);
@@ -191,7 +186,7 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
 
             // extract PARLIAMENT address
             $address = $this->copyAttributes($record, array_keys(self::ADDRESS_PARLIAMENT_ATTRIBUTES), self::ADDRESS_PARLIAMENT_ATTRIBUTES);
-            if (count(array_filter($address)) > 1) { // the contact_id is always there
+            if (count(array_filter($address)) > 1) {
                 $address['location_type'] = self::LOCATION_TYPE_PARLIAMENT;
                 $this->model->addAddress($address);
             }
@@ -208,10 +203,10 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             $phone['phone'] = trim($phone['phone_prefix'] . ' ' . $phone['phone']);
             $phone['phone'] = str_replace(['"', '='], '', $phone['phone']);
             if (!empty($phone['phone'])) {
-                unset($phone['phone_prefix']);
-                $phone['phone_numeric'] = preg_replace('/[^0-9]/', '', $phone['phone']);
-                $phone['location_type'] = self::LOCATION_TYPE_PARLIAMENT;
-                $this->model->addPhone($phone);
+              unset($phone['phone_prefix']);
+              $phone['phone_numeric'] = preg_replace('/[^0-9]/', '', $phone['phone']);
+              $phone['location_type'] = self::LOCATION_TYPE_PARLIAMENT;
+              $this->model->addPhone($phone);
             }
 
             /***********************************
@@ -221,26 +216,25 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             // extract MINISTRY address
             $address = $this->copyAttributes($record, array_keys(self::ADDRESS_GOVERNMENT_ATTRIBUTES), self::ADDRESS_GOVERNMENT_ATTRIBUTES);
             $supplemental_address = trim("{$address['supplemental_address_1']} {$address['supplemental_address_2']} {$address['supplemental_address_3']} {$address['supplemental_address_4']} ");
-            $supplemental_address_wrapped = explode( "\n", wordwrap($supplemental_address, 96));
+            $supplemental_address_wrapped = explode("\n", wordwrap($supplemental_address, 96));
             $address['supplemental_address_1'] = $supplemental_address_wrapped[0];
             $address['supplemental_address_2'] = $supplemental_address_wrapped[1] ?? '';
             $address['supplemental_address_3'] = $supplemental_address_wrapped[2] ?? '';
             unset($address['supplemental_address_4']);
-            if (count(array_filter($address)) > 1) { // the contact_id is always there
-                $address['location_type'] = self::LOCATION_TYPE_REGIERUNG;
-                $this->model->addAddress($address);
+            if (count(array_filter($address)) > 1) {
+              $address['location_type'] = self::LOCATION_TYPE_REGIERUNG;
+              $this->model->addAddress($address);
             }
 
             // extract MINISTRY phones
             $phone = $this->copyAttributes($record, self::PHONE_GOVERNMENT_ATTRIBUTES);
-            $phone['phone'] = trim($phone['phone_prefix']. ' ' .$phone['phone']);
+            $phone['phone'] = trim($phone['phone_prefix'] . ' ' . $phone['phone']);
             $phone['phone'] = str_replace(['"', '='], '', $phone['phone']);
             if (!empty($phone['phone'])) {
-                unset($phone['phone_prefix']);
-                $phone['location_type'] = self::LOCATION_TYPE_REGIERUNG;
-                $this->model->addPhone($phone);
+              unset($phone['phone_prefix']);
+              $phone['location_type'] = self::LOCATION_TYPE_REGIERUNG;
+              $this->model->addPhone($phone);
             }
-
 
             /**************************************
              **  CONSTITUENCY / WAHLBÜRO SECTION **
@@ -249,14 +243,14 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             // extract CONSTITUENCY address
             $address = $this->copyAttributes($record, array_keys(self::ADDRESS_CONSTITUENCY_ATTRIBUTES), self::ADDRESS_CONSTITUENCY_ATTRIBUTES);
             $address['supplemental_address_1'] = trim($address['supplemental_address_1']);
-            if (count(array_filter($address)) > 1) { // the contact_id is always there
+            if (count(array_filter($address)) > 1) {
                 $address['location_type'] = self::LOCATION_TYPE_WAHLKREIS;
                 $this->model->addAddress($address);
             }
 
             // extract CONSTITUENCY phones
             $phone = $this->copyAttributes($record, self::PHONE_CONSTITUENCY_ATTRIBUTES);
-            $phone['phone'] = trim($phone['phone_prefix']. ' ' .$phone['phone']);
+            $phone['phone'] = trim($phone['phone_prefix'] . ' ' . $phone['phone']);
             $phone['phone'] = str_replace(['"', '='], '', $phone['phone']);
             if (!empty($phone['phone'])) {
                 unset($phone['phone_prefix']);
@@ -270,58 +264,57 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
 
             // extract websites
             if (!empty($record['websites'])) {
-                $websites = preg_split('/[\n ,]+/', $record['websites']);
-                foreach ($websites as $website) {
-                    $this->model->addUrl([
-                         'url' => $website,
-                         'contact_id' => $record['id'],
-                         'website_type' => CRM_Committees_Model_Url::URL_TYPE_WEBSITE
-                     ]);
-                }
+              $websites = preg_split('/[\n ,]+/', $record['websites']);
+              foreach ($websites as $website) {
+                $this->model->addUrl([
+                  'url' => $website,
+                  'contact_id' => $record['id'],
+                  'website_type' => CRM_Committees_Model_Url::URL_TYPE_WEBSITE,
+                ]);
+              }
             }
             // extract social media from 'NETZWERKE'
             if (!empty($record['NETZWERKE'])) {
-                $social_media = preg_split('/[\n ,]+/', $record['NETZWERKE']);
-                foreach ($social_media as $social_media_url) {
-                    // detect type
-                    $social_media_type = CRM_Committees_Model_Url::URL_TYPE_WEBSITE;
-                    if (preg_match('/twitter/', $social_media_url)) {
-                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER;
-                    } elseif (preg_match('/facebook/', $social_media_url)) {
-                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK;
-                    } elseif (preg_match('/instagram/', $social_media_url)) {
-                        $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM;
-                    }
-                    // add to model
-                    $this->model->addUrl([
-                         'url' => $social_media_url,
-                         'contact_id' => $record['id'],
-                         'website_type' => $social_media_type
-                     ]);
+              $social_media = preg_split('/[\n ,]+/', $record['NETZWERKE']);
+              foreach ($social_media as $social_media_url) {
+                // detect type
+                $social_media_type = CRM_Committees_Model_Url::URL_TYPE_WEBSITE;
+                if (preg_match('/twitter/', $social_media_url)) {
+                  $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER;
+                } elseif (preg_match('/facebook/', $social_media_url)) {
+                  $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK;
+                } elseif (preg_match('/instagram/', $social_media_url)) {
+                  $social_media_type = CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM;
                 }
+                // add to model
+                $this->model->addUrl([
+                  'url' => $social_media_url,
+                  'contact_id' => $record['id'],
+                  'website_type' => $social_media_type,
+                ]);
+              }
             }
 
             // extract social media from 'FACEBOOK/TWITTER/INSTAGRAM' columns
             $sm_columns = [
-                    'FACEBOOK' => CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK,
-                    'INSTAGRAM' => CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM,
-                    'TWITTER' => CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER,
+              'FACEBOOK' => CRM_Committees_Model_Url::URL_TYPE_SM_FACBOOK,
+              'INSTAGRAM' => CRM_Committees_Model_Url::URL_TYPE_SM_INSTAGRAM,
+              'TWITTER' => CRM_Committees_Model_Url::URL_TYPE_SM_TWITTER,
             ];
             foreach ($sm_columns as $column_name => $sm_account) {
                 if (!empty($record[$column_name])) {
                     $this->model->addUrl([
-                            'url' => $record[$column_name],
-                            'contact_id' => $record['id'],
-                            'website_type' => $sm_account
+                      'url' => $record[$column_name],
+                      'contact_id' => $record['id'],
+                      'website_type' => $sm_account,
                     ]);
                 };
             }
         }
-        $this->log(count($this->model->getAllPersons()) . " individuals extracted.");
-        $this->log(count($this->model->getAllAddresses()) . " addresses extracted.");
-        $this->log(count($this->model->getAllPhones()) . " phone numbers extracted.");
-        $this->log(count($this->model->getAllUrls()) . " websites/urls extracted.");
-
+        $this->log(count($this->model->getAllPersons()) . ' individuals extracted.');
+        $this->log(count($this->model->getAllAddresses()) . ' addresses extracted.');
+        $this->log(count($this->model->getAllPhones()) . ' phone numbers extracted.');
+        $this->log(count($this->model->getAllUrls()) . ' websites/urls extracted.');
 
         /**************************************
          ** COMMITTEES: Ausschüsse           **
@@ -332,10 +325,10 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         $committee_list = [];
         foreach ($data_set as $record) {
             // extract member's of parliament
-            if (!empty($record['committees'])) {
+            if (NULL !== $record['committees'] && '' !== $record['committees']) {
                 $committees = $this->unpackCommittees($record['committees']);
                 foreach ($committees as [$committee_name, $member_role]) {
-                    if (!in_array($committee_name, $committee_list)) {
+                    if (!in_array($committee_name, $committee_list, TRUE)) {
                         $committee_list[] = $committee_name;
                     }
                 }
@@ -343,31 +336,28 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
         }
         // ...then add all committees to the data model
         foreach ($committee_list as $committee_name) {
-            $this->model->addCommittee([
-               'name' => $committee_name,
-               'id'   => self::getCommitteeID($committee_name),
-               'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
-           ]);
+          $this->model->addCommittee([
+            'name' => $committee_name,
+            'id'   => self::getCommitteeID($committee_name),
+            'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
+          ]);
         }
 
         // extract committee memberships
         foreach ($data_set as $record) {
-            if (!empty($record['committees'])) {
-                $committees = $this->unpackCommittees($record['committees']);
-                foreach ($committees as [$committee_name, $member_role]) {
-                    $this->model->addCommitteeMembership(
-                        [
-                            'contact_id' => $record['id'],
-                            'committee_id' => self::getCommitteeID($committee_name),
-                            'committee_name' => $committee_name,
-                            'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
-                            'role' => $member_role,
-                        ]
-                    );
-                }
+          if (!empty($record['committees'])) {
+            $committees = $this->unpackCommittees($record['committees']);
+            foreach ($committees as [$committee_name, $member_role]) {
+              $this->model->addCommitteeMembership([
+                'contact_id' => $record['id'],
+                'committee_id' => self::getCommitteeID($committee_name),
+                'committee_name' => $committee_name,
+                'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_COMMITTEE,
+                'role' => $member_role,
+              ]);
             }
+          }
         }
-
 
         /**************************************
          ** COMMITTEES: Fraktionen           **
@@ -382,17 +372,17 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
             } else {
                 $parliamentary_group_name = E::ts('no parliamentary group');
             }
-            if (!in_array($parliamentary_group_name, $parliamentary_groups_list)) {
+            if (!in_array($parliamentary_group_name, $parliamentary_groups_list, TRUE)) {
                 $parliamentary_groups_list[] = $parliamentary_group_name;
             }
         }
         // ...then add all committees to the data model
         foreach ($parliamentary_groups_list as $parliamentary_group_name) {
-            $this->model->addCommittee([
-               'name' => $parliamentary_group_name,
-               'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
-               'id'   => self::getCommitteeID($parliamentary_group_name),
-           ]);
+          $this->model->addCommittee([
+           'name' => $parliamentary_group_name,
+            'type' => self::COMMITTEE_TYPE_PARLIAMENTARY_GROUP,
+            'id'   => self::getCommitteeID($parliamentary_group_name),
+          ]);
         }
         // extract committee memberships
         foreach ($data_set as $record) {
@@ -410,10 +400,10 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
                 );
             }
         }
-        $this->log(count($this->model->getAllCommittees()) . " committees extracted.");
+        $this->log(count($this->model->getAllCommittees()) . ' committees extracted.');
 
         $this->log("If you're using this free module, send some grateful thoughts to OXFAM Germany.");
-        return true;
+        return TRUE;
     }
 
     /**
@@ -429,15 +419,14 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      * @return array
      *   data set based on the $col2field mapping
      */
-    protected function readRow($sheet, $row_number, $col2field)
-    {
-        $record = [];
-        foreach ($col2field as $column_number => $field_name) {
-            /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
-            $cell = $sheet->getCell([$column_number, $row_number]);
-            $record[$field_name] = trim($cell->getValue());
-        }
-        return $record;
+    protected function readRow($sheet, $row_number, $col2field) {
+      $record = [];
+      foreach ($col2field as $column_number => $field_name) {
+        /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
+        $cell = $sheet->getCell([$column_number, $row_number]);
+        $record[$field_name] = trim($cell->getValue());
+      }
+      return $record;
     }
 
     /**
@@ -447,9 +436,8 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      *
      * @return string ID
      */
-    public static function getCommitteeID($committee_name)
-    {
-        return substr(sha1($committee_name), 0, 8);
+    public static function getCommitteeID($committee_name) {
+      return substr(sha1($committee_name), 0, 8);
     }
 
     /**
@@ -458,41 +446,41 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      * @param string $packed_committee_string
      *
      * @return array
-     *    committee_name => member function
+     *   committee_name => member function
      */
-    protected function unpackCommittees($packed_committee_string)
-    {
-        // extracting the functions
-        $committee_and_function = [];
+    protected function unpackCommittees($packed_committee_string) {
+      // extracting the functions
+      $committee_and_function = [];
+      $entries = [];
 
+      if ('' !== $packed_committee_string) {
         // split/explode the string
         if (str_contains($packed_committee_string, '),')) {
-            // this is the old notation
-            $entries = explode('),', $packed_committee_string);
+          // this is the old notation
+          $entries = explode('),', $packed_committee_string);
         } else {
-            // this is the new notation
-            $entries = explode('; ', $packed_committee_string);
+          // this is the new notation
+          $entries = explode('; ', $packed_committee_string);
         }
+      }
 
+      // parse the content of the committee participation
+      foreach ($entries as $entry) {
+        $entry = trim($entry);
 
-        // parse the content of the committee participation
-        foreach ($entries as $entry) {
-            $entry = trim($entry);
-
-            // try to find the right parser for this entry:
-            if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) +\(([a-zA-ZäöüÄÖÜß \.]+)\) \[([a-zA-ZäöüÄÖÜß \.]+)\]$/', $entry, $match)) {
-                // this is the latest notation:
-                $committee_and_function[] = [
-                        trim($match[1] . ' ('. trim($match[2]) . ')'), // committee name
-                        trim($match[3])                                      // committee function (e.g. member)
-                ];
-
-            } elseif (preg_match('/^([^\(]+) \[([^\(]+)$/', $entry, $match)) {
-                // this is a previous notation
-                $committee_and_function[] = [trim($match[1]), trim($match[2], " ]\t\n\r\0\x0B)")];
-            }
+        // try to find the right parser for this entry:
+        if (preg_match('/^([a-zA-ZäöüÄÖÜß ,]+) +\(([a-zA-ZäöüÄÖÜß \.]+)\) \[([a-zA-ZäöüÄÖÜß \.]+)\]$/', $entry, $match)) {
+          // this is the latest notation:
+          $committee_and_function[] = [
+            trim($match[1] . ' (' . trim($match[2]) . ')'), // committee name
+            trim($match[3]), // committee function (e.g. member)
+          ];
+        } elseif (preg_match('/^([^\(]+) \[([^\(]+)$/', $entry, $match)) {
+          // this is a previous notation
+          $committee_and_function[] = [trim($match[1]), trim($match[2], " ]\t\n\r\0\x0B)")];
         }
-        return $committee_and_function;
+      }
+      return $committee_and_function;
     }
 
     /**
@@ -510,18 +498,22 @@ class CRM_Committees_Implementation_KuerschnerCsvImporter extends CRM_Committees
      * @return array
      *   list of functions.
      */
-    protected function extractCommitteeFunctions($packed_function_string, $requested_committee_type = null, $function_ignore_list = [])
-    {
+    protected function extractCommitteeFunctions($packed_function_string, $requested_committee_type = NULL, $function_ignore_list = []) {
         $committee_functions = [];
         $all_functions = $this->unpackCommittees($packed_function_string);
         foreach ($all_functions as [$committee, $function]) {
             $committee = trim($committee);
-            if ($requested_committee_type && $committee != $requested_committee_type) continue;
+            if ($requested_committee_type && $committee != $requested_committee_type) {
+              continue;
+            }
             $function = trim($function);
-            if (in_array($function, $function_ignore_list)) continue;
+            if (in_array($function, $function_ignore_list, TRUE)) {
+              continue;
+            }
             $committee_functions[] = $function;
         }
 
         return $committee_functions;
     }
+
 }

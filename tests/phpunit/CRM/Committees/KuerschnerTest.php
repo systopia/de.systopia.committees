@@ -15,13 +15,12 @@
 
 
 use Civi\Test\Api3TestTrait;
-use Civi\Test\TransactionalInterface;
 use CRM_Committees_ExtensionUtil as E;
 
-const FILE_WITH_TITLE_AND_STAFF =  'tests/resources/kuerschner/bundestag-04-01.csv';
-const FILE_WITHOUT_TITLE_AND_STAFF =  'tests/resources/kuerschner/bundestag-04-02.csv';
-const FILE_WITH_MOP_WITH_STAFF =  'tests/resources/kuerschner/bundestag-05-01.csv';
-const FILE_WITHOUT_MOP =  'tests/resources/kuerschner/bundestag-05-02.csv';
+const FILE_WITH_TITLE_AND_STAFF = 'tests/resources/kuerschner/bundestag-04-01.csv';
+const FILE_WITHOUT_TITLE_AND_STAFF = 'tests/resources/kuerschner/bundestag-04-02.csv';
+const FILE_WITH_MOP_WITH_STAFF = 'tests/resources/kuerschner/bundestag-05-01.csv';
+const FILE_WITHOUT_MOP = 'tests/resources/kuerschner/bundestag-05-02.csv';
 
 /**
  * First simple tests about the committee extension
@@ -30,334 +29,328 @@ const FILE_WITHOUT_MOP =  'tests/resources/kuerschner/bundestag-05-02.csv';
  *  because there seems to be some issues with contact subtypes
  *
  * @group headless
+ * @covers \CRM_Committees_Implementation_KuerschnerCsvImporter
+ * @covers \CRM_Committees_Implementation_OxfamSimpleSync
  */
-class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase
-{
-    use Api3TestTrait {
-        callAPISuccess as protected traitCallAPISuccess;
-    }
+class CRM_Committees_KuerschnerTest extends CRM_Committees_TestBase {
+  use Api3TestTrait {
+    callAPISuccess as protected traitCallAPISuccess;
+  }
 
-    public function setUp()
-    {
-        parent::setUp();
-    }
+  public function setUp(): void {
+    parent::setUp();
+  }
 
-    public function tearDown()
-    {
-        parent::tearDown();
-        // bring out the big guns:
-        CRM_Core_DAO::executeQuery("TRUNCATE TABLE civicrm_value_lobby_infos;");
-    }
+  public function tearDown(): void {
+    parent::tearDown();
+    // bring out the big guns:
+    CRM_Core_DAO::executeQuery('TRUNCATE TABLE civicrm_value_lobby_infos;');
+  }
 
-    /**
-     * Test a single import without title and staff, to make sure the following tests make sense
-     */
-    public function testImportWithTitleAndStaff()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+  /**
+   * Test a single import without title and staff, to make sure the following tests make sense
+   */
+  public function testImportWithTitleAndStaff() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
 
-        // run the importer
-        [$importer, $syncer] =
+    // run the importer
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITH_TITLE_AND_STAFF)
-            );
-
-        // get the field names
-        CRM_Committees_CustomData::flushCashes();
-        $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
-        $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
-
-        // load the contact
-        $mop_id = $syncer->getIDTContactID(12994,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
-        $mop = $this->traitCallAPISuccess(
-            'Contact',
-            'getsingle',
-            [
-                'id' => $mop_id,
-                'return' => [$mop_salutation_field, $mop_staff_field]]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITH_TITLE_AND_STAFF)
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
-        $this->assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
-        $this->assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
-    }
+    // get the field names
+    CRM_Committees_CustomData::flushCashes();
+    $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
+    $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
 
-    /**
-     * Test a single import with title and staff, to make sure the following tests make sense
-     */
-    public function testImportWithoutTitleAndStaff()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+    // load the contact
+    $mop_id = $syncer->getIDTContactID(12994, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
+    $mop = $this->traitCallAPISuccess(
+        'Contact',
+        'getsingle',
+        [
+          'id' => $mop_id,
+          'return' => [$mop_salutation_field, $mop_staff_field],
+        ]
+    );
 
-        // run the importer
-        [$importer, $syncer] =
+    self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
+    self::assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
+    self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
+    self::assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
+  }
+
+  /**
+   * Test a single import with title and staff, to make sure the following tests make sense
+   */
+  public function testImportWithoutTitleAndStaff() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+    // run the importer
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITHOUT_TITLE_AND_STAFF)
-            );
-
-        // get the field names
-        CRM_Committees_CustomData::flushCashes();
-        $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
-        $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
-
-        // load the contact
-        $mop_id = $syncer->getIDTContactID(12994,CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
-        $mop = $this->traitCallAPISuccess(
-            'Contact',
-            'getsingle',
-            [
-                'id' => $mop_id,
-                'return' => [$mop_salutation_field, $mop_staff_field]]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITHOUT_TITLE_AND_STAFF)
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation field');
-        $this->assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff field');
-        $this->assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
-    }
+    // get the field names
+    CRM_Committees_CustomData::flushCashes();
+    $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
+    $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
 
-    /**
-     * See if the update mechanism works:
-     *  first import with staff, then without
-     */
-    public function testFirstWithThenWithoutStaff()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+    // load the contact
+    $mop_id = $syncer->getIDTContactID(12994, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE, CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX);
+    $mop = $this->traitCallAPISuccess(
+        'Contact',
+        'getsingle',
+        [
+          'id' => $mop_id,
+          'return' => [$mop_salutation_field, $mop_staff_field],
+        ]
+    );
 
-        // IMPORT THE FIRST FILE (with staff)
-        [$importer, $syncer] =
+    self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation field');
+    self::assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
+    self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff field');
+    self::assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
+  }
+
+  /**
+   * See if the update mechanism works:
+   *  first import with staff, then without
+   */
+  public function testFirstWithThenWithoutStaff() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+    // IMPORT THE FIRST FILE (with staff)
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITH_TITLE_AND_STAFF)
-            );
-
-        // make sure staff is there
-        CRM_Committees_CustomData::flushCashes();
-        $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
-        $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
-
-        // load the contact
-        $mop_id = $syncer->getIDTContactID(
-            12994,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
-        );
-        $mop = $this->traitCallAPISuccess(
-            'Contact',
-            'getsingle',
-            [
-                'id' => $mop_id,
-                'return' => [$mop_salutation_field, $mop_staff_field]
-            ]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITH_TITLE_AND_STAFF)
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
-        $this->assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
-        $this->assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
+    // make sure staff is there
+    CRM_Committees_CustomData::flushCashes();
+    $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
+    $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
 
+    // load the contact
+    $mop_id = $syncer->getIDTContactID(
+        12994,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+    );
+    $mop = $this->traitCallAPISuccess(
+        'Contact',
+        'getsingle',
+        [
+          'id' => $mop_id,
+          'return' => [$mop_salutation_field, $mop_staff_field],
+        ]
+    );
 
-        // IMPORT THE SECOND FILE (without staff)
-        [$importer, $syncer] =
+    self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation set');
+    self::assertNotEmpty($mop[$mop_salutation_field], 'This contact should have the salutation set');
+    self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff set');
+    self::assertNotEmpty($mop[$mop_staff_field], 'This contact should have the staff set');
+
+    // IMPORT THE SECOND FILE (without staff)
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITHOUT_TITLE_AND_STAFF)
-            );
-
-        // make sure staff is there
-        CRM_Committees_CustomData::flushCashes();
-        $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
-        $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
-
-        // reload the contact
-        $mop = $this->traitCallAPISuccess(
-            'Contact',
-            'getsingle',
-            [
-                'id' => $mop_id,
-                'return' => [$mop_salutation_field, $mop_staff_field]
-            ]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITHOUT_TITLE_AND_STAFF)
         );
 
-        $this->assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation key');
-        $this->assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
-        $this->assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff key');
-        $this->assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
+    // make sure staff is there
+    CRM_Committees_CustomData::flushCashes();
+    $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
+    $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
 
-    }
+    // reload the contact
+    $mop = $this->traitCallAPISuccess(
+        'Contact',
+        'getsingle',
+        [
+          'id' => $mop_id,
+          'return' => [$mop_salutation_field, $mop_staff_field],
+        ]
+    );
 
-    /**
-     * Make sure that the contact's MOP aditional data is wiped when leaving the parliament
-     *
-     * @see https://projekte.systopia.de/issues/18225#Zu-Punkt-56
-     */
-    public function testDataWipedWhenMemberLeftParliament()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+    self::assertArrayHasKey($mop_salutation_field, $mop, 'This contact should have the salutation key');
+    self::assertEmpty($mop[$mop_salutation_field], 'This contact should NOT have the salutation set');
+    self::assertArrayHasKey($mop_staff_field, $mop, 'This contact should have the staff key');
+    self::assertEmpty($mop[$mop_staff_field], 'This contact should NOT have the staff set');
 
-        // IMPORT THE FIRST FILE (with staff)
-        [$importer, $syncer] =
+  }
+
+  /**
+   * Make sure that the contact's MOP aditional data is wiped when leaving the parliament
+   *
+   * @see https://projekte.systopia.de/issues/18225#Zu-Punkt-56
+   */
+  public function testDataWipedWhenMemberLeftParliament() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+    // IMPORT THE FIRST FILE (with staff)
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITH_MOP_WITH_STAFF)
-            );
-
-        // make sure staff is there
-        CRM_Committees_CustomData::flushCashes();
-        $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
-        $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
-
-        // load the contact
-        $mop_id = $syncer->getIDTContactID(
-            12995,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
-        );
-        $mop = $this->traitCallAPISuccess(
-            'Contact',
-            'getsingle',
-            [
-                'id' => $mop_id,
-                'return' => [$mop_salutation_field, $mop_staff_field]
-            ]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITH_MOP_WITH_STAFF)
         );
 
-        $current_salutation_value = $mop[$mop_salutation_field] ?? '';
-        $this->assertNotEmpty($current_salutation_value, "This MOP should have a title.");
-        $current_staff_value = $mop[$mop_staff_field] ?? '';
-        $this->assertNotEmpty($current_staff_value, "This MOP should have staff.");
+    // make sure staff is there
+    CRM_Committees_CustomData::flushCashes();
+    $mop_salutation_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_salutation');
+    $mop_staff_field = CRM_Committees_CustomData::getCustomFieldKey('Lobby_Infos', 'mop_staff');
 
+    // load the contact
+    $mop_id = $syncer->getIDTContactID(
+        12995,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+    );
+    $mop = $this->traitCallAPISuccess(
+        'Contact',
+        'getsingle',
+        [
+          'id' => $mop_id,
+          'return' => [$mop_salutation_field, $mop_staff_field],
+        ]
+    );
 
-        // IMPORT THE SECOND FILE, DISABLE THEM (not there)
-        [$importer, $syncer] =
+    $current_salutation_value = $mop[$mop_salutation_field] ?? '';
+    self::assertNotEmpty($current_salutation_value, 'This MOP should have a title.');
+    $current_staff_value = $mop[$mop_staff_field] ?? '';
+    self::assertNotEmpty($current_staff_value, 'This MOP should have staff.');
+
+    // IMPORT THE SECOND FILE, DISABLE THEM (not there)
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITHOUT_MOP)
-            );
-        CRM_Committees_CustomData::flushCashes();
-
-        // load the contact
-        $mop_id = $syncer->getIDTContactID(
-            12995,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITHOUT_MOP)
         );
-        $mop = $this->traitCallAPISuccess(
-            'Contact',
-            'getsingle',
-            [
-                'id' => $mop_id,
-                'return' => [$mop_salutation_field, $mop_staff_field]
-            ]
-        );
+    CRM_Committees_CustomData::flushCashes();
 
-        $current_salutation_value = $mop[$mop_salutation_field] ?? '';
-        $this->assertEmpty($current_salutation_value, "This the salutation should've been cleared after the member left the parliament.");
-        $current_staff_value = $mop[$mop_staff_field] ?? '';
-        $this->assertEmpty($current_staff_value, "This the staff should've been cleared after the member left the parliament.");
-    }
+    // load the contact
+    $mop_id = $syncer->getIDTContactID(
+        12995,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+    );
+    $mop = $this->traitCallAPISuccess(
+        'Contact',
+        'getsingle',
+        [
+          'id' => $mop_id,
+          'return' => [$mop_salutation_field, $mop_staff_field],
+        ]
+    );
 
-    /**
-     * Make sure that the contact's MOP additional data is wiped when leaving the parliament
-     *
-     * @see https://projekte.systopia.de/issues/18225#note-24
-     */
-    public function testReactivateMOPRelationship()
-    {
-        /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
-        /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+    $current_salutation_value = $mop[$mop_salutation_field] ?? '';
+    self::assertEmpty($current_salutation_value, "This the salutation should've been cleared after the member left the parliament.");
+    $current_staff_value = $mop[$mop_staff_field] ?? '';
+    self::assertEmpty($current_staff_value, "This the staff should've been cleared after the member left the parliament.");
+  }
 
-        // IMPORT THE FIRST FILE (active MOP)
-        [$importer, $syncer] =
+  /**
+   * Make sure that the contact's MOP additional data is wiped when leaving the parliament
+   *
+   * @see https://projekte.systopia.de/issues/18225#note-24
+   */
+  public function testReactivateMOPRelationship() {
+    /** @var $importer \CRM_Committees_Implementation_KuerschnerCsvImporter */
+    /** @var $syncer \CRM_Committees_Implementation_OxfamSimpleSync */
+
+    // IMPORT THE FIRST FILE (active MOP)
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITH_MOP_WITH_STAFF)
-            );
-        CRM_Committees_CustomData::flushCashes();
-
-        // load the contact
-        $mop_id = $syncer->getIDTContactID(
-            12995,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
-            CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITH_MOP_WITH_STAFF)
         );
+    CRM_Committees_CustomData::flushCashes();
 
-        // get the parliament ID
-        $parliament_id = $syncer->getParliamentContactID($importer->getModel());
-        $this->assertNotEmpty($parliament_id, "Couldn't identifiy the parliament contact.");
+    // load the contact
+    $mop_id = $syncer->getIDTContactID(
+        12995,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_TYPE,
+        CRM_Committees_Implementation_OxfamSimpleSync::ID_TRACKER_PREFIX
+    );
 
-        // get the relationship
-        $relationship_type_ids = array_values($syncer->getRoleToRelationshipTypeIdMapping());
-        $relationships = $this->traitCallAPISuccess(
-            'Relationship',
-            'get',
-            [
-                'relationship_type_id' => ['IN' => $relationship_type_ids],
-                'contact_id_a' => $mop_id,
-                'contact_id_b' => ['IN' => [$parliament_id]],
-                'is_active' => 1,
-            ]
-        );
-        $this->assertNotEmpty($relationships['values'], "There should be an active relationship to the parliament");
+    // get the parliament ID
+    $parliament_id = $syncer->getParliamentContactID($importer->getModel());
+    self::assertNotEmpty($parliament_id, "Couldn't identifiy the parliament contact.");
 
+    // get the relationship
+    $relationship_type_ids = array_values($syncer->getRoleToRelationshipTypeIdMapping());
+    $relationships = $this->traitCallAPISuccess(
+        'Relationship',
+        'get',
+        [
+          'relationship_type_id' => ['IN' => $relationship_type_ids],
+          'contact_id_a' => $mop_id,
+          'contact_id_b' => ['IN' => [$parliament_id]],
+          'is_active' => 1,
+        ]
+    );
+    self::assertNotEmpty($relationships['values'], 'There should be an active relationship to the parliament');
 
-        // IMPORT THE SECOND FILE, MOP should leave
-        [$importer, $syncer] =
+    // IMPORT THE SECOND FILE, MOP should leave
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITHOUT_MOP)
-            );
-        CRM_Committees_CustomData::flushCashes();
-
-        // check if MOP has disabled relationship
-        $relationships = $this->traitCallAPISuccess(
-            'Relationship',
-            'get',
-            [
-                'relationship_type_id' => ['IN' => $relationship_type_ids],
-                'contact_id_a' => $mop_id,
-                'contact_id_b' => ['IN' => [$parliament_id]],
-                'is_active' => 1,
-            ]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITHOUT_MOP)
         );
-        $this->assertEmpty($relationships['values'], "There should NOT be an active relationship to the parliament");
+    CRM_Committees_CustomData::flushCashes();
 
-        // IMPORT THE FIRST FILE AGAIN (active MOP again)
-        [$importer, $syncer] =
+    // check if MOP has disabled relationship
+    $relationships = $this->traitCallAPISuccess(
+        'Relationship',
+        'get',
+        [
+          'relationship_type_id' => ['IN' => $relationship_type_ids],
+          'contact_id_a' => $mop_id,
+          'contact_id_b' => ['IN' => [$parliament_id]],
+          'is_active' => 1,
+        ]
+    );
+    self::assertEmpty($relationships['values'], 'There should NOT be an active relationship to the parliament');
+
+    // IMPORT THE FIRST FILE AGAIN (active MOP again)
+    [$importer, $syncer] =
             $this->sync(
-                'de.oxfam.kuerschner.syncer.bund',
-                'de.oxfam.kuerschner',
-                E::path(FILE_WITH_MOP_WITH_STAFF)
-            );
-        CRM_Committees_CustomData::flushCashes();
-
-        // get the relationship
-        $relationship_type_ids = array_values($syncer->getRoleToRelationshipTypeIdMapping());
-        $relationships = $this->traitCallAPISuccess(
-            'Relationship',
-            'get',
-            [
-                'relationship_type_id' => ['IN' => $relationship_type_ids],
-                'contact_id_a' => $mop_id,
-                'contact_id_b' => ['IN' => [$parliament_id]],
-                'is_active' => 1,
-            ]
+            'de.oxfam.kuerschner.syncer.bund',
+            'de.oxfam.kuerschner',
+            E::path(FILE_WITH_MOP_WITH_STAFF)
         );
-        $this->assertNotEmpty($relationships['values'], "There should be an active relationship to the parliament again");
-    }
+    CRM_Committees_CustomData::flushCashes();
+
+    // get the relationship
+    $relationship_type_ids = array_values($syncer->getRoleToRelationshipTypeIdMapping());
+    $relationships = $this->traitCallAPISuccess(
+        'Relationship',
+        'get',
+        [
+          'relationship_type_id' => ['IN' => $relationship_type_ids],
+          'contact_id_a' => $mop_id,
+          'contact_id_b' => ['IN' => [$parliament_id]],
+          'is_active' => 1,
+        ]
+    );
+    self::assertNotEmpty($relationships['values'], 'There should be an active relationship to the parliament again');
+  }
+
 }

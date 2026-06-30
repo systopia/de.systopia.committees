@@ -1,0 +1,189 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Cannot cast array\|int to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: CRM/Committees/CustomData.php
+
+		-
+			message: '#^Part \$data\[''entity''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: CRM/Committees/CustomData.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: CRM/Committees/CustomData.php
+
+		-
+			message: '#^Variable \$unpacked_value in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: CRM/Committees/CustomData.php
+
+		-
+			message: '#^Call to an undefined method object\:\:getCell\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: CRM/Committees/Implementation/KuerschnerCsvImporter.php
+
+		-
+			message: '#^Call to function array_filter\(\) requires parameter \#2 to be passed to avoid loose comparison semantics\.$#'
+			identifier: arrayFilter.strict
+			count: 3
+			path: CRM/Committees/Implementation/KuerschnerCsvImporter.php
+
+		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: CRM/Committees/Implementation/KuerschnerCsvImporter.php
+
+		-
+			message: '#^Only booleans are allowed in an elseif condition, int\|false given\.$#'
+			identifier: elseif.condNotBoolean
+			count: 3
+			path: CRM/Committees/Implementation/KuerschnerCsvImporter.php
+
+		-
+			message: '#^Property CRM_Committees_Implementation_KuerschnerCsvImporter\:\:\$raw_data is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: CRM/Committees/Implementation/KuerschnerCsvImporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$relationship_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: CRM/Committees/Implementation/OxfamSimpleSync.php
+
+		-
+			message: '#^Call to an undefined method object\:\:fetch\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: CRM/Committees/Implementation/OxfamSimpleSync.php
+
+		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 2
+			path: CRM/Committees/Implementation/OxfamSimpleSync.php
+
+		-
+			message: '#^If_\: Use a function e\.g\. `count\(\$foo\) \> 0` instead of `\$foo`\.$#'
+			identifier: voku.If
+			count: 3
+			path: CRM/Committees/Implementation/OxfamSimpleSync.php
+
+		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeImporter.php
+
+		-
+			message: '#^Dead catch \- PhpOffice\\PhpSpreadsheet\\Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeImporter.php
+
+		-
+			message: '#^In method "CRM_Committees_Implementation_PersonalOfficeImporter\:\:probeFile", caught "Exception" must be rethrown\. Either catch a more specific exception, add a "throw" clause in the "catch" block to propagate the exception or add a "// @ignoreException" comment\.$#'
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeImporter.php
+
+		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 3
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Empty catch block\.$#'
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 2
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^If_\: Use a function e\.g\. `count\(\$foo\) \> 0` instead of `\$foo`\.$#'
+			identifier: voku.If
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^In method "CRM_Committees_Implementation_PersonalOfficeSyncer\:\:tagContact", caught "Exception" must be rethrown\. Either catch a more specific exception, add a "throw" clause in the "catch" block to propagate the exception or add a "// @ignoreException" comment\.$#'
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 2
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Only booleans are allowed in an elseif condition, int\|false given\.$#'
+			identifier: elseif.condNotBoolean
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Part \$existing_employment\[''contact_id_a''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Part \$existing_employment\[''contact_id_b''\] \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 2
+			path: CRM/Committees/Implementation/PersonalOfficeSyncer.php
+
+		-
+			message: '#^Dead catch \- CRM_Committees_Model_ValidationException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: CRM/Committees/Implementation/SessionImporter.php
+
+		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: CRM/Committees/Implementation/SessionImporter.php
+
+		-
+			message: '#^In method "CRM_Committees_Implementation_SessionImporter\:\:probeFile", caught "Exception" must be rethrown\. Either catch a more specific exception, add a "throw" clause in the "catch" block to propagate the exception or add a "// @ignoreException" comment\.$#'
+			count: 1
+			path: CRM/Committees/Implementation/SessionImporter.php
+
+		-
+			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: CRM/Committees/Implementation/SessionSyncer.php
+
+		-
+			message: '#^If_\: Use a function e\.g\. `count\(\$foo\) \> 0` instead of `\$foo`\.$#'
+			identifier: voku.If
+			count: 1
+			path: CRM/Committees/Implementation/SessionSyncer.php
+
+		-
+			message: '#^Binary operation "\." between mixed and ''/''\|''\\\\'' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: CRM/Committees/Plugin/Base.php
