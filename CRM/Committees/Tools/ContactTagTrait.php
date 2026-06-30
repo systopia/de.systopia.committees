@@ -139,7 +139,7 @@ trait CRM_Committees_Tools_ContactTagTrait {
    * @return int
    *   tag ID
    */
-  public function getOrCreateTagId(string $tag_name, string $tag_label = NULL, string $tag_description = NULL, string $used_for = 'civicrm_contact') : int {
+  public function getOrCreateTagId(string $tag_name, ?string $tag_label = NULL, ?string $tag_description = NULL, string $used_for = 'civicrm_contact') : int {
     // look up if it exists and return tag ID
     $tag_search = \Civi\Api4\Tag::get(FALSE)
       ->addSelect('id')
@@ -194,7 +194,7 @@ trait CRM_Committees_Tools_ContactTagTrait {
    *
    * @note copied from https://gist.github.com/cjthompson/5485005
    */
-  public static function arrayDifference(array $original_array, array $desired_array, array $keysToCompare = NULL) : array {
+  public static function arrayDifference(array $original_array, array $desired_array, ?array $keysToCompare = NULL) : array {
     // addition: make sure this is all string
     $original_array = array_map('strval', $original_array);
     $desired_array = array_map('strval', $desired_array);

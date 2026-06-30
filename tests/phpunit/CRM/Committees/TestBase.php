@@ -15,7 +15,7 @@
 
 use Civi\Test\Api3TestTrait;
 use Civi\Test\HeadlessInterface;
-use Civi\Test\HookInterface;
+use Civi\Core\HookInterface;
 
 use CRM_Committees_ExtensionUtil as E;
 
@@ -79,7 +79,7 @@ class CRM_Committees_TestBase extends \PHPUnit\Framework\TestCase implements Hea
    *
    * @return array
    */
-  public function sync(string $syncer_id, string $importer_id, string $import_file = NULL, $fail_on_errors = TRUE, $clear_caches = TRUE) {
+  public function sync(string $syncer_id, string $importer_id, ?string $import_file = NULL, $fail_on_errors = TRUE, $clear_caches = TRUE) {
     // clear caches
     if ($clear_caches) {
       self::idTrackerTraitClearCaches();
