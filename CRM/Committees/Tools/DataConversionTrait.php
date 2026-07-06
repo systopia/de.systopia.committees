@@ -93,7 +93,6 @@ trait DataConversionTrait {
     preg_match('/\d+/', $shorthand, $matches);
 
     // NOTE: integer with value overflow will be converted to float by php
-    /** @phpstan-var int|float $multiplied */
     $multiplied = intval($matches[0]) * $multiplier;
 
     /** @phpstan-ignore function.impossibleType */
