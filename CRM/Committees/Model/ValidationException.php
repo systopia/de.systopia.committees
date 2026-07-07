@@ -16,15 +16,14 @@
 /**
  * This represents a failed validation
  */
-class CRM_Committees_Model_ValidationException extends CRM_Core_Exception
-{
-    /** @var \CRM_Committees_Model_Entity  */
-    protected $entity = null;
+class CRM_Committees_Model_ValidationException extends CRM_Core_Exception {
+  /**
+   * @var \CRM_Committees_Model_Entity  */
+  protected $entity = NULL;
 
-    public function __construct($message, $entity)
-    {
-        $this->entity = $entity;
-        parent::__construct($message);
-    }
+  public function __construct($message, $entity) {
+    $this->entity = $entity;
+    parent::__construct($message);
+  }
 
 }

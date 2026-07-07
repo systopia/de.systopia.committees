@@ -16,7 +16,6 @@
 /**
  * This represents an address
  */
-class CRM_Committees_Model_Address extends CRM_Committees_Model_Entity
-{
+class CRM_Committees_Model_Address extends CRM_Committees_Model_Entity {
 
 }

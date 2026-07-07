@@ -1,16 +1,17 @@
-site_name: Committees
+site_name: CiviCRM Committees
+site_description: Extension to synchronise committee structures, such as parliaments, sessions, boards, etc
+site_author: SYSTOPIA
 repo_url: https://github.com/systopia/de.systopia.committees
-site_description: 'Extension to synchronise committee structures, such as parliaments, sessions, boards, etc'
-site_author: 'systopia'
+
 theme:
   name: material
 
 nav:
-  - 'Introduction': index.md
-  - 'Importer':
-    - 'Kürschner List Importer': importer/kuerschner/index.md
-  - 'Syncer':
-    - 'Oxfam Bundestag Importer': syncer/oxfam/index.md
+  - Introduction: index.md
+  - Importer:
+    - Kürschner List Importer: importer/kuerschner/index.md
+  - Syncer:
+    - Oxfam Bundestag Importer: syncer/oxfam/index.md
 
 markdown_extensions:
   - attr_list
@@ -18,7 +19,7 @@ markdown_extensions:
   - def_list
   - codehilite
   - toc:
-      permalink: True
+      permalink: true
   - pymdownx.superfences
   - pymdownx.inlinehilite
   - pymdownx.tilde

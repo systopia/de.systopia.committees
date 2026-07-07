@@ -1,0 +1,81 @@
+includes:
+	- phpstan-baseline.neon
+
+parameters:
+	paths:
+		- api
+		- Civi
+		- CRM
+		- tests
+		- committees.php
+	excludePaths:
+		analyse:
+			- CRM/Committees/DAO/*
+			- tests/phpunit/bootstrap.php
+	scanFiles:
+		- committees.civix.php
+		- tools/phpunit/vendor/bin/.phpunit/phpunit/src/Framework/TestCase.php
+	scanDirectories:
+		- ../de.systopia.identitytracker/CRM
+		- ../de.systopia.xcm/CRM
+		- tools/phpunit/vendor/bin/.phpunit/phpunit/src/Framework
+		- mixin
+	bootstrapFiles:
+		- tools/phpunit/vendor/bin/.phpunit/phpunit/vendor/autoload.php
+		- phpstanBootstrap.php
+	level: 9
+	universalObjectCratesClasses:
+		- Civi\Core\Event\GenericHookEvent
+		- CRM_Core_Config
+		- CRM_Core_DAO
+		- civicrm_api3
+	earlyTerminatingMethodCalls:
+		CRM_Utils_System:
+			- civiExit
+			- redirect
+		CRM_Queue_Runner:
+			- runAllViaWeb
+	checkTooWideReturnTypesInProtectedAndPublicMethods: true
+	checkUninitializedProperties: true
+	checkMissingCallableSignature: true
+	treatPhpDocTypesAsCertain: false
+	exceptions:
+		check:
+			missingCheckedExceptionInThrows: true
+			tooWideThrowType: true
+		checkedExceptionClasses:
+			- \Webmozart\Assert\InvalidArgumentException
+		implicitThrows: false
+	ignoreErrors:
+		# Note paths are prefixed with "*/" to work with inspections in PHPStorm because of:
+		# https://youtrack.jetbrains.com/issue/WI-63891/PHPStan-ignoreErrors-configuration-isnt-working-with-inspections
+		-
+			identifiers:
+				- missingType.parameter
+				- missingType.iterableValue
+				- argument.type
+				- return.type
+				- empty.notAllowed
+				- phpDoc.parseError
+				- missingType.return
+				- offsetAccess.nonOffsetAccessible
+				- if.condNotBoolean
+				- varTag.misplaced
+				- varTag.type
+				- missingType.property
+				- offsetAccess.notFound
+				- offsetAccess.invalidOffset
+				- booleanOr.leftNotBoolean
+				- booleanOr.rightNotBoolean
+				- booleanAnd.leftNotBoolean
+				- booleanAnd.rightNotBoolean
+				- booleanNot.exprNotBoolean
+				- equal.notAllowed
+				- notEqual.notAllowed
+				- foreach.nonIterable
+				- voku.BooleanAnd
+				- voku.BooleanAndNode
+		-
+			rawMessages:
+				- 'Do not throw the \Exception base class.'
+	tmpDir: .phpstan

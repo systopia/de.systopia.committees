@@ -20,16 +20,15 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @todo migrate to separate extension or leave as example?
  */
-class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugin_Importer
-{
+class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugin_Importer {
     // the known sheets
-    const SHEET_GREMIEN  = 'Session_Gremien';
-    const SHEET_PERSONEN = 'Session_Personen';
-    const SHEET_DETAILS  = 'Session_PersAdressen';
-    const SHEET_MEMBERS  = 'Session_GrMitgl';
-    const SHEET_MEMBERSHIP_ENDED  = 'GrMitgl-beendet';
+    protected const SHEET_GREMIEN  = 'Session_Gremien';
+    protected const SHEET_PERSONEN = 'Session_Personen';
+    protected const SHEET_DETAILS  = 'Session_PersAdressen';
+    protected const SHEET_MEMBERS  = 'Session_GrMitgl';
+    protected const SHEET_MEMBERSHIP_ENDED  = 'GrMitgl-beendet';
 
-    const REQUIRED_SHEETS = [
+    protected const REQUIRED_SHEETS = [
         self::SHEET_PERSONEN,
         self::SHEET_GREMIEN,
         self::SHEET_DETAILS,
@@ -37,7 +36,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         self::SHEET_MEMBERSHIP_ENDED,
     ];
 
-    const ROW_MAPPING_PERSON = [
+    protected const ROW_MAPPING_PERSON = [
         1 => 'id',
         2 => 'prefix',
         3 => 'last_name',
@@ -45,7 +44,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         5 => 'formal_title',
     ];
 
-    const ROW_MAPPING_GREMIUM = [
+    protected const ROW_MAPPING_GREMIUM = [
         1 => 'id',
         2 => 'handle',
         3 => 'name_short',
@@ -54,23 +53,24 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         6 => 'end_date',
     ];
 
-    const ROW_MAPPING_ADDRESS = [
+    protected const ROW_MAPPING_ADDRESS = [
         1 => 'contact_id',
         2 => 'id',
-        3 => 'supplemental_address_1',  // ADRNAME3
+        // ADRNAME3
+        3 => 'supplemental_address_1',
         4 => 'street_address',
         5 => 'house_number',
         6 => 'postal_code',
         7 => 'city',
     ];
 
-    const ROW_MAPPING_EMAIL = [
+    protected const ROW_MAPPING_EMAIL = [
         1 => 'contact_id',
         2 => 'id',
         10 => 'email',
     ];
 
-    const ROW_MAPPING_PHONE = [
+    protected const ROW_MAPPING_PHONE = [
         1 => 'contact_id',
         2 => 'id',
         8 => 'phone',
@@ -78,7 +78,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
 
     // remark: swapped column 1 and 2 compared to the original import,
     //   since they all new files have the revers order
-    const ROW_MAPPING_MEMBERS = [
+    protected const ROW_MAPPING_MEMBERS = [
         1 => 'contact_id',
         2 => 'committee_id',
         3 => 'title',
@@ -87,7 +87,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         6 => 'end_date',
     ];
 
-    const ROW_MAPPING_MEMBERS_ENDED = [
+    protected const ROW_MAPPING_MEMBERS_ENDED = [
             1 => 'contact_id',
             2 => 'committee_id',
             3 => 'funktion',
@@ -97,8 +97,11 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             7 => 'laenddat',
     ];
 
-    /** @var array our sheets extracted from the file */
-    private $our_sheets = null;
+    /**
+     * @var array|null
+     *   extracted from the file
+     */
+    private $our_sheets = NULL;
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -107,30 +110,29 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      *  register those with the registerMissingRequirement function.
      *
      */
-    public function checkRequirements()
-    {
+    public function checkRequirements() {
         // Check for PhpSpreadsheet library:
         // first, see if PhpSpreadsheet is already there
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
             // try composer autoload
             $autoload_file = E::path('vendor/autoload.php');
             if (file_exists($autoload_file)) {
-                require_once($autoload_file);
+                require_once $autoload_file;
             }
         }
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
             $this->registerMissingRequirement(
-                'PhpSpreadsheet',
-                E::ts("PhpSpreadsheet library missing."),
-                E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
-            );
+      'PhpSpreadsheet',
+      E::ts('PhpSpreadsheet library missing.'),
+      E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
+  );
         }
         if (!$this->extensionAvailable('de.systopia.identitytracker')) {
           $this->registerMissingRequirement(
-                  'identitytracker',
-                  E::ts("IdentityTracker missing or not enabled."),
-                  E::ts("Please install the Identity-Tracker extension from https://github.com/systopia/de.systopia.identitytracker/releases.")
-          );
+      'identitytracker',
+      E::ts('IdentityTracker missing or not enabled.'),
+      E::ts('Please install the Identity-Tracker extension from https://github.com/systopia/de.systopia.identitytracker/releases.')
+  );
         }
 
         return parent::checkRequirements();
@@ -145,8 +147,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      * @return boolean
      *   true iff the file can be processed
      */
-    public function probeFile($file_path) : bool
-    {
+    public function probeFile($file_path) : bool {
         if ($this->checkRequirements()) {
             try {
                 $our_sheets = $this->getRequiredSheets($file_path);
@@ -159,13 +160,15 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                         $this->logError(E::ts("Sheet '%1' missing.", [1 => $missing_sheet]));
                     }
                 }
-            } catch (Exception $ex) {
-                $this->logException($ex);
-                return false;
             }
-            return true;
+catch (Exception $ex) {
+                $this->logException($ex);
+                return FALSE;
+}
+            return TRUE;
         }
-        return false; // requirements not met
+// requirements not met
+        return FALSE;
     }
 
     /**
@@ -174,10 +177,9 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      * @param string $file_path
      *   path to the xlsx file
      */
-    protected function getRequiredSheets($file_path)
-    {
-        if ($this->our_sheets === null) {
-            $this->log("Opening spreadsheet...");
+    protected function getRequiredSheets($file_path) {
+        if ($this->our_sheets === NULL) {
+            $this->log('Opening spreadsheet...');
             $this->our_sheets = [];
             $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
             $spreadsheet = $xls_reader->load($file_path);
@@ -193,7 +195,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                     }
                 }
             }
-            $this->log("All required sheets found.");
+            $this->log('All required sheets found.');
         }
         return $this->our_sheets;
     }
@@ -207,8 +209,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      * @return boolean
      *   true iff the file was successfully importer
      */
-    public function importModel($file_path) : bool
-    {
+    public function importModel($file_path) : bool {
         $sheets = $this->getRequiredSheets($file_path);
 
         // read gremien
@@ -216,13 +217,13 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         $row_count = $gremien_sheet->getHighestRow();
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($gremien_sheet, $row_nr, self::ROW_MAPPING_GREMIUM);
-            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
+            $record['start_date'] = date('Y-m-d', strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
-                date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
+                date('Y-m-d', strtotime(jdtogregorian((int) $record['end_date'])));
             unset($record['handle'], $record['name_short']);
             $this->model->addCommittee($record);
         }
-        $this->log(count($this->model->getAllCommittees()) . " committees read.");
+        $this->log(count($this->model->getAllCommittees()) . ' committees read.');
 
         // read persons
         $person_sheet = $sheets[self::SHEET_PERSONEN];
@@ -231,8 +232,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record = $this->readRow($person_sheet, $row_nr, self::ROW_MAPPING_PERSON);
             $this->model->addPerson($record);
         }
-        $this->log(count($this->model->getAllPersons()) . " persons read.");
-
+        $this->log(count($this->model->getAllPersons()) . ' persons read.');
 
         // open details sheet:
         $details_sheet = $sheets[self::SHEET_DETAILS];
@@ -244,7 +244,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
             $record['street_address'] = trim($record['street_address'] . ' ' . $record['house_number']);
             $this->model->addAddress($record);
         }
-        $this->log(count($this->model->getAllAddresses()) . " addresses read.");
+        $this->log(count($this->model->getAllAddresses()) . ' addresses read.');
 
         // read emails
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
@@ -253,12 +253,13 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                 $record['email'] = strtolower($record['email']);
                 try {
                     $this->model->addEmail($record);
-                } catch (CRM_Committees_Model_ValidationException $ex) {
-                    $this->log("Email '{$record['email']}' is not a valid email address.");
                 }
+catch (CRM_Committees_Model_ValidationException $ex) {
+                    $this->log("Email '{$record['email']}' is not a valid email address.");
+}
             }
         }
-        $this->log(count($this->model->getAllEmails()) . " emails read.");
+        $this->log(count($this->model->getAllEmails()) . ' emails read.');
 
         // read phones
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
@@ -268,7 +269,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                 $this->model->addPhone($record);
             }
         }
-        $this->log(count($this->model->getAllPhones()) . " phones read.");
+        $this->log(count($this->model->getAllPhones()) . ' phones read.');
 
         // add memberships
         $member_sheet = $sheets[self::SHEET_MEMBERS];
@@ -279,13 +280,13 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
                 $this->log("Skipped bad line: {$row_nr}.");
                 continue;
             }
-            $record['start_date'] = date("Y-m-d", strtotime(jdtogregorian((int) $record['start_date'])));
+            $record['start_date'] = date('Y-m-d', strtotime(jdtogregorian((int) $record['start_date'])));
             $record['end_date'] = empty($record['end_date']) ? '' :
-                date("Y-m-d", strtotime(jdtogregorian((int) $record['end_date'])));
+                date('Y-m-d', strtotime(jdtogregorian((int) $record['end_date'])));
             $record['id'] = "{$record['contact_id']}-{$record['committee_id']}";
             $this->model->addCommitteeMembership($record);
         }
-        $this->log(count($this->model->getAllMemberships()) . " committee memberships read.");
+        $this->log(count($this->model->getAllMemberships()) . ' committee memberships read.');
 
         ### special adjustments / overrides ###
 
@@ -298,7 +299,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
 
             if (empty($ADRNAME3) && preg_match('/^Hans-Böckler-Str.*$/i', $STREET)) {
                 $adjustments_made++;
-                $address->setAttribute('supplemental_address_1', "Evangelische Kirche im Rheinland");
+                $address->setAttribute('supplemental_address_1', 'Evangelische Kirche im Rheinland');
                 $this->model->addAddress($address);
             }
         }
@@ -311,19 +312,19 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         for ($row_nr = 2; $row_nr <= $row_count; $row_nr++) {
             $record = $this->readRow($membership_ended_sheet, $row_nr, self::ROW_MAPPING_MEMBERS_ENDED);
             if (!empty($record['contact_id']) && !empty($record['committee_id'])) {
-                $membership_end_dates["{$record['contact_id']}-{$record['committee_id']}"] = date("Y-m-d", strtotime(jdtogregorian((int) $record['mgedat'])));
+                $membership_end_dates["{$record['contact_id']}-{$record['committee_id']}"] = date('Y-m-d', strtotime(jdtogregorian((int) $record['mgedat'])));
             }
         }
         $this->model->setContextData('committee_membership_end_dates', $membership_end_dates);
-        $this->log(count($membership_end_dates) . " committees membership end dates read.");
+        $this->log(count($membership_end_dates) . ' committees membership end dates read.');
 
-        return true;
+        return TRUE;
     }
 
     /**
      * Read a whole row into a named array
      *
-     * @param object $sheet
+     * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
      *   the PhpOffice spreadsheet
      * @param integer $row_number
      *   the row number to read
@@ -333,8 +334,7 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      * @return array
      *   data set based on the $col2field mapping
      */
-    protected function readRow($sheet, $row_number, $col2field)
-    {
+    protected function readRow($sheet, $row_number, $col2field) {
         $record = [];
         foreach ($col2field as $column_number => $field_name) {
             /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
@@ -343,4 +343,5 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
         }
         return $record;
     }
+
 }

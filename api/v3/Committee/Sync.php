@@ -17,29 +17,32 @@
  * Simple APIv3 action to run synchronisation
  */
 function civicrm_api3_committee_sync($params) {
-    // get importer
-    $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
-    $importer = new $importers[$params['importer_id']]['class']();
+  // get importer
+  $importers = CRM_Committees_Plugin_Importer::getAvailableImporters();
+  /** @phpstan-var CRM_Committees_Plugin_Importer $importer */
+  $importer = new $importers[$params['importer_id']]['class']();
 
-    // get syncer
-    $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
-    $syncer = new $syncers[$params['syncer_id']]['class']();
+  // get syncer
+  $syncers = CRM_Committees_Plugin_Syncer::getAvailableSyncers();
+  /** @phpstan-var CRM_Committees_Plugin_Syncer $syncer */
+  $syncer = new $syncers[$params['syncer_id']]['class']();
 
-    // run
-    $importer->importModel($params['import_file']);
-    $model = $importer->getModel();
-    $syncer->syncModel($model);
+  // run
+  $importer->importModel($params['import_file']);
+  $model = $importer->getModel();
+  $syncer->syncModel($model);
 
-    // check for errors
-    if ($importer->getErrors() || $syncer->getErrors()) {
-        return civicrm_api3_create_error(implode(', ', array_merge($importer->getErrorMessages('warning'), $syncer->getErrorMessages('warning'))), [
-            'log' => $importer->getCurrentLogFile(),
-        ]);
-    } else {
-        return civicrm_api3_create_success(1, $params, 'Committee', 'sync', $null, [
-            'log' => $importer->getCurrentLogFile(),
-        ]);
-    }
+  // check for errors
+  if ($importer->getErrors() || $syncer->getErrors()) {
+    return civicrm_api3_create_error(implode(', ', array_merge($importer->getErrorMessages('warning'), $syncer->getErrorMessages('warning'))), [
+      'log' => $importer->getCurrentLogFile(),
+    ]);
+  }
+  else {
+    return civicrm_api3_create_success(1, $params, 'Committee', 'sync', $null, [
+      'log' => $importer->getCurrentLogFile(),
+    ]);
+  }
 }
 
 /**

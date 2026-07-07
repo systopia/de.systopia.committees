@@ -20,9 +20,8 @@ use CRM_Committees_ExtensionUtil as E;
  *
  * @todo migrate to separate extension or leave as example?
  */
-class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committees_Plugin_Importer
-{
-    const ROW_MAPPING = [
+class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committees_Plugin_Importer {
+    protected const ROW_MAPPING = [
         1 => 'contact_id',
         2 => 'prefix_id',
         3 => 'formal_title',
@@ -36,7 +35,8 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         11 => 'postal_code',
         12 => 'city',
         //13 => 'kk/kb-. kg-. gkg-schlüssel',
-        14 => 'committee_id', // 'externe org. nr',
+// 'externe org. nr',
+        14 => 'committee_id',
         //15 => 'committee_id', // externe org. nr
         15 => 'committee_name',
         //17 => 'versand-nr.',
@@ -44,8 +44,9 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         //19 => 'dienststnr.',
     ];
 
-    /** @var array our sheets extracted from the file */
-    private $main_sheet = null;
+    /**
+     * @var \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet|null our sheets extracted from the file */
+    private $main_sheet = NULL;
 
     /**
      * This function will be called *before* the plugin will do it's work.
@@ -54,23 +55,22 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      *  register those with the registerMissingRequirement function.
      *
      */
-    public function checkRequirements()
-    {
+    public function checkRequirements() {
         // Check for PhpSpreadsheet library:
         // first, see if PhpSpreadsheet is already there
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
             // try composer autoload
             $autoload_file = E::path('vendor/autoload.php');
             if (file_exists($autoload_file)) {
-                require_once($autoload_file);
+                require_once $autoload_file;
             }
         }
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
             $this->registerMissingRequirement(
-                'PhpSpreadsheet',
-                E::ts("PhpSpreadsheet library missing."),
-                E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
-            );
+      'PhpSpreadsheet',
+      E::ts('PhpSpreadsheet library missing.'),
+      E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
+  );
         }
 
         return parent::checkRequirements();
@@ -85,19 +85,20 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      * @return boolean
      *   true iff the file can be processed
      */
-    public function probeFile($file_path) : bool
-    {
+    public function probeFile($file_path) : bool {
         if ($this->checkRequirements()) {
             try {
                 $main_sheet = $this->getMainSheet($file_path);
                 // todo: probe sheet? column names?
-            } catch (Exception $ex) {
-                $this->logException($ex);
-                return false;
             }
-            return true;
+catch (Exception $ex) {
+                $this->logException($ex);
+                return FALSE;
+}
+            return TRUE;
         }
-        return false; // requirements not met
+// requirements not met
+        return FALSE;
     }
 
     /**
@@ -106,16 +107,16 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      * @param string $file_path
      *   path to the xlsx file
      */
-    protected function getMainSheet($file_path)
-    {
-        if ($this->main_sheet === null) {
+    protected function getMainSheet($file_path) {
+        if ($this->main_sheet === NULL) {
             try {
                 $xls_reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
                 $spreadsheet = $xls_reader->load($file_path);
                 $this->main_sheet = $spreadsheet->getSheet($spreadsheet->getFirstSheetIndex());
-            } catch (\PhpOffice\PhpSpreadsheet\Exception $e) {
-                $this->logError("No XLS sheet found in the file.", 'error');
             }
+catch (\PhpOffice\PhpSpreadsheet\Exception $e) {
+                $this->logError('No XLS sheet found in the file.', 'error');
+}
         }
         return $this->main_sheet;
     }
@@ -129,9 +130,8 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      * @return boolean
      *   true iff the file was successfully importer
      */
-    public function importModel($file_path) : bool
-    {
-        $this->log("Opening source file");
+    public function importModel($file_path) : bool {
+        $this->log('Opening source file');
         $main_sheet = $this->getMainSheet($file_path);
         $row_count = $main_sheet->getHighestRow();
         $this->log("Start importing {$row_count} rows");
@@ -159,19 +159,20 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                 $this->model->addAddress($address);
 
                 // extract email
-                $email = $this->copyAttributes($record, ['contact_id', 'email'], );
+                $email = $this->copyAttributes($record, ['contact_id', 'email'],);
                 if (!empty($email['email'])) {
                     $email['email'] = strtolower($email['email']);
                     $this->model->addEmail($email);
                 }
-            } else {
-                $duplicate_contact_count++;
             }
+else {
+                $duplicate_contact_count++;
+}
 
             // extract committees and membership relationships
             // remark: start / end dates currently not provided
             $committee_data = $this->copyAttributes($record, ['committee_id', 'committee_name'],
-                                           ['committee_id' => 'id', 'committee_name' => 'name']);
+      ['committee_id' => 'id', 'committee_name' => 'name']);
             if (!empty($committee_data['id']) && !empty($committee_data['name'])) {
                 $existing_committee = $this->model->getCommittee($committee_data['id']);
                 if (!$existing_committee) {
@@ -189,19 +190,19 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
                 $this->model->addCommitteeMembership($employment);
             }
         }
-        $this->log(count($this->model->getAllPersons()) . " contacts read.");
-        $this->log(count($this->model->getAllEmails()) . " emails read.");
-        $this->log(count($this->model->getAllAddresses()) . " addresses read.");
-        $this->log(count($this->model->getAllCommittees()) . " divisions referenced in input.");
-        $this->log(count($this->model->getAllMemberships()) . " employments referenced in input.");
+        $this->log(count($this->model->getAllPersons()) . ' contacts read.');
+        $this->log(count($this->model->getAllEmails()) . ' emails read.');
+        $this->log(count($this->model->getAllAddresses()) . ' addresses read.');
+        $this->log(count($this->model->getAllCommittees()) . ' divisions referenced in input.');
+        $this->log(count($this->model->getAllMemberships()) . ' employments referenced in input.');
 
-        return true;
+        return TRUE;
     }
 
     /**
      * Read a whole row into a named array
      *
-     * @param object $sheet
+     * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
      *   the PhpOffice spreadsheet
      * @param integer $row_number
      *   the row number to read
@@ -211,8 +212,7 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
      * @return array
      *   data set based on the $col2field mapping
      */
-    protected function readRow($sheet, $row_number, $col2field)
-    {
+    protected function readRow($sheet, $row_number, $col2field) {
         $record = [];
         foreach ($col2field as $column_number => $field_name) {
             /** @var \PhpOffice\PhpSpreadsheet\Cell\Cell $cell */
@@ -225,4 +225,5 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
         }
         return $record;
     }
+
 }
