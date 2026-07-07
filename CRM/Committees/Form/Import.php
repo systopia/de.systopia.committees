@@ -3,7 +3,6 @@
 declare(strict_types = 1);
 
 use CRM_Committees_ExtensionUtil as E;
-use CRM\Committees\Tools\DataConversionTrait;
 
 /**
  * Form controller class
@@ -12,7 +11,7 @@ use CRM\Committees\Tools\DataConversionTrait;
  */
 class CRM_Committees_Form_Import extends CRM_Core_Form {
 
-  use DataConversionTrait;
+  use CRM_Committees_Tools_DataConversionTrait;
 
   public function buildQuickForm() {
     $this->setTitle('Import Committee File');

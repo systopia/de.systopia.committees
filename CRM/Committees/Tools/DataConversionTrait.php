@@ -12,17 +12,14 @@
 | copyright header is strictly prohibited without        |
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
-
 declare(strict_types = 1);
-
-namespace CRM\Committees\Tools;
 
 use CRM_Committees_ExtensionUtil as E;
 
 /**
  * @todo once it is decided that this extension is purely php8.2 compatible, then this trait can be removed
  */
-trait DataConversionTrait {
+trait CRM_Committees_Tools_DataConversionTrait {
 
   /**
    * this function is used for backward compatibility to php < 8.2
