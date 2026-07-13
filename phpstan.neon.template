@@ -6,5 +6,9 @@ includes:
 	- phpstan.neon.dist
 
 parameters:
+	scanDirectories:
+		- {VENDOR_DIR}/civicrm/civicrm-core/api
+		- {VENDOR_DIR}/civicrm/civicrm-core/CRM
+ 
 	bootstrapFiles:
 		- {VENDOR_DIR}/autoload.php
