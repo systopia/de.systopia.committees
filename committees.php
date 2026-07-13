@@ -24,7 +24,6 @@ use CRM_Committees_ExtensionUtil as E;
 // phpcs:enable
 
 function _committees_composer_autoload(): void {
-
   if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
   }
@@ -36,6 +35,7 @@ function _committees_composer_autoload(): void {
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config/
  */
 function committees_civicrm_config(&$config) {
+  _committees_composer_autoload();
   _committees_civix_civicrm_config($config);
 
   // register for Committees.register_modules event
