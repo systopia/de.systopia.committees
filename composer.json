@@ -21,8 +21,7 @@
   "require": {
         "php": "^8.1",
         "civicrm/civicrm-core": ">=6.2",
-        "civicrm/civicrm-packages": ">=6.2",
-        "phpoffice/phpspreadsheet": "^2"
+        "civicrm/civicrm-packages": ">=6.2"
     },
     "autoload": {
         "classmap": ["ComposerHelper.php"]
