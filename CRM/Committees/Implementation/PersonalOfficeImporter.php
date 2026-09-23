@@ -13,8 +13,6 @@
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
 
-use CRM_Committees_ExtensionUtil as E;
-
 /**
  * Importer for PersonalOffice XLS Export
  *
@@ -47,34 +45,6 @@ class CRM_Committees_Implementation_PersonalOfficeImporter extends CRM_Committee
     /**
      * @var \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet|null our sheets extracted from the file */
     private $main_sheet = NULL;
-
-    /**
-     * This function will be called *before* the plugin will do it's work.
-     *
-     * If your implementation has any external dependencies, you should
-     *  register those with the registerMissingRequirement function.
-     *
-     */
-    public function checkRequirements() {
-        // Check for PhpSpreadsheet library:
-        // first, see if PhpSpreadsheet is already there
-        if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
-            // try composer autoload
-            $autoload_file = E::path('vendor/autoload.php');
-            if (file_exists($autoload_file)) {
-                require_once $autoload_file;
-            }
-        }
-        if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
-            $this->registerMissingRequirement(
-      'PhpSpreadsheet',
-      E::ts('PhpSpreadsheet library missing.'),
-      E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
-  );
-        }
-
-        return parent::checkRequirements();
-    }
 
     /**
      * Probe the file an add warnings/errors

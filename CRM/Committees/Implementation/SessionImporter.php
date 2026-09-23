@@ -111,22 +111,6 @@ class CRM_Committees_Implementation_SessionImporter extends CRM_Committees_Plugi
      *
      */
     public function checkRequirements() {
-        // Check for PhpSpreadsheet library:
-        // first, see if PhpSpreadsheet is already there
-        if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
-            // try composer autoload
-            $autoload_file = E::path('vendor/autoload.php');
-            if (file_exists($autoload_file)) {
-                require_once $autoload_file;
-            }
-        }
-        if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
-            $this->registerMissingRequirement(
-      'PhpSpreadsheet',
-      E::ts('PhpSpreadsheet library missing.'),
-      E::ts("Please add the 'phpoffice/phpspreadsheet' library to composer or the code path.")
-  );
-        }
         if (!$this->extensionAvailable('de.systopia.identitytracker')) {
           $this->registerMissingRequirement(
       'identitytracker',
